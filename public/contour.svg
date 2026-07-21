@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1200" viewBox="0 0 1600 1200" fill="none">
+  <defs>
+    <filter id="r" x="0" y="0">
+      <feTurbulence type="fractalNoise" baseFrequency="0.0018" numOctaves="3" seed="7"></feTurbulence>
+      <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 9 -4.4"></feColorMatrix>
+      <feComposite in2="SourceGraphic" operator="in"></feComposite>
+    </filter>
+  </defs>
+  <g stroke="rgba(243,232,213,0.35)" stroke-width="0.6" fill="none">
+    <path d="M-50,200 Q200,140 400,220 T800,180 T1200,260 T1650,200"></path>
+    <path d="M-50,260 Q210,200 420,280 T820,240 T1220,320 T1650,260"></path>
+    <path d="M-50,330 Q220,270 440,350 T840,310 T1240,390 T1650,330"></path>
+    <path d="M-50,410 Q240,360 460,430 T860,400 T1260,470 T1650,420"></path>
+    <path d="M-50,510 Q260,460 480,540 T880,510 T1280,580 T1650,520"></path>
+    <path d="M-50,640 Q280,580 500,660 T900,630 T1300,700 T1650,650"></path>
+    <path d="M-50,800 Q310,740 530,820 T930,790 T1320,870 T1650,810"></path>
+    <path d="M-50,980 Q340,920 560,1000 T970,970 T1350,1050 T1650,990"></path>
+  </g>
+  <g stroke="rgba(243,232,213,0.18)" stroke-width="0.4" fill="none">
+    <ellipse cx="380" cy="320" rx="160" ry="55"></ellipse>
+    <ellipse cx="380" cy="320" rx="120" ry="40"></ellipse>
+    <ellipse cx="380" cy="320" rx="80" ry="28"></ellipse>
+    <ellipse cx="380" cy="320" rx="40" ry="14"></ellipse>
+    <ellipse cx="1080" cy="720" rx="220" ry="80"></ellipse>
+    <ellipse cx="1080" cy="720" rx="170" ry="62"></ellipse>
+    <ellipse cx="1080" cy="720" rx="120" ry="44"></ellipse>
+    <ellipse cx="1080" cy="720" rx="70" ry="26"></ellipse>
+    <ellipse cx="1080" cy="720" rx="32" ry="12"></ellipse>
+    <ellipse cx="200" cy="950" rx="120" ry="45"></ellipse>
+    <ellipse cx="200" cy="950" rx="80" ry="30"></ellipse>
+    <ellipse cx="200" cy="950" rx="40" ry="14"></ellipse>
+    <ellipse cx="1400" cy="180" rx="140" ry="50"></ellipse>
+    <ellipse cx="1400" cy="180" rx="90" ry="32"></ellipse>
+    <ellipse cx="1400" cy="180" rx="40" ry="14"></ellipse>
+  </g>
+  <g fill="rgba(243,232,213,0.12)">
+    <circle cx="380" cy="320" r="1.5"></circle>
+    <circle cx="1080" cy="720" r="1.5"></circle>
+    <circle cx="200" cy="950" r="1.5"></circle>
+    <circle cx="1400" cy="180" r="1.5"></circle>
+  </g>
+  <g stroke="rgba(243,232,213,0.08)" stroke-width="0.3" fill="none">
+    <line x1="0" y1="600" x2="1600" y2="600"></line>
+    <line x1="800" y1="0" x2="800" y2="1200"></line>
+  </g>
+</svg>
