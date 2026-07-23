@@ -20,8 +20,8 @@ export function ReaderScreen({ entry, onBack, onEdit, onDelete }: ReaderScreenPr
   const rt = Math.max(1, Math.round(wc / 200));
 
   return (
-    <div className="mx-auto max-w-[1400px] px-4 pt-4 pb-6 max-phone:px-3 laptop:px-7 laptop:pt-5 laptop:pb-7">
-      <div className="mb-[22px] grid grid-cols-1 items-center gap-3 tablet:grid-cols-[auto_1fr_auto] tablet:gap-[18px]">
+    <div className="mx-auto max-w-350 px-4 pt-4 pb-6 max-phone:px-3 laptop:px-7 laptop:pt-5 laptop:pb-7">
+      <div className="mb-5.5 grid grid-cols-1 items-center gap-3 tablet:grid-cols-[auto_1fr_auto] tablet:gap-4.5">
         <Btn variant="ghost" onClick={onBack}>
           ◂ ARCHIVE
         </Btn>
@@ -36,7 +36,7 @@ export function ReaderScreen({ entry, onBack, onEdit, onDelete }: ReaderScreenPr
         </div>
       </div>
 
-      <div className="grid grid-cols-1 items-start gap-5 tablet:grid-cols-[minmax(0,1fr)_minmax(0,320px)] tablet:gap-[22px]">
+      <div className="grid grid-cols-1 items-start gap-5 tablet:grid-cols-[minmax(0,1fr)_minmax(0,320px)] tablet:gap-5.5">
         <main className="min-w-0">
           <Panel
             title={<DecodeText text="LOG ENTRY" />}
@@ -47,9 +47,9 @@ export function ReaderScreen({ entry, onBack, onEdit, onDelete }: ReaderScreenPr
               </span>
             }
           >
-            <div className="relative mb-[22px] flex flex-col gap-3 border-b border-line pb-[22px]">
+            <div className="relative mb-5.5 flex flex-col gap-3 border-b border-line pb-5.5">
               <span
-                className="absolute bottom-[-1px] left-0 h-px w-20 bg-accent shadow-[0_0_8px_var(--accent)]"
+                className="absolute -bottom-px left-0 h-px w-20 bg-accent shadow-[0_0_8px_var(--accent)]"
                 aria-hidden="true"
               />
               <div className="flex items-center gap-3.5">

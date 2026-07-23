@@ -239,7 +239,7 @@ export function Panel({
       style={{ boxShadow: PANEL_SHADOW }}
     >
       <span
-        className="pointer-events-none absolute top-0 right-0 size-[22px] bg-[linear-gradient(225deg,var(--bg)_50%,transparent_50%)]"
+        className="pointer-events-none absolute top-0 right-0 size-5.5 bg-[linear-gradient(225deg,var(--bg)_50%,transparent_50%)]"
         aria-hidden="true"
       />
       {title && (
@@ -351,6 +351,11 @@ export function fmtJDay(d: Date) {
   return String(Math.floor(diff / 86400000)).padStart(3, '0');
 }
 
+/** Format as DDMMYYYY.HHmmss (24h). */
+export function fmtStamp(d: Date) {
+  return `${pad(d.getDate())}${pad(d.getMonth() + 1)}${d.getFullYear()}.${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+}
+
 /** Music-note audio icon; draws a slash when muted. */
 function AudioIcon({ muted }: { muted: boolean }) {
   return (
@@ -363,9 +368,23 @@ function AudioIcon({ muted }: { muted: boolean }) {
       </svg>
       {muted && (
         <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <span className="block h-px w-[140%] rotate-[-45deg] bg-current shadow-[0_0_0_1px_var(--bg)]" />
+          <span className="block h-px w-[140%] -rotate-45 bg-current shadow-[0_0_0_1px_var(--bg)]" />
         </span>
       )}
+    </span>
+  );
+}
+
+/** Logout / exit-to-app icon. */
+function SignOutIcon() {
+  return (
+    <span className="inline-flex size-4 items-center justify-center" aria-hidden="true">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" className="size-4">
+        <path
+          fill="currentColor"
+          d="M5 21q-.825 0-1.412-.587T3 19V5q0-.825.588-1.412T5 3h6q.425 0 .713.288T12 4t-.288.713T11 5H5v14h6q.425 0 .713.288T12 20t-.288.713T11 21zm12.175-8H10q-.425 0-.712-.288T9 12t.288-.712T10 11h7.175L15.3 9.125q-.275-.275-.275-.675t.275-.7t.7-.313t.725.288L20.3 11.3q.3.3.3.7t-.3.7l-3.575 3.575q-.3.3-.712.288t-.713-.313q-.275-.3-.262-.712t.287-.688z"
+        />
+      </svg>
     </span>
   );
 }
@@ -373,13 +392,11 @@ function AudioIcon({ muted }: { muted: boolean }) {
 /** Top telemetry bar with brand, user, clock, and controls. */
 export function TopBar({
   user,
-  status,
   onSignOut,
   soundOn,
   onToggleSound,
 }: {
   user: string;
-  status: string;
   onSignOut: (() => void) | null;
   soundOn: boolean;
   onToggleSound: () => void;
@@ -387,7 +404,7 @@ export function TopBar({
   const now = useClock();
 
   return (
-    <div className="relative z-10 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-line bg-[linear-gradient(180deg,rgba(0,0,0,0.55),rgba(0,0,0,0.1))] px-3 py-2 font-mono text-[11px] max-tablet:grid-cols-[1fr_auto] max-tablet:gap-2 max-tablet:px-2.5 desktop:gap-4 desktop:px-[22px]">
+    <div className="relative z-10 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-line bg-[linear-gradient(180deg,rgba(0,0,0,0.55),rgba(0,0,0,0.1))] px-3 py-2 font-mono text-[11px] max-tablet:grid-cols-[1fr_auto] max-tablet:gap-2 max-tablet:px-2.5 desktop:gap-4 desktop:px-5.5">
       <div className="flex min-w-0 items-center gap-4 overflow-hidden text-fg-dim max-tablet:hidden desktop:gap-6">
         <span className="flex min-w-0 flex-col items-start gap-0.5 leading-none">
           <span className="text-[9px] tracking-[0.18em] text-fg-mute">LINK</span>
@@ -396,10 +413,6 @@ export function TopBar({
         <span className="flex min-w-0 flex-col items-start gap-0.5 leading-none">
           <span className="text-[9px] tracking-[0.18em] text-fg-mute">USER</span>
           <span className="truncate text-fg">{user || '—'}</span>
-        </span>
-        <span className="flex min-w-0 flex-col items-start gap-0.5 leading-none">
-          <span className="text-[9px] tracking-[0.18em] text-fg-mute">SESSION</span>
-          <span className="truncate text-accent">{status}</span>
         </span>
       </div>
       <div className="flex shrink-0 flex-col items-center gap-1 px-1 leading-none max-tablet:col-start-1 max-tablet:justify-self-start">
@@ -416,9 +429,7 @@ export function TopBar({
           </span>
           <span className="flex min-w-0 flex-col items-end gap-0.5 leading-none">
             <span className="text-[9px] tracking-[0.18em] text-fg-mute">GMT+8</span>
-            <span className="truncate text-fg">
-              {fmtDate(now)} · {fmtTime(now)}
-            </span>
+            <span className="truncate text-fg">{fmtStamp(now)}</span>
           </span>
         </div>
         <div className="flex shrink-0 items-center gap-1.5 border-l border-line pl-5 max-tablet:border-0 max-tablet:pl-0 desktop:pl-8">
@@ -438,30 +449,18 @@ export function TopBar({
           {onSignOut && (
             <button
               type="button"
-              className={`tap-target shrink-0 ${BTN_BASE} ${BTN_VARIANTS.ghost} px-2 py-1 text-[9px] max-tablet:min-h-11 max-tablet:px-3`}
+              className={`tap-target shrink-0 ${BTN_BASE} ${BTN_VARIANTS.ghost} px-2 py-1.5 max-tablet:min-h-11 max-tablet:min-w-11`}
               onClick={() => {
                 SoundManager.click();
                 onSignOut();
               }}
+              title="Sign out"
+              aria-label="Sign out"
             >
-              ⎋ SIGN OUT
+              <SignOutIcon />
             </button>
           )}
         </div>
-      </div>
-    </div>
-  );
-}
-
-/** Bottom status bar with left/right segments. */
-export function StatusBar({ left, right }: { left?: ReactNode; right?: ReactNode }) {
-  return (
-    <div className="relative z-10 flex items-center justify-between gap-2 overflow-hidden border-t border-line bg-[linear-gradient(0deg,rgba(0,0,0,0.55),rgba(0,0,0,0.1))] px-3 font-mono text-[10px] tracking-[0.12em] text-fg-mute max-phone:px-2.5 laptop:px-5.5">
-      <div className="inline-flex min-w-0 items-center gap-2 overflow-hidden max-phone:gap-2 laptop:gap-3.5">
-        {left}
-      </div>
-      <div className="inline-flex shrink-0 items-center gap-2 max-phone:gap-2 laptop:gap-3.5">
-        {right}
       </div>
     </div>
   );
@@ -490,11 +489,11 @@ export function Backdrop({ depth }: { depth: number }) {
   return (
     <div
       ref={ref}
-      className="pointer-events-none fixed inset-0 z-0 overflow-hidden [perspective:1200px]"
+      className="pointer-events-none fixed inset-0 z-0 overflow-hidden perspective-distant"
     >
       <div
         data-layer
-        className="absolute inset-[-8%] bg-[url('/contour.svg')] bg-[length:1600px_1200px] bg-repeat opacity-40 mix-blend-screen will-change-transform"
+        className="absolute inset-[-8%] bg-[url('/contour.svg')] bg-size-[1600px_1200px] bg-repeat opacity-40 mix-blend-screen will-change-transform"
       />
       <div
         data-layer

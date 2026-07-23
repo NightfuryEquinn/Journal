@@ -16,11 +16,3 @@ export type AppView =
   | { name: 'list' }
   | { name: 'read'; entry: JournalEntry }
   | { name: 'compose'; existing: JournalEntry | null };
-
-export interface TweakValues {
-  paletteSwatch: string[];
-  type: string;
-  density: string;
-  depth: number;
-  scanlines: boolean;
-}

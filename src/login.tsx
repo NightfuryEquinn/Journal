@@ -71,7 +71,7 @@ export function LoginScreen({ onAuth }: { onAuth: (user: string) => void }) {
 
   return (
     <div className="relative grid min-h-full place-items-center px-4 py-8 max-phone:py-6 laptop:px-[6vw] laptop:py-10">
-      <div className="grid w-full max-w-[980px] grid-cols-1 items-stretch gap-8 max-tablet:gap-6 tablet:grid-cols-[minmax(0,320px)_1fr] tablet:gap-10 laptop:gap-[60px]">
+      <div className="grid w-full max-w-245 grid-cols-1 items-stretch gap-8 max-tablet:gap-6 tablet:grid-cols-[minmax(0,320px)_1fr] tablet:gap-10 laptop:gap-15">
         <Bracket className="max-w-md justify-self-center tablet:max-w-none tablet:justify-self-stretch">
           <div
             className="flex flex-col gap-3.5 border border-line-strong bg-[linear-gradient(180deg,var(--bg-1),var(--bg))] p-4"
@@ -132,10 +132,10 @@ export function LoginScreen({ onAuth }: { onAuth: (user: string) => void }) {
         </Bracket>
 
         <div
-          className={`relative min-w-0 tablet:[transform:perspective(1400px)_rotateY(-2deg)] tablet:[transform-style:preserve-3d] ${shake ? 'animate-shake' : ''}`}
+          className={`relative min-w-0 tablet:transform-[perspective(1400px)_rotateY(-2deg)] tablet:transform-3d ${shake ? 'animate-shake' : ''}`}
         >
           <Panel title={<DecodeText text="SECURE TERMINAL" />} meta="tty/01 · 9600 8N1">
-            <div className="flex min-h-[280px] flex-col gap-[18px] max-phone:min-h-[240px]">
+            <div className="flex min-h-70 flex-col gap-4.5 max-phone:min-h-60">
               <div className="font-mono text-xs leading-[1.8]">
                 {TYPED_BOOT_LINES.slice(0, bootIdx).map((l, i) => (
                   <div key={i} className={i === 0 ? 'text-fg' : 'text-fg-dim'}>
@@ -184,7 +184,7 @@ export function LoginScreen({ onAuth }: { onAuth: (user: string) => void }) {
                       </span>
                     )}
                   </div>
-                  <div className="mt-[18px] flex flex-wrap gap-2.5">
+                  <div className="mt-4.5 flex flex-wrap gap-2.5">
                     <Btn type="submit" variant="primary" disabled={phase !== 'prompt' || !pwd}>
                       ▸ AUTHENTICATE
                     </Btn>

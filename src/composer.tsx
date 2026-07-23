@@ -88,8 +88,8 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
   };
 
   return (
-    <div className="mx-auto max-w-[1400px] px-4 pt-4 pb-6 max-phone:px-3 laptop:px-7 laptop:pt-5 laptop:pb-7">
-      <div className="mb-[22px] grid grid-cols-1 items-center gap-3 tablet:grid-cols-[auto_1fr_auto] tablet:gap-[18px]">
+    <div className="mx-auto max-w-350 px-4 pt-4 pb-6 max-phone:px-3 laptop:px-7 laptop:pt-5 laptop:pb-7">
+      <div className="mb-5.5 grid grid-cols-1 items-center gap-3 tablet:grid-cols-[auto_1fr_auto] tablet:gap-4.5">
         <Btn variant="ghost" onClick={onCancel}>
           ◂ DISCARD
         </Btn>
@@ -114,7 +114,7 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
         </div>
       </div>
 
-      <div className="grid grid-cols-1 items-start gap-5 tablet:grid-cols-[minmax(0,1fr)_minmax(0,320px)] tablet:gap-[22px]">
+      <div className="grid grid-cols-1 items-start gap-5 tablet:grid-cols-[minmax(0,1fr)_minmax(0,320px)] tablet:gap-5.5">
         <main className="min-w-0">
           <Panel
             title={<DecodeText text="CONSOLE · COMPOSE" />}
@@ -173,7 +173,7 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
                 </div>
                 <textarea
                   ref={bodyRef}
-                  className="min-h-[360px] w-full resize-y px-3.5 py-3 font-mono text-[13px] leading-[1.7] text-fg placeholder:text-fg-mute max-phone:min-h-[280px]"
+                  className="min-h-90 w-full resize-y px-3.5 py-3 font-mono text-[13px] leading-[1.7] text-fg placeholder:text-fg-mute max-phone:min-h-70"
                   value={body}
                   onChange={(e) => {
                     setBody(e.target.value);
@@ -208,7 +208,7 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
 
         <aside className="min-w-0">
           <Panel title="METADATA" meta="REQUIRED">
-            <div className="flex flex-col gap-[18px]">
+            <div className="flex flex-col gap-4.5">
               <div className="flex flex-col gap-1.5">
                 <label className="font-mono text-[9.5px] tracking-[0.2em] text-fg-mute">
                   DATE / TIME
