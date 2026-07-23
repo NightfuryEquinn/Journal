@@ -32,26 +32,47 @@ const PALETTE_MAP: Record<string, string> = {
   '["#b5ff5a","#07090a","#e7f5d8"]': 'phosphor',
   '["#f1ede4","#0d0e10","#1a1c20"]': 'bone',
 };
+
+/** Resolve palette key from tweak swatch colors. */
 const paletteFromSwatch = (sw: string[]): string =>
   PALETTE_MAP[JSON.stringify(sw).toLowerCase()] || 'tactical';
 
-const STORAGE_KEY = 'meridian.entries.v1';
+const STORAGE_KEY = 'journs.entries.v1';
+const LEGACY_STORAGE_KEY = 'meridian.entries.v1';
 
+/** Load entries from localStorage, migrating the legacy Meridian key once. */
+function loadEntries(): JournalEntry[] {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+
+    if (stored) {
+      return JSON.parse(stored) as JournalEntry[];
+    }
+
+    const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
+
+    if (legacy) {
+      const parsed = JSON.parse(legacy) as JournalEntry[];
+      localStorage.setItem(STORAGE_KEY, legacy);
+      localStorage.removeItem(LEGACY_STORAGE_KEY);
+
+      return parsed;
+    }
+  } catch {
+    /* ignore */
+  }
+
+  return SEED_ENTRIES;
+}
+
+/** Root shell: view routing, persistence, theme tweaks, and chrome. */
 export default function App() {
   const [t, setTweak] = useTweaks<TweakValues & Record<string, unknown>>(TWEAK_DEFAULTS);
   const [user, setUser] = useState<string | null>(null);
   const [view, setView] = useState<AppView>({ name: 'login' });
   const [listLayout, setListLayout] = useState<ListLayout>('stack');
   const [soundOn, setSoundOn] = useState(false);
-  const [entries, setEntries] = useState<JournalEntry[]>(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) return JSON.parse(stored) as JournalEntry[];
-    } catch {
-      /* ignore */
-    }
-    return SEED_ENTRIES;
-  });
+  const [entries, setEntries] = useState<JournalEntry[]>(loadEntries);
   const [confirmDel, setConfirmDel] = useState<JournalEntry | null>(null);
 
   useEffect(() => {
@@ -87,34 +108,55 @@ export default function App() {
             ? 'WRITE · CONSOLE'
             : '—';
 
+  /** Authenticate and enter the archive list. */
   const onAuth = (u: string) => {
     setUser(u);
     setView({ name: 'list' });
   };
+
+  /** Clear session and return to login. */
   const signOut = () => {
     setUser(null);
     setView({ name: 'login' });
   };
 
+  /** Open an entry in the reader. */
   const openEntry = (e: JournalEntry) => setView({ name: 'read', entry: e });
+
+  /** Open the composer for a new entry. */
   const newEntry = () => setView({ name: 'compose', existing: null });
+
+  /** Open the composer to edit an existing entry. */
   const editEntry = (e: JournalEntry) => setView({ name: 'compose', existing: e });
 
+  /** Persist an entry and open it in the reader. */
   const saveEntry = (e: JournalEntry) => {
     setEntries((prev) => {
       const i = prev.findIndex((x) => x.id === e.id);
-      if (i === -1) return [e, ...prev];
+
+      if (i === -1) {
+        return [e, ...prev];
+      }
+
       const cp = prev.slice();
       cp[i] = e;
+
       return cp;
     });
     setView({ name: 'read', entry: e });
   };
 
+  /** Prompt for delete confirmation. */
   const requestDelete = (e: JournalEntry) => setConfirmDel(e);
+
+  /** Confirm and purge the pending entry. */
   const confirmDelete = () => {
     const e = confirmDel;
-    if (!e) return;
+
+    if (!e) {
+      return;
+    }
+
     setEntries((prev) => prev.filter((x) => x.id !== e.id));
     setConfirmDel(null);
     SoundManager.deny();
@@ -125,7 +167,7 @@ export default function App() {
     view.name === 'read' ? entries.find((x) => x.id === view.entry.id) || view.entry : null;
 
   return (
-    <div className="app">
+    <div className="fixed inset-0 grid grid-rows-[minmax(56px,auto)_1fr_minmax(28px,auto)] bg-bg">
       <Backdrop depth={t.depth} />
 
       <TopBar
@@ -136,8 +178,8 @@ export default function App() {
         onToggleSound={() => setSoundOn((s) => !s)}
       />
 
-      <div className="stage">
-        <div className="scene">
+      <div className="relative z-[5] grid overflow-hidden">
+        <div className="col-start-1 row-start-1 overflow-auto [scrollbar-color:var(--line-strong)_transparent] [scrollbar-width:thin]">
           {view.name === 'login' && <LoginScreen onAuth={onAuth} />}
           {view.name === 'list' && (
             <ListScreen
@@ -174,36 +216,39 @@ export default function App() {
         left={
           <>
             <span>CRT · OK</span>
-            <span>CLUSTER · ATL-07</span>
-            <span>ENC · TLS 1.3</span>
-            <span className="acc">● OPERATOR-ONLY</span>
+            <span className="max-phone:hidden">CLUSTER · ATL-07</span>
+            <span className="max-tablet:hidden">ENC · TLS 1.3</span>
           </>
         }
         right={
           <>
             <span>ENTRIES · {entries.length.toString().padStart(4, '0')}</span>
-            <span>VIEW · {view.name.toUpperCase()}</span>
-            <span>SIG · ▰▰▰▰▱</span>
+            <span className="max-phone:hidden">VIEW · {view.name.toUpperCase()}</span>
+            <span className="max-tablet:hidden">SIG · ▰▰▰▰▱</span>
           </>
         }
       />
 
       {confirmDel && (
-        <div className="modal-backdrop" onClick={() => setConfirmDel(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-[1000] grid animate-fade place-items-center bg-black/70 backdrop-blur-[4px]"
+          onClick={() => setConfirmDel(null)}
+        >
+          <div className="w-[min(440px,90vw)]" onClick={(e) => e.stopPropagation()}>
             <Bracket>
               <Panel title="CONFIRM PURGE" meta="DESTRUCTIVE OPERATION">
-                <div style={{ marginBottom: 14, fontSize: 13, lineHeight: 1.6 }}>
+                <div className="mb-3.5 text-[13px] leading-[1.6]">
                   <DecodeText text="// this will erase the log entry from the cluster." speed={14} />
-                  <div style={{ marginTop: 8, color: 'var(--fg-mute)' }}>
-                    <span className="mono">_id:</span>{' '}
-                    <span className="acc mono">{confirmDel.id}</span>
+                  <div className="mt-2 text-fg-mute">
+                    <span className="font-mono tracking-[0.02em]">_id:</span>{' '}
+                    <span className="font-mono tracking-[0.02em] text-accent">{confirmDel.id}</span>
                   </div>
-                  <div style={{ marginTop: 4, color: 'var(--fg-dim)' }}>
-                    <span className="mono dim">title:</span> <span>{confirmDel.title}</span>
+                  <div className="mt-1 text-fg-dim">
+                    <span className="font-mono tracking-[0.02em] text-fg-dim">title:</span>{' '}
+                    <span>{confirmDel.title}</span>
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                <div className="flex justify-end gap-2.5">
                   <Btn variant="ghost" onClick={() => setConfirmDel(null)}>
                     CANCEL
                   </Btn>
@@ -217,7 +262,7 @@ export default function App() {
         </div>
       )}
 
-      <TweaksPanel title="MERIDIAN · TWEAKS">
+      <TweaksPanel title="JOURNS · TWEAKS">
         <TweakSection label="Color palette">
           <TweakColor
             label="Palette"
@@ -230,7 +275,7 @@ export default function App() {
             ]}
             onChange={(arr) => setTweak('paletteSwatch', arr)}
           />
-          <div className="mono mute" style={{ fontSize: 10, letterSpacing: '0.16em', textAlign: 'right' }}>
+          <div className="text-right font-mono text-[10px] tracking-[0.16em] text-fg-mute">
             CURRENT · {paletteKey.toUpperCase()}
           </div>
         </TweakSection>
@@ -289,18 +334,6 @@ export default function App() {
           }}
         />
       </TweaksPanel>
-
-      <style>{`
-        .modal-backdrop {
-          position: fixed; inset: 0; z-index: 1000;
-          background: rgba(0,0,0,0.7);
-          backdrop-filter: blur(4px);
-          display: grid; place-items: center;
-          animation: fade 0.2s;
-        }
-        @keyframes fade { from { opacity: 0; } }
-        .modal { width: min(440px, 90vw); }
-      `}</style>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 ---
 description: Require PC, laptop, tablet, and mobile layouts for any UI change
-globs: src/frontend/**/*.{tsx,css},src/**/*.html
+globs: src/**/*.{tsx,css},index.html
 alwaysApply: false
 ---
 
@@ -16,10 +16,10 @@ Before finishing UI work, verify (or adjust CSS for) roughly:
 | --- | --- | --- |
 | PC / large laptop | ≥981px | Full sidebar layout, multi-column grids |
 | Laptop / small desktop | ~861–980px | Overview may collapse; avoid overflow |
-| Tablet / large phone | ≤860px | Sidebar → bottom nav; stack panels; tap targets ≥44px |
+| Tablet / large phone | ≤860px | Sidebar → stacked panels; tap targets ≥44px |
 | Phone | ≤560px | Single column; readable type; no horizontal scroll |
 
-Match existing breakpoints in `src/frontend/styles/ledger.css` (`980px`, `860px`, `560px`) unless a new query is clearly needed.
+Match existing breakpoints in `src/styles.css` (`980px`, `860px`, `560px`) unless a new query is clearly needed.
 
 ## Patterns
 
@@ -37,4 +37,4 @@ Match existing breakpoints in `src/frontend/styles/ledger.css` (`980px`, `860px`
 - Prefer fluid widths (`%`, `minmax(0, 1fr)`, `min-width: 0`) over fixed pixel shells.
 - Stack grids/flex rows at tablet/mobile; don’t clip labels or force overflow.
 - Modals, pickers, and toolbars must remain usable on small screens and touch (`hover: none`).
-- When editing a component, update the matching `@media` rules in `ledger.css` in the same change.
+- When editing a component, update the matching `@media` rules in `styles.css` in the same change.

@@ -1,5 +1,4 @@
-
-// tweaks-panel.jsx
+// tweaks-panel.tsx
 // Reusable Tweaks shell + form-control helpers.
 //
 // Owns the host protocol (listens for __activate_edit_mode / __deactivate_edit_mode,
@@ -8,155 +7,6 @@
 // don't hand-draw <input type="range">, segmented radios, steppers, etc.
 import React from 'react';
 import type { ReactNode, MouseEvent, PointerEvent } from 'react';
-
-// Usage (in an HTML file that loads React + Babel):
-//
-//   const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
-//     "primaryColor": "#D97757",
-//     "palette": ["#D97757", "#29261b", "#f6f4ef"],
-//     "fontSize": 16,
-//     "density": "regular",
-//     "dark": false
-//   }/*EDITMODE-END*/;
-//
-//   function App() {
-//     const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
-//     return (
-//       <div style={{ fontSize: t.fontSize, color: t.primaryColor }}>
-//         Hello
-//         <TweaksPanel>
-//           <TweakSection label="Typography" />
-//           <TweakSlider label="Font size" value={t.fontSize} min={10} max={32} unit="px"
-//                        onChange={(v) => setTweak('fontSize', v)} />
-//           <TweakRadio  label="Density" value={t.density}
-//                        options={['compact', 'regular', 'comfy']}
-//                        onChange={(v) => setTweak('density', v)} />
-//           <TweakSection label="Theme" />
-//           <TweakColor  label="Primary" value={t.primaryColor}
-//                        options={['#D97757', '#2A6FDB', '#1F8A5B', '#7A5AE0']}
-//                        onChange={(v) => setTweak('primaryColor', v)} />
-//           <TweakColor  label="Palette" value={t.palette}
-//                        options={[['#D97757', '#29261b', '#f6f4ef'],
-//                                  ['#475569', '#0f172a', '#f1f5f9']]}
-//                        onChange={(v) => setTweak('palette', v)} />
-//           <TweakToggle label="Dark mode" value={t.dark}
-//                        onChange={(v) => setTweak('dark', v)} />
-//         </TweaksPanel>
-//       </div>
-//     );
-//   }
-//
-// ─────────────────────────────────────────────────────────────────────────────
-
-const __TWEAKS_STYLE = `
-  .twk-panel{position:fixed;right:16px;bottom:16px;z-index:2147483646;width:280px;
-    max-height:calc(100vh - 32px);display:flex;flex-direction:column;
-    transform:scale(var(--dc-inv-zoom,1));transform-origin:bottom right;
-    background:rgba(250,249,247,.78);color:#29261b;
-    -webkit-backdrop-filter:blur(24px) saturate(160%);backdrop-filter:blur(24px) saturate(160%);
-    border:.5px solid rgba(255,255,255,.6);border-radius:14px;
-    box-shadow:0 1px 0 rgba(255,255,255,.5) inset,0 12px 40px rgba(0,0,0,.18);
-    font:11.5px/1.4 ui-sans-serif,system-ui,-apple-system,sans-serif;overflow:hidden}
-  .twk-hd{display:flex;align-items:center;justify-content:space-between;
-    padding:10px 8px 10px 14px;cursor:move;user-select:none}
-  .twk-hd b{font-size:12px;font-weight:600;letter-spacing:.01em}
-  .twk-x{appearance:none;border:0;background:transparent;color:rgba(41,38,27,.55);
-    width:22px;height:22px;border-radius:6px;cursor:default;font-size:13px;line-height:1}
-  .twk-x:hover{background:rgba(0,0,0,.06);color:#29261b}
-  .twk-body{padding:2px 14px 14px;display:flex;flex-direction:column;gap:10px;
-    overflow-y:auto;overflow-x:hidden;min-height:0;
-    scrollbar-width:thin;scrollbar-color:rgba(0,0,0,.15) transparent}
-  .twk-body::-webkit-scrollbar{width:8px}
-  .twk-body::-webkit-scrollbar-track{background:transparent;margin:2px}
-  .twk-body::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);border-radius:4px;
-    border:2px solid transparent;background-clip:content-box}
-  .twk-body::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.25);
-    border:2px solid transparent;background-clip:content-box}
-  .twk-row{display:flex;flex-direction:column;gap:5px}
-  .twk-row-h{flex-direction:row;align-items:center;justify-content:space-between;gap:10px}
-  .twk-lbl{display:flex;justify-content:space-between;align-items:baseline;
-    color:rgba(41,38,27,.72)}
-  .twk-lbl>span:first-child{font-weight:500}
-  .twk-val{color:rgba(41,38,27,.5);font-variant-numeric:tabular-nums}
-
-  .twk-sect{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
-    color:rgba(41,38,27,.45);padding:10px 0 0}
-  .twk-sect:first-child{padding-top:0}
-
-  .twk-field{appearance:none;box-sizing:border-box;width:100%;min-width:0;height:26px;padding:0 8px;
-    border:.5px solid rgba(0,0,0,.1);border-radius:7px;
-    background:rgba(255,255,255,.6);color:inherit;font:inherit;outline:none}
-  .twk-field:focus{border-color:rgba(0,0,0,.25);background:rgba(255,255,255,.85)}
-  select.twk-field{padding-right:22px;
-    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='rgba(0,0,0,.5)' d='M0 0h10L5 6z'/></svg>");
-    background-repeat:no-repeat;background-position:right 8px center}
-
-  .twk-slider{appearance:none;-webkit-appearance:none;width:100%;height:4px;margin:6px 0;
-    border-radius:999px;background:rgba(0,0,0,.12);outline:none}
-  .twk-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
-    width:14px;height:14px;border-radius:50%;background:#fff;
-    border:.5px solid rgba(0,0,0,.12);box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:default}
-  .twk-slider::-moz-range-thumb{width:14px;height:14px;border-radius:50%;
-    background:#fff;border:.5px solid rgba(0,0,0,.12);box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:default}
-
-  .twk-seg{position:relative;display:flex;padding:2px;border-radius:8px;
-    background:rgba(0,0,0,.06);user-select:none}
-  .twk-seg-thumb{position:absolute;top:2px;bottom:2px;border-radius:6px;
-    background:rgba(255,255,255,.9);box-shadow:0 1px 2px rgba(0,0,0,.12);
-    transition:left .15s cubic-bezier(.3,.7,.4,1),width .15s}
-  .twk-seg.dragging .twk-seg-thumb{transition:none}
-  .twk-seg button{appearance:none;position:relative;z-index:1;flex:1;border:0;
-    background:transparent;color:inherit;font:inherit;font-weight:500;min-height:22px;
-    border-radius:6px;cursor:default;padding:4px 6px;line-height:1.2;
-    overflow-wrap:anywhere}
-
-  .twk-toggle{position:relative;width:32px;height:18px;border:0;border-radius:999px;
-    background:rgba(0,0,0,.15);transition:background .15s;cursor:default;padding:0}
-  .twk-toggle[data-on="1"]{background:#34c759}
-  .twk-toggle i{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;
-    background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
-  .twk-toggle[data-on="1"] i{transform:translateX(14px)}
-
-  .twk-num{display:flex;align-items:center;box-sizing:border-box;min-width:0;height:26px;padding:0 0 0 8px;
-    border:.5px solid rgba(0,0,0,.1);border-radius:7px;background:rgba(255,255,255,.6)}
-  .twk-num-lbl{font-weight:500;color:rgba(41,38,27,.6);cursor:ew-resize;
-    user-select:none;padding-right:8px}
-  .twk-num input{flex:1;min-width:0;height:100%;border:0;background:transparent;
-    font:inherit;font-variant-numeric:tabular-nums;text-align:right;padding:0 8px 0 0;
-    outline:none;color:inherit;-moz-appearance:textfield}
-  .twk-num input::-webkit-inner-spin-button,.twk-num input::-webkit-outer-spin-button{
-    -webkit-appearance:none;margin:0}
-  .twk-num-unit{padding-right:8px;color:rgba(41,38,27,.45)}
-
-  .twk-btn{appearance:none;height:26px;padding:0 12px;border:0;border-radius:7px;
-    background:rgba(0,0,0,.78);color:#fff;font:inherit;font-weight:500;cursor:default}
-  .twk-btn:hover{background:rgba(0,0,0,.88)}
-  .twk-btn.secondary{background:rgba(0,0,0,.06);color:inherit}
-  .twk-btn.secondary:hover{background:rgba(0,0,0,.1)}
-
-  .twk-swatch{appearance:none;-webkit-appearance:none;width:56px;height:22px;
-    border:.5px solid rgba(0,0,0,.1);border-radius:6px;padding:0;cursor:default;
-    background:transparent;flex-shrink:0}
-  .twk-swatch::-webkit-color-swatch-wrapper{padding:0}
-  .twk-swatch::-webkit-color-swatch{border:0;border-radius:5.5px}
-  .twk-swatch::-moz-color-swatch{border:0;border-radius:5.5px}
-
-  .twk-chips{display:flex;gap:6px}
-  .twk-chip{position:relative;appearance:none;flex:1;min-width:0;height:46px;
-    padding:0;border:0;border-radius:6px;overflow:hidden;cursor:default;
-    box-shadow:0 0 0 .5px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.06);
-    transition:transform .12s cubic-bezier(.3,.7,.4,1),box-shadow .12s}
-  .twk-chip:hover{transform:translateY(-1px);
-    box-shadow:0 0 0 .5px rgba(0,0,0,.18),0 4px 10px rgba(0,0,0,.12)}
-  .twk-chip[data-on="1"]{box-shadow:0 0 0 1.5px rgba(0,0,0,.85),
-    0 2px 6px rgba(0,0,0,.15)}
-  .twk-chip>span{position:absolute;top:0;bottom:0;right:0;width:34%;
-    display:flex;flex-direction:column;box-shadow:-1px 0 0 rgba(0,0,0,.1)}
-  .twk-chip>span>i{flex:1;box-shadow:0 -1px 0 rgba(0,0,0,.1)}
-  .twk-chip>span>i:first-child{box-shadow:none}
-  .twk-chip svg{position:absolute;top:6px;left:6px;width:13px;height:13px;
-    filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))}
-`;
 
 type DeckStageElement = HTMLElement & { _railEnabled?: boolean };
 
@@ -177,14 +27,17 @@ type TweakColorValue = string | string[];
 
 type TweakColorOption = string | string[];
 
+/** Narrow a tweak option to an object shape. */
 function isTweakOptionObject(o: TweakOption): o is TweakOptionObject {
   return typeof o === 'object' && o !== null && 'value' in o;
 }
 
+/** Extract the value from a tweak option. */
 function tweakOptionValue(o: TweakOption): TweakOptionValue {
   return isTweakOptionObject(o) ? o.value : o;
 }
 
+/** Extract the label from a tweak option. */
 function tweakOptionLabel(o: TweakOption): ReactNode {
   return isTweakOptionObject(o) ? o.label : o;
 }
@@ -267,16 +120,15 @@ export interface TweakButtonProps {
   secondary?: boolean;
 }
 
+const TWK_FIELD =
+  'box-border h-[26px] w-full min-w-0 appearance-none rounded-[7px] border-[0.5px] border-black/10 bg-white/60 px-2 font-[inherit] text-inherit outline-none focus:border-black/25 focus:bg-white/[0.85]';
+
 // ── useTweaks ───────────────────────────────────────────────────────────────
-// Single source of truth for tweak values. setTweak persists via the host
-// (__edit_mode_set_keys → host rewrites the EDITMODE block on disk).
+/** Persist tweak values via host edit-mode protocol. */
 export function useTweaks<T extends Record<string, unknown>>(
   defaults: T,
 ): [T, (keyOrEdits: keyof T | Partial<T>, val?: T[keyof T]) => void] {
   const [values, setValues] = React.useState(defaults);
-  // Accepts either setTweak('key', value) or setTweak({ key: value, ... }) so a
-  // useState-style call doesn't write a "[object Object]" key into the persisted
-  // JSON block.
   const setTweak = React.useCallback((keyOrEdits: keyof T | Partial<T>, val?: T[keyof T]) => {
     const edits: Partial<T> =
       typeof keyOrEdits === 'object' && keyOrEdits !== null
@@ -284,20 +136,13 @@ export function useTweaks<T extends Record<string, unknown>>(
         : ({ [keyOrEdits]: val } as Partial<T>);
     setValues((prev: T) => ({ ...prev, ...edits }));
     window.parent.postMessage({ type: '__edit_mode_set_keys', edits }, '*');
-    // Same-window signal so in-page listeners (deck-stage rail thumbnails)
-    // can react — the parent message only reaches the host, not peers.
     window.dispatchEvent(new CustomEvent('tweakchange', { detail: edits }));
   }, []);
   return [values, setTweak];
 }
 
 // ── TweaksPanel ─────────────────────────────────────────────────────────────
-// Floating shell. Registers the protocol listener BEFORE announcing
-// availability — if the announce ran first, the host's activate could land
-// before our handler exists and the toolbar toggle would silently no-op.
-// The close button posts __edit_mode_dismissed so the host's toolbar toggle
-// flips off in lockstep; the host echoes __deactivate_edit_mode back which
-// is what actually hides the panel.
+/** Floating tweaks shell with drag, host protocol, and optional deck rail. */
 export function TweaksPanel({
   title = 'Tweaks',
   noDeckControls = false,
@@ -305,27 +150,14 @@ export function TweaksPanel({
 }: TweaksPanelProps) {
   const [open, setOpen] = React.useState(false);
   const dragRef = React.useRef<HTMLDivElement>(null);
-  // Auto-inject a rail toggle when a <deck-stage> is on the page. The
-  // toggle drives the deck's per-viewer _railVisible via window message;
-  // state is mirrored from the same localStorage key the deck reads so
-  // the control reflects reality across reloads. The mechanism is the
-  // message — authors who want custom placement can post it directly
-  // and pass noDeckControls to suppress this one.
   const hasDeckStage = React.useMemo(
     () => typeof document !== 'undefined' && !!document.querySelector('deck-stage'),
     [],
   );
-  // deck-stage enables its rail in connectedCallback, but this panel can
-  // mount before that element has upgraded. The initial read catches the
-  // common case; the listener covers mounting first. (Older deck-stage.js
-  // copies still wait for the host's __omelette_rail_enabled postMessage —
-  // same listener handles those.)
   const [railEnabled, setRailEnabled] = React.useState(
     () =>
       hasDeckStage &&
-      !!(
-        document.querySelector('deck-stage') as DeckStageElement | null
-      )?._railEnabled,
+      !!(document.querySelector('deck-stage') as DeckStageElement | null)?._railEnabled,
   );
   React.useEffect(() => {
     if (!hasDeckStage || railEnabled) return undefined;
@@ -343,6 +175,8 @@ export function TweaksPanel({
       return true;
     }
   });
+
+  /** Toggle deck thumbnail rail visibility. */
   const toggleRail = (on: boolean) => {
     setRailVisible(on);
     window.postMessage({ type: '__deck_rail_visible', on }, '*');
@@ -350,6 +184,7 @@ export function TweaksPanel({
   const offsetRef = React.useRef({ x: 16, y: 16 });
   const PAD = 16;
 
+  /** Keep the panel inside the viewport after drag/resize. */
   const clampToViewport = React.useCallback(() => {
     const panel = dragRef.current;
     if (!panel) return;
@@ -388,11 +223,13 @@ export function TweaksPanel({
     return () => window.removeEventListener('message', onMsg);
   }, []);
 
+  /** Close panel and notify the host toolbar. */
   const dismiss = () => {
     setOpen(false);
     window.parent.postMessage({ type: '__edit_mode_dismissed' }, '*');
   };
 
+  /** Begin dragging the panel from the header. */
   const onDragStart = (e: MouseEvent<HTMLDivElement>) => {
     const panel = dragRef.current;
     if (!panel) return;
@@ -417,47 +254,64 @@ export function TweaksPanel({
   };
 
   if (!open) return null;
+
   return (
-    <>
-      <style>{__TWEAKS_STYLE}</style>
-      <div ref={dragRef} className="twk-panel" data-noncommentable=""
-           style={{ right: offsetRef.current.x, bottom: offsetRef.current.y }}>
-        <div className="twk-hd" onMouseDown={onDragStart}>
-          <b>{title}</b>
-          <button className="twk-x" aria-label="Close tweaks"
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onClick={dismiss}>✕</button>
-        </div>
-        <div className="twk-body">
-          {children}
-          {hasDeckStage && railEnabled && !noDeckControls && (
-            <TweakSection label="Deck">
-              <TweakToggle label="Thumbnail rail" value={railVisible} onChange={toggleRail} />
-            </TweakSection>
-          )}
-        </div>
+    <div
+      ref={dragRef}
+      className="twk-panel fixed right-4 bottom-4 z-[2147483646] flex max-h-[calc(100vh-32px)] origin-bottom-right scale-[var(--dc-inv-zoom,1)] flex-col overflow-hidden rounded-[14px] border-[0.5px] border-white/60 bg-[rgba(250,249,247,0.78)] text-[#29261b] shadow-[0_1px_0_rgba(255,255,255,0.5)_inset,0_12px_40px_rgba(0,0,0,0.18)] [font:11.5px/1.4_ui-sans-serif,system-ui,-apple-system,sans-serif] backdrop-blur-[24px] backdrop-saturate-[160%]"
+      data-noncommentable=""
+      style={{ right: offsetRef.current.x, bottom: offsetRef.current.y }}
+    >
+      <div
+        className="flex cursor-move items-center justify-between py-2.5 pr-2 pl-3.5 select-none"
+        onMouseDown={onDragStart}
+      >
+        <b className="text-xs font-semibold tracking-[0.01em]">{title}</b>
+        <button
+          type="button"
+          className="tap-target size-[22px] cursor-default rounded-md border-0 bg-transparent text-[13px] leading-none text-[rgba(41,38,27,0.55)] appearance-none hover:bg-black/[0.06] hover:text-[#29261b] max-tablet:min-h-11 max-tablet:min-w-11"
+          aria-label="Close tweaks"
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={dismiss}
+        >
+          ✕
+        </button>
       </div>
-    </>
+      <div className="flex min-h-0 flex-col gap-2.5 overflow-x-hidden overflow-y-auto px-3.5 pt-0.5 pb-3.5 [scrollbar-color:rgba(0,0,0,0.15)_transparent] [scrollbar-width:thin]">
+        {children}
+        {hasDeckStage && railEnabled && !noDeckControls && (
+          <TweakSection label="Deck">
+            <TweakToggle label="Thumbnail rail" value={railVisible} onChange={toggleRail} />
+          </TweakSection>
+        )}
+      </div>
+    </div>
   );
 }
 
 // ── Layout helpers ──────────────────────────────────────────────────────────
 
+/** Section heading inside the tweaks panel. */
 export function TweakSection({ label, children }: TweakSectionProps) {
   return (
     <>
-      <div className="twk-sect">{label}</div>
+      <div className="pt-2.5 text-[10px] font-semibold tracking-[0.06em] text-[rgba(41,38,27,0.45)] uppercase first:pt-0">
+        {label}
+      </div>
       {children}
     </>
   );
 }
 
+/** Labeled row wrapper for tweak controls. */
 export function TweakRow({ label, value, children, inline = false }: TweakRowProps) {
   return (
-    <div className={inline ? 'twk-row twk-row-h' : 'twk-row'}>
-      <div className="twk-lbl">
-        <span>{label}</span>
-        {value != null && <span className="twk-val">{value}</span>}
+    <div className={`flex gap-[5px] ${inline ? 'flex-row items-center justify-between gap-2.5' : 'flex-col'}`}>
+      <div className="flex items-baseline justify-between text-[rgba(41,38,27,0.72)]">
+        <span className="font-medium">{label}</span>
+        {value != null && (
+          <span className="text-[rgba(41,38,27,0.5)] tabular-nums">{value}</span>
+        )}
       </div>
       {children}
     </div>
@@ -466,6 +320,7 @@ export function TweakRow({ label, value, children, inline = false }: TweakRowPro
 
 // ── Controls ────────────────────────────────────────────────────────────────
 
+/** Range slider with live value display. */
 export function TweakSlider({
   label,
   value,
@@ -477,23 +332,46 @@ export function TweakSlider({
 }: TweakSliderProps) {
   return (
     <TweakRow label={label} value={`${value}${unit}`}>
-      <input type="range" className="twk-slider" min={min} max={max} step={step}
-             value={value} onChange={(e) => onChange(Number(e.target.value))} />
+      <input
+        type="range"
+        className="twk-slider"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+      />
     </TweakRow>
   );
 }
 
+/** Boolean toggle switch. */
 export function TweakToggle({ label, value, onChange }: TweakToggleProps) {
   return (
-    <div className="twk-row twk-row-h">
-      <div className="twk-lbl"><span>{label}</span></div>
-      <button type="button" className="twk-toggle" data-on={value ? '1' : '0'}
-              role="switch" aria-checked={!!value}
-              onClick={() => onChange(!value)}><i /></button>
+    <div className="flex flex-row items-center justify-between gap-2.5">
+      <div className="flex items-baseline justify-between text-[rgba(41,38,27,0.72)]">
+        <span className="font-medium">{label}</span>
+      </div>
+      <button
+        type="button"
+        className={`relative h-[18px] w-8 cursor-default rounded-full border-0 p-0 transition-[background] duration-150 ${
+          value ? 'bg-[#34c759]' : 'bg-black/15'
+        }`}
+        role="switch"
+        aria-checked={!!value}
+        onClick={() => onChange(!value)}
+      >
+        <i
+          className={`absolute top-0.5 left-0.5 block size-3.5 rounded-full bg-white shadow-[0_1px_2px_rgba(0,0,0,0.25)] transition-transform duration-150 ${
+            value ? 'translate-x-3.5' : ''
+          }`}
+        />
+      </button>
     </div>
   );
 }
 
+/** Segmented radio control, falling back to select when labels are long. */
 export function TweakRadio<V extends TweakOptionValue>({
   label,
   value,
@@ -502,42 +380,35 @@ export function TweakRadio<V extends TweakOptionValue>({
 }: TweakRadioProps<V>) {
   const trackRef = React.useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = React.useState(false);
-  // The active value is read by pointer-move handlers attached for the lifetime
-  // of a drag — ref it so a stale closure doesn't fire onChange for every move.
   const valueRef = React.useRef(value);
   valueRef.current = value;
 
-  // Segments wrap mid-word once per-segment width runs out. The track is
-  // ~248px (280 panel − 28 body pad − 4 seg pad), each button loses 12px
-  // to its own padding, and 11.5px system-ui averages ~6.3px/char — so 2
-  // options fit ~16 chars each, 3 fit ~10. Past that (or >3 options), fall
-  // back to a dropdown rather than wrap.
   const optionLabelLength = (o: TweakOption): number =>
     String(isTweakOptionObject(o) ? o.label : o).length;
-  const maxLen = options.reduce<number>(
-    (m, o) => Math.max(m, optionLabelLength(o)),
-    0,
-  );
+  const maxLen = options.reduce<number>((m, o) => Math.max(m, optionLabelLength(o)), 0);
   const fitsAsSegments = maxLen <= ({ 2: 16, 3: 10 }[options.length] ?? 0);
+
   if (!fitsAsSegments) {
-    // <select> emits strings — map back to the original option value so the
-    // fallback stays type-preserving (numbers, booleans) like the segment path.
     const resolve = (s: string): V => {
       const m = options.find((o) => String(tweakOptionValue(o)) === s);
       if (m === undefined) return s as V;
       return tweakOptionValue(m) as V;
     };
     return (
-      <TweakSelect label={label} value={value} options={options}
-                   onChange={(s) => onChange(resolve(s))} />
+      <TweakSelect label={label} value={value} options={options} onChange={(s) => onChange(resolve(s))} />
     );
   }
+
   const opts = options.map((o): TweakOptionObject =>
     isTweakOptionObject(o) ? o : { value: o, label: o },
   );
-  const idx = Math.max(0, opts.findIndex((o) => o.value === value));
+  const idx = Math.max(
+    0,
+    opts.findIndex((o) => o.value === value),
+  );
   const n = opts.length;
 
+  /** Map a pointer X position to a segment value. */
   const segAt = (clientX: number): V => {
     const track = trackRef.current;
     if (!track) return valueRef.current;
@@ -547,6 +418,7 @@ export function TweakRadio<V extends TweakOptionValue>({
     return opts[Math.max(0, Math.min(n - 1, i))].value as V;
   };
 
+  /** Start drag-select across segments. */
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
     setDragging(true);
     const v0 = segAt(e.clientX);
@@ -567,13 +439,29 @@ export function TweakRadio<V extends TweakOptionValue>({
 
   return (
     <TweakRow label={label}>
-      <div ref={trackRef} role="radiogroup" onPointerDown={onPointerDown}
-           className={dragging ? 'twk-seg dragging' : 'twk-seg'}>
-        <div className="twk-seg-thumb"
-             style={{ left: `calc(2px + ${idx} * (100% - 4px) / ${n})`,
-                      width: `calc((100% - 4px) / ${n})` }} />
+      <div
+        ref={trackRef}
+        role="radiogroup"
+        onPointerDown={onPointerDown}
+        className="relative flex rounded-lg bg-black/[0.06] p-0.5 select-none"
+      >
+        <div
+          className={`absolute top-0.5 bottom-0.5 rounded-md bg-white/90 shadow-[0_1px_2px_rgba(0,0,0,0.12)] ${
+            dragging ? '' : 'transition-[left,width] duration-150 ease-[cubic-bezier(0.3,0.7,0.4,1)]'
+          }`}
+          style={{
+            left: `calc(2px + ${idx} * (100% - 4px) / ${n})`,
+            width: `calc((100% - 4px) / ${n})`,
+          }}
+        />
         {opts.map((o) => (
-          <button key={String(o.value)} type="button" role="radio" aria-checked={o.value === value}>
+          <button
+            key={String(o.value)}
+            type="button"
+            role="radio"
+            aria-checked={o.value === value}
+            className="relative z-[1] min-h-[22px] flex-1 cursor-default rounded-md border-0 bg-transparent px-1.5 py-1 font-[inherit] text-[inherit] font-medium leading-[1.2] appearance-none [overflow-wrap:anywhere]"
+          >
             {o.label}
           </button>
         ))}
@@ -582,16 +470,12 @@ export function TweakRadio<V extends TweakOptionValue>({
   );
 }
 
-export function TweakSelect({
-  label,
-  value,
-  options,
-  onChange,
-}: TweakSelectProps) {
+/** Dropdown select for long option lists. */
+export function TweakSelect({ label, value, options, onChange }: TweakSelectProps) {
   return (
     <TweakRow label={label}>
       <select
-        className="twk-field"
+        className={`${TWK_FIELD} twk-field-select pr-[22px]`}
         value={String(value)}
         onChange={(e) => onChange(e.target.value)}
       >
@@ -609,15 +493,22 @@ export function TweakSelect({
   );
 }
 
+/** Plain text input control. */
 export function TweakText({ label, value, placeholder, onChange }: TweakTextProps) {
   return (
     <TweakRow label={label}>
-      <input className="twk-field" type="text" value={value} placeholder={placeholder}
-             onChange={(e) => onChange(e.target.value)} />
+      <input
+        className={TWK_FIELD}
+        type="text"
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+      />
     </TweakRow>
   );
 }
 
+/** Numeric stepper with scrub-on-label. */
 export function TweakNumber({
   label,
   value,
@@ -627,12 +518,15 @@ export function TweakNumber({
   unit = '',
   onChange,
 }: TweakNumberProps) {
+  /** Clamp a number to optional min/max. */
   const clamp = (n: number): number => {
     if (min != null && n < min) return min;
     if (max != null && n > max) return max;
     return n;
   };
   const startRef = React.useRef({ x: 0, val: 0 });
+
+  /** Scrub the value horizontally from the label. */
   const onScrubStart = (e: PointerEvent<HTMLSpanElement>) => {
     e.preventDefault();
     startRef.current = { x: e.clientX, val: value };
@@ -650,19 +544,30 @@ export function TweakNumber({
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
   };
+
   return (
-    <div className="twk-num">
-      <span className="twk-num-lbl" onPointerDown={onScrubStart}>{label}</span>
-      <input type="number" value={value} min={min} max={max} step={step}
-             onChange={(e) => onChange(clamp(Number(e.target.value)))} />
-      {unit && <span className="twk-num-unit">{unit}</span>}
+    <div className="twk-num box-border flex h-[26px] min-w-0 items-center rounded-[7px] border-[0.5px] border-black/10 bg-white/60 py-0 pr-0 pl-2">
+      <span
+        className="cursor-ew-resize pr-2 font-medium text-[rgba(41,38,27,0.6)] select-none"
+        onPointerDown={onScrubStart}
+      >
+        {label}
+      </span>
+      <input
+        type="number"
+        className="h-full min-w-0 flex-1 border-0 bg-transparent py-0 pr-2 pl-0 text-right font-[inherit] text-inherit tabular-nums outline-none"
+        value={value}
+        min={min}
+        max={max}
+        step={step}
+        onChange={(e) => onChange(clamp(Number(e.target.value)))}
+      />
+      {unit && <span className="pr-2 text-[rgba(41,38,27,0.45)]">{unit}</span>}
     </div>
   );
 }
 
-// Relative-luminance contrast pick — checkmarks drawn over a swatch need to
-// read on both #111 and #fafafa without per-option configuration. Hex input
-// only (#rgb / #rrggbb); named or rgb()/hsl() colors fall through to "light".
+/** Pick checkmark stroke based on swatch luminance. */
 function __twkIsLight(hex: string): boolean {
   const h = String(hex).replace('#', '');
   const x = h.length === 3 ? h.replace(/./g, (c) => c + c) : h.padEnd(6, '0');
@@ -674,55 +579,81 @@ function __twkIsLight(hex: string): boolean {
   return r * 299 + g * 587 + b * 114 > 148000;
 }
 
+/** Checkmark icon for selected color chips. */
 function __TwkCheck({ light }: { light: boolean }) {
   return (
-    <svg viewBox="0 0 14 14" aria-hidden="true">
-      <path d="M3 7.2 5.8 10 11 4.2" fill="none" strokeWidth="2.2"
-            strokeLinecap="round" strokeLinejoin="round"
-            stroke={light ? 'rgba(0,0,0,.78)' : '#fff'} />
+    <svg
+      viewBox="0 0 14 14"
+      aria-hidden="true"
+      className="absolute top-1.5 left-1.5 size-[13px] drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)]"
+    >
+      <path
+        d="M3 7.2 5.8 10 11 4.2"
+        fill="none"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        stroke={light ? 'rgba(0,0,0,.78)' : '#fff'}
+      />
     </svg>
   );
 }
 
-// TweakColor — curated color/palette picker. Each option is either a single
-// hex string or an array of 1-5 hex strings; the card adapts — a lone color
-// renders solid, a palette renders colors[0] as the hero (left ~2/3) with the
-// rest stacked in a sharp column on the right. onChange emits the
-// option in the shape it was passed (string stays string, array stays array).
-// Without options it falls back to the native color input for back-compat.
+/** Curated color/palette picker or native color input fallback. */
 export function TweakColor({ label, value, options, onChange }: TweakColorProps) {
   if (!options || !options.length) {
     const colorValue = Array.isArray(value) ? value[0] : value;
     return (
-      <div className="twk-row twk-row-h">
-        <div className="twk-lbl"><span>{label}</span></div>
-        <input type="color" className="twk-swatch" value={colorValue}
-               onChange={(e) => onChange(e.target.value)} />
+      <div className="flex flex-row items-center justify-between gap-2.5">
+        <div className="flex items-baseline justify-between text-[rgba(41,38,27,0.72)]">
+          <span className="font-medium">{label}</span>
+        </div>
+        <input
+          type="color"
+          className="twk-swatch h-[22px] w-14 shrink-0 appearance-none rounded-md border-[0.5px] border-black/10 bg-transparent p-0"
+          value={colorValue}
+          onChange={(e) => onChange(e.target.value)}
+        />
       </div>
     );
   }
-  // Native <input type=color> emits lowercase hex per the HTML spec, so
-  // compare case-insensitively. String() guards JSON.stringify(undefined),
-  // which returns the primitive undefined (no .toLowerCase).
+
   const key = (o: TweakColorOption): string => String(JSON.stringify(o)).toLowerCase();
   const cur = key(value);
+
   return (
     <TweakRow label={label}>
-      <div className="twk-chips" role="radiogroup">
+      <div className="flex gap-1.5" role="radiogroup">
         {options.map((o, i) => {
           const colors = Array.isArray(o) ? o : [o];
           const [hero, ...rest] = colors;
           const sup = rest.slice(0, 4);
           const on = key(o) === cur;
           return (
-            <button key={i} type="button" className="twk-chip" role="radio"
-                    aria-checked={on} data-on={on ? '1' : '0'}
-                    aria-label={colors.join(', ')} title={colors.join(' · ')}
-                    style={{ background: hero }}
-                    onClick={() => onChange(o)}>
+            <button
+              key={i}
+              type="button"
+              className={`relative h-[46px] min-w-0 flex-1 cursor-default overflow-hidden rounded-md border-0 p-0 appearance-none transition-[transform,box-shadow] duration-100 ease-[cubic-bezier(0.3,0.7,0.4,1)] hover:-translate-y-px ${
+                on
+                  ? 'shadow-[0_0_0_1.5px_rgba(0,0,0,0.85),0_2px_6px_rgba(0,0,0,0.15)]'
+                  : 'shadow-[0_0_0_0.5px_rgba(0,0,0,0.12),0_1px_2px_rgba(0,0,0,0.06)] hover:shadow-[0_0_0_0.5px_rgba(0,0,0,0.18),0_4px_10px_rgba(0,0,0,0.12)]'
+              }`}
+              role="radio"
+              aria-checked={on}
+              aria-label={colors.join(', ')}
+              title={colors.join(' · ')}
+              style={{ background: hero }}
+              onClick={() => onChange(o)}
+            >
               {sup.length > 0 && (
-                <span>
-                  {sup.map((c, j) => <i key={j} style={{ background: c }} />)}
+                <span className="absolute top-0 right-0 bottom-0 flex w-[34%] flex-col shadow-[-1px_0_0_rgba(0,0,0,0.1)]">
+                  {sup.map((c, j) => (
+                    <i
+                      key={j}
+                      className={`block flex-1 ${j === 0 ? '' : 'shadow-[0_-1px_0_rgba(0,0,0,0.1)]'}`}
+                      style={{ background: c }}
+                    />
+                  ))}
                 </span>
               )}
               {on && <__TwkCheck light={__twkIsLight(hero)} />}
@@ -734,9 +665,19 @@ export function TweakColor({ label, value, options, onChange }: TweakColorProps)
   );
 }
 
+/** Action button for tweaks panel. */
 export function TweakButton({ label, onClick, secondary = false }: TweakButtonProps) {
   return (
-    <button type="button" className={secondary ? 'twk-btn secondary' : 'twk-btn'}
-            onClick={onClick}>{label}</button>
+    <button
+      type="button"
+      className={`h-[26px] cursor-default rounded-[7px] border-0 px-3 font-[inherit] font-medium appearance-none ${
+        secondary
+          ? 'bg-black/[0.06] text-inherit hover:bg-black/10'
+          : 'bg-black/[0.78] text-white hover:bg-black/[0.88]'
+      }`}
+      onClick={onClick}
+    >
+      {label}
+    </button>
   );
 }

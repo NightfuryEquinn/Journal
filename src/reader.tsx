@@ -10,21 +10,25 @@ interface ReaderScreenProps {
   onDelete: (entry: JournalEntry) => void;
 }
 
+const CHIP =
+  'border px-[7px] py-0.5 font-mono text-[9.5px] tracking-[0.1em] text-accent bg-accent-soft border-[color-mix(in_oklab,var(--accent)_35%,transparent)]';
+
+/** Single-entry reader with metadata and op-log side panels. */
 export function ReaderScreen({ entry, onBack, onEdit, onDelete }: ReaderScreenProps) {
   const d = new Date(entry.date);
   const wc = entry.body.trim().split(/\s+/).length;
   const rt = Math.max(1, Math.round(wc / 200));
 
   return (
-    <div className="reader-wrap">
-      <div className="reader-top">
+    <div className="mx-auto max-w-[1400px] px-4 pt-4 pb-6 max-phone:px-3 laptop:px-7 laptop:pt-5 laptop:pb-7">
+      <div className="mb-[22px] grid grid-cols-1 items-center gap-3 tablet:grid-cols-[auto_1fr_auto] tablet:gap-[18px]">
         <Btn variant="ghost" onClick={onBack}>
           ◂ ARCHIVE
         </Btn>
-        <div className="reader-crumbs mono mute">
+        <div className="min-w-0 truncate text-center font-mono text-[10px] tracking-[0.18em] text-fg-mute max-tablet:order-first max-tablet:text-left">
           ARCHIVE / {fmtDate(d).replace(/ /g, '·')} / {entry.id}
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="flex flex-wrap gap-2">
           <Btn onClick={() => onEdit(entry)}>✎ EDIT</Btn>
           <Btn variant="danger" onClick={() => onDelete(entry)}>
             ✕ DELETE
@@ -32,22 +36,28 @@ export function ReaderScreen({ entry, onBack, onEdit, onDelete }: ReaderScreenPr
         </div>
       </div>
 
-      <div className="reader-row">
-        <main className="reader-main">
+      <div className="grid grid-cols-1 items-start gap-5 tablet:grid-cols-[minmax(0,1fr)_minmax(0,320px)] tablet:gap-[22px]">
+        <main className="min-w-0">
           <Panel
             title={<DecodeText text="LOG ENTRY" />}
             meta={`${entry.id} · WC ${wc} · ${rt} MIN`}
             headerRight={
-              <span className="mono dim" style={{ fontSize: 10 }}>
+              <span className="font-mono text-[10px] tracking-[0.02em] text-fg-dim max-phone:hidden">
                 STATUS · ARCHIVED
               </span>
             }
           >
-            <div className="reader-head">
-              <div className="reader-date-block">
-                <div className="rd-day mono">{pad(d.getDate())}</div>
+            <div className="relative mb-[22px] flex flex-col gap-3 border-b border-line pb-[22px]">
+              <span
+                className="absolute bottom-[-1px] left-0 h-px w-20 bg-accent shadow-[0_0_8px_var(--accent)]"
+                aria-hidden="true"
+              />
+              <div className="flex items-center gap-3.5">
+                <div className="font-mono text-[44px] leading-none tracking-[0.02em] max-phone:text-[36px]">
+                  {pad(d.getDate())}
+                </div>
                 <div>
-                  <div className="rd-mo">
+                  <div className="font-display text-sm tracking-[0.18em] uppercase">
                     {
                       [
                         'JANUARY',
@@ -66,32 +76,32 @@ export function ReaderScreen({ entry, onBack, onEdit, onDelete }: ReaderScreenPr
                     }{' '}
                     {d.getFullYear()}
                   </div>
-                  <div className="rd-time mono mute">
+                  <div className="mt-1 font-mono text-[11px] tracking-[0.14em] text-fg-mute">
                     {fmtTime(d)} · J-DAY {fmtJDay(d)}
                   </div>
                 </div>
               </div>
-              <h1 className="reader-title">
+              <h1 className="font-display text-[38px] leading-[1.1] font-medium tracking-[0.01em] text-balance max-phone:text-[28px]">
                 <DecodeText text={entry.title} speed={14} />
               </h1>
-              <div className="reader-tagrow">
+              <div className="flex flex-wrap gap-1.5">
                 {entry.tags.map((t) => (
-                  <span key={t} className="chip mono">
+                  <span key={t} className={CHIP}>
                     #{t}
                   </span>
                 ))}
               </div>
             </div>
 
-            <div className="reader-body">
+            <div className="max-w-[68ch] text-[15px] leading-[1.75] text-fg text-pretty max-phone:text-[14px]">
               {entry.body.split('\n').map((para, i) => (
-                <p key={i} className={para.trim() === '' ? 'p-blank' : 'p'}>
+                <p key={i} className={para.trim() === '' ? 'h-[0.6em]' : 'mb-[1em]'}>
                   {para || '\u00A0'}
                 </p>
               ))}
             </div>
 
-            <div className="reader-foot mono mute">
+            <div className="mt-7 flex flex-wrap justify-between gap-2 border-t border-line pt-3.5 font-mono text-[10px] tracking-[0.16em] text-fg-mute">
               <span>END OF LOG · {entry.id}</span>
               <span>
                 SHA-256 · {entry.id.toUpperCase()}-{Math.abs(hashCode(entry.body)).toString(16).padStart(8, '0')}
@@ -100,154 +110,81 @@ export function ReaderScreen({ entry, onBack, onEdit, onDelete }: ReaderScreenPr
           </Panel>
         </main>
 
-        <aside className="reader-side">
+        <aside className="min-w-0">
           <Panel title="METADATA" meta="SIGNAL · HIGH">
-            <div className="meta-grid">
-              <div className="m-row">
-                <span className="m-lbl">CAPTURED</span>
-                <span className="m-val mono">
-                  {fmtDate(d)} · {fmtTime(d)}
-                </span>
-              </div>
-              <div className="m-row">
-                <span className="m-lbl">WEATHER</span>
-                <span className="m-val mono">{entry.weather}</span>
-              </div>
-              <div className="m-row">
-                <span className="m-lbl">MOOD</span>
-                <span className="m-val">
-                  <MoodBars value={entry.mood} />
-                </span>
-              </div>
-              <div className="m-row">
-                <span className="m-lbl">ENERGY</span>
-                <span className="m-val">
-                  <MoodBars value={entry.energy} />
-                </span>
-              </div>
-              <div className="m-row">
-                <span className="m-lbl">WORD COUNT</span>
-                <span className="m-val mono acc">{wc}</span>
-              </div>
-              <div className="m-row">
-                <span className="m-lbl">READ TIME</span>
-                <span className="m-val mono">~ {rt} MIN</span>
-              </div>
-              <div className="m-row">
-                <span className="m-lbl">PRIVACY</span>
-                <span className="m-val mono acc">OPERATOR-ONLY</span>
-              </div>
+            <div className="flex flex-col gap-row">
+              {(
+                [
+                  ['CAPTURED', `${fmtDate(d)} · ${fmtTime(d)}`, 'mono'],
+                  ['WEATHER', entry.weather, 'mono'],
+                  ['MOOD', null, 'mood'],
+                  ['ENERGY', null, 'energy'],
+                  ['WORD COUNT', String(wc), 'mono acc'],
+                  ['READ TIME', `~ ${rt} MIN`, 'mono'],
+                  ['PRIVACY', 'OPERATOR-ONLY', 'mono acc'],
+                ] as const
+              ).map(([lbl, val, kind]) => (
+                <div
+                  key={lbl}
+                  className="flex items-center justify-between gap-3 border-l-2 border-line-strong bg-black/20 px-2.5 py-2"
+                >
+                  <span className="font-mono text-[9.5px] tracking-[0.18em] text-fg-mute">{lbl}</span>
+                  <span className="min-w-0 text-right text-[11.5px]">
+                    {kind === 'mood' ? (
+                      <MoodBars value={entry.mood} />
+                    ) : kind === 'energy' ? (
+                      <MoodBars value={entry.energy} />
+                    ) : (
+                      <span
+                        className={
+                          kind.includes('acc')
+                            ? 'font-mono tracking-[0.02em] text-accent'
+                            : 'font-mono tracking-[0.02em]'
+                        }
+                      >
+                        {val}
+                      </span>
+                    )}
+                  </span>
+                </div>
+              ))}
             </div>
           </Panel>
-          <div style={{ height: 14 }} />
+          <div className="h-3.5" />
           <Panel title="DB · OPERATION LOG">
-            <div className="op-log mono">
-              <div className="op-line">
-                <span className="op-time">{fmtTime(d)}</span>
-                <span className="op-tag good">INSERT</span>
-                <span className="op-id">_id: {entry.id}</span>
-              </div>
-              <div className="op-line">
-                <span className="op-time">{fmtTime(new Date(d.getTime() + 1200))}</span>
-                <span className="op-tag">SYNC</span>
-                <span className="op-id">cluster.ATL-07</span>
-              </div>
-              <div className="op-line">
-                <span className="op-time">{fmtTime(new Date(d.getTime() + 1800))}</span>
-                <span className="op-tag good">ACK</span>
-                <span className="op-id">replica 3/3</span>
-              </div>
-              <div className="op-line">
-                <span className="op-time">{fmtTime(new Date())}</span>
-                <span className="op-tag">FETCH</span>
-                <span className="op-id">operator-01</span>
-              </div>
+            <div className="flex flex-col gap-1 font-mono text-[10.5px]">
+              {(
+                [
+                  [fmtTime(d), 'INSERT', `_id: ${entry.id}`, true],
+                  [fmtTime(new Date(d.getTime() + 1200)), 'SYNC', 'cluster.ATL-07', false],
+                  [fmtTime(new Date(d.getTime() + 1800)), 'ACK', 'replica 3/3', true],
+                  [fmtTime(new Date()), 'FETCH', 'operator-01', false],
+                ] as const
+              ).map(([time, tag, id, good]) => (
+                <div
+                  key={`${time}-${tag}`}
+                  className="grid grid-cols-[70px_60px_1fr] items-center gap-2 py-1 text-fg-dim max-phone:grid-cols-[auto_auto_1fr]"
+                >
+                  <span>{time}</span>
+                  <span
+                    className={`text-[9.5px] tracking-[0.14em] ${good ? 'text-good' : 'text-fg'}`}
+                  >
+                    {tag}
+                  </span>
+                  <span className="overflow-hidden text-[10px] tracking-[0.06em] text-ellipsis whitespace-nowrap text-fg-mute">
+                    {id}
+                  </span>
+                </div>
+              ))}
             </div>
           </Panel>
         </aside>
       </div>
-
-      <style>{`
-        .reader-wrap { padding: 20px 28px 28px; max-width: 1400px; margin: 0 auto; }
-        .reader-top {
-          display: grid;
-          grid-template-columns: auto 1fr auto;
-          gap: 18px; align-items: center;
-          margin-bottom: 22px;
-        }
-        .reader-crumbs { font-size: 10px; letter-spacing: 0.18em; text-align: center; }
-        .reader-row {
-          display: grid;
-          grid-template-columns: 1fr 320px;
-          gap: 22px;
-          align-items: start;
-        }
-        .reader-head {
-          display: flex; flex-direction: column; gap: 12px;
-          padding-bottom: 22px;
-          margin-bottom: 22px;
-          border-bottom: 1px solid var(--line);
-          position: relative;
-        }
-        .reader-head::after {
-          content: ""; position: absolute; left: 0; bottom: -1px;
-          width: 80px; height: 1px;
-          background: var(--accent); box-shadow: 0 0 8px var(--accent);
-        }
-        .reader-date-block { display: flex; gap: 14px; align-items: center; }
-        .rd-day { font-size: 44px; line-height: 1; }
-        .rd-mo {
-          font-family: var(--display, var(--sans));
-          font-size: 14px; letter-spacing: 0.18em; text-transform: uppercase;
-        }
-        .rd-time { font-size: 11px; letter-spacing: 0.14em; margin-top: 4px; }
-        .reader-title {
-          font-family: var(--display, var(--sans));
-          font-size: 38px; font-weight: 500; line-height: 1.1;
-          letter-spacing: 0.01em;
-          text-wrap: balance;
-        }
-        .reader-tagrow { display: flex; gap: 6px; flex-wrap: wrap; }
-        .reader-body {
-          font-size: 15px; line-height: 1.75;
-          color: var(--fg);
-          text-wrap: pretty;
-          max-width: 68ch;
-        }
-        .reader-body .p { margin-bottom: 1em; }
-        .reader-body .p-blank { height: 0.6em; }
-        .reader-foot {
-          margin-top: 28px; padding-top: 14px;
-          border-top: 1px solid var(--line);
-          display: flex; justify-content: space-between;
-          font-size: 10px; letter-spacing: 0.16em;
-        }
-        .meta-grid { display: flex; flex-direction: column; gap: var(--row-gap); }
-        .m-row {
-          display: flex; justify-content: space-between; align-items: center;
-          padding: 8px 10px;
-          background: rgba(0,0,0,0.2);
-          border-left: 2px solid var(--line-strong);
-        }
-        .m-lbl { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.18em; color: var(--fg-mute); }
-        .m-val { font-size: 11.5px; }
-
-        .op-log { display: flex; flex-direction: column; gap: 4px; font-size: 10.5px; }
-        .op-line {
-          display: grid;
-          grid-template-columns: 70px 60px 1fr;
-          gap: 8px; align-items: center;
-          padding: 4px 0;
-          color: var(--fg-dim);
-        }
-        .op-tag { color: var(--fg); font-size: 9.5px; letter-spacing: 0.14em; }
-        .op-tag.good { color: var(--good); }
-        .op-id { font-size: 10px; color: var(--fg-mute); letter-spacing: 0.06em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      `}</style>
     </div>
   );
 }
 
+/** Simple string hash for display checksums. */
 function hashCode(s: string): number {
   let h = 0;
   for (let i = 0; i < s.length; i++) {

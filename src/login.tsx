@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { SoundManager, DecodeText, Bracket, Panel, Btn } from './hud';
+import { SoundManager, DecodeText, Bracket, Panel, Btn, Caret } from './hud';
 
-const PASSPHRASE = 'meridian'; // demo passphrase — display in hint
+const PASSPHRASE = 'journs'; // demo passphrase — display in hint
 const TYPED_BOOT_LINES = [
-  '$ meridian.init --secure',
+  '$ journs.init --secure',
   '> binding to cluster ATL-07.mongodb.local:27017',
   '> handshake … TLS 1.3 OK',
   '> integrity check … sha256 OK',
@@ -12,6 +12,7 @@ const TYPED_BOOT_LINES = [
 
 type LoginPhase = 'boot' | 'prompt' | 'verify' | 'ok' | 'fail';
 
+/** Secure terminal login with boot sequence and ID card. */
 export function LoginScreen({ onAuth }: { onAuth: (user: string) => void }) {
   const [phase, setPhase] = useState<LoginPhase>('boot');
   const [pwd, setPwd] = useState('');
@@ -20,12 +21,16 @@ export function LoginScreen({ onAuth }: { onAuth: (user: string) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (phase !== 'boot') return;
+    if (phase !== 'boot') {
+      return;
+    }
+
     SoundManager.boot();
     let i = 0;
     const id = setInterval(() => {
       i++;
       setBootIdx(i);
+
       if (i >= TYPED_BOOT_LINES.length) {
         clearInterval(id);
         setTimeout(() => {
@@ -34,12 +39,18 @@ export function LoginScreen({ onAuth }: { onAuth: (user: string) => void }) {
         }, 400);
       }
     }, 420);
+
     return () => clearInterval(id);
   }, [phase]);
 
+  /** Submit passphrase and run verify animation. */
   const submit = (e?: FormEvent) => {
     e?.preventDefault();
-    if (phase === 'verify') return;
+
+    if (phase === 'verify') {
+      return;
+    }
+
     setPhase('verify');
     SoundManager.click();
     setTimeout(() => {
@@ -59,15 +70,22 @@ export function LoginScreen({ onAuth }: { onAuth: (user: string) => void }) {
   };
 
   return (
-    <div className="login-wrap">
-      <div className="login-grid">
-        <Bracket className="login-id">
-          <div className="id-card">
-            <div className="id-row id-row-top">
-              <span className="cap dim">OPERATOR ID</span>
-              <span className="mono dim">// CL-A · CLEARED</span>
+    <div className="relative grid min-h-full place-items-center px-4 py-8 max-phone:py-6 laptop:px-[6vw] laptop:py-10">
+      <div className="grid w-full max-w-[980px] grid-cols-1 items-stretch gap-8 max-tablet:gap-6 tablet:grid-cols-[minmax(0,320px)_1fr] tablet:gap-10 laptop:gap-[60px]">
+        <Bracket className="max-w-md justify-self-center tablet:max-w-none tablet:justify-self-stretch">
+          <div
+            className="flex flex-col gap-3.5 border border-line-strong bg-[linear-gradient(180deg,var(--bg-1),var(--bg))] p-4"
+            style={{
+              boxShadow: '0 0 0 1px rgba(0,0,0,0.4), 0 14px 30px rgba(0,0,0,0.5)',
+            }}
+          >
+            <div className="flex items-center justify-between text-[10px]">
+              <span className="font-display font-medium tracking-[0.12em] text-fg-dim uppercase">
+                OPERATOR ID
+              </span>
+              <span className="font-mono tracking-[0.02em] text-fg-dim">// CL-A · CLEARED</span>
             </div>
-            <div className="id-portrait">
+            <div className="relative aspect-square border border-line-strong bg-bg">
               <svg viewBox="0 0 200 200" width="100%" height="100%">
                 <defs>
                   <pattern id="g" width="6" height="6" patternUnits="userSpaceOnUse">
@@ -94,57 +112,54 @@ export function LoginScreen({ onAuth }: { onAuth: (user: string) => void }) {
                 </text>
               </svg>
             </div>
-            <div className="id-row id-table">
-              <div>
-                <span className="lbl">CALLSIGN</span>
-                <span className="val">OPERATOR · 01</span>
-              </div>
-              <div>
-                <span className="lbl">VESSEL</span>
-                <span className="val">MERIDIAN-01</span>
-              </div>
-              <div>
-                <span className="lbl">ROLE</span>
-                <span className="val">SOLE AUTHOR</span>
-              </div>
-              <div>
-                <span className="lbl">CLEARANCE</span>
-                <span className="val acc">CRUD · ALL</span>
-              </div>
-              <div>
-                <span className="lbl">BOUND</span>
-                <span className="val">mongodb://meridian.atl-07</span>
-              </div>
+            <div className="grid grid-cols-1 gap-1.5 font-mono text-[10px]">
+              {(
+                [
+                  ['CALLSIGN', 'OPERATOR · 01', false],
+                  ['VESSEL', 'JOURNS-01', false],
+                  ['ROLE', 'SOLE AUTHOR', false],
+                  ['CLEARANCE', 'CRUD · ALL', true],
+                  ['BOUND', 'mongodb://journs.atl-07', false],
+                ] as const
+              ).map(([lbl, val, accent]) => (
+                <div key={lbl} className="flex justify-between gap-3">
+                  <span className="tracking-[0.16em] text-fg-mute">{lbl}</span>
+                  <span className={accent ? 'text-accent' : 'text-fg'}>{val}</span>
+                </div>
+              ))}
             </div>
           </div>
         </Bracket>
 
-        <div className={`login-terminal ${shake ? 'shake' : ''}`}>
+        <div
+          className={`relative min-w-0 tablet:[transform:perspective(1400px)_rotateY(-2deg)] tablet:[transform-style:preserve-3d] ${shake ? 'animate-shake' : ''}`}
+        >
           <Panel title={<DecodeText text="SECURE TERMINAL" />} meta="tty/01 · 9600 8N1">
-            <div className="terminal-body">
-              <div className="boot">
+            <div className="flex min-h-[280px] flex-col gap-[18px] max-phone:min-h-[240px]">
+              <div className="font-mono text-xs leading-[1.8]">
                 {TYPED_BOOT_LINES.slice(0, bootIdx).map((l, i) => (
-                  <div key={i} className="boot-line">
+                  <div key={i} className={i === 0 ? 'text-fg' : 'text-fg-dim'}>
                     <DecodeText text={l} speed={12} />
                   </div>
                 ))}
                 {phase === 'boot' && bootIdx < TYPED_BOOT_LINES.length && (
-                  <div className="boot-line">
-                    <span className="caret" />
+                  <div>
+                    <Caret />
                   </div>
                 )}
               </div>
               {phase !== 'boot' && (
-                <form onSubmit={submit} className="prompt-form">
-                  <label className="prompt-label">
-                    <span className="acc mono">operator@meridian</span>
-                    <span className="dim mono"> :~$ </span>
-                    <span className="mono">passphrase &gt;</span>
+                <form onSubmit={submit}>
+                  <label className="mb-2 block text-xs">
+                    <span className="font-mono tracking-[0.02em] text-accent">operator@journs</span>
+                    <span className="font-mono tracking-[0.02em] text-fg-dim"> :~$ </span>
+                    <span className="font-mono tracking-[0.02em]">passphrase &gt;</span>
                   </label>
-                  <div className="prompt-input">
+                  <div className="flex items-center border border-line-strong bg-black/40 px-3.5 py-3 font-mono text-base tracking-[0.3em]">
                     <input
                       ref={inputRef}
                       type="password"
+                      className="min-w-0 flex-1 bg-transparent font-mono text-base tracking-[0.3em] text-accent"
                       value={pwd}
                       onChange={(e) => {
                         setPwd(e.target.value);
@@ -154,22 +169,22 @@ export function LoginScreen({ onAuth }: { onAuth: (user: string) => void }) {
                       autoComplete="off"
                       spellCheck={false}
                     />
-                    <span className="caret" />
+                    <Caret />
                   </div>
-                  <div className="prompt-msg mono dim">
+                  <div className="mt-3 min-h-4 font-mono text-[11px] tracking-[0.02em] text-fg-dim">
                     {phase === 'verify' && (
                       <DecodeText text="// verifying biometric handshake …" speed={18} />
                     )}
                     {phase === 'ok' && (
-                      <span className="acc">// access granted · loading vessel state</span>
+                      <span className="text-accent">// access granted · loading vessel state</span>
                     )}
                     {phase === 'prompt' && (
                       <span>
-                        hint: try <span className="acc">meridian</span> · prototype passphrase
+                        hint: try <span className="text-accent">journs</span> · prototype passphrase
                       </span>
                     )}
                   </div>
-                  <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
+                  <div className="mt-[18px] flex flex-wrap gap-2.5">
                     <Btn type="submit" variant="primary" disabled={phase !== 'prompt' || !pwd}>
                       ▸ AUTHENTICATE
                     </Btn>
@@ -181,78 +196,10 @@ export function LoginScreen({ onAuth }: { onAuth: (user: string) => void }) {
               )}
             </div>
           </Panel>
-          <div className="connector" style={{ left: -100, top: 80, width: 100 }} />
-          <div className="connector" style={{ left: -60, bottom: 60, width: 60 }} />
+          <div className="login-connectors connector" style={{ left: -100, top: 80, width: 100 }} />
+          <div className="login-connectors connector" style={{ left: -60, bottom: 60, width: 60 }} />
         </div>
       </div>
-      <style>{`
-        .login-wrap {
-          min-height: 100%;
-          display: grid;
-          place-items: center;
-          padding: 40px 6vw;
-          position: relative;
-        }
-        .login-grid {
-          display: grid;
-          grid-template-columns: 320px 1fr;
-          gap: 60px;
-          max-width: 980px;
-          width: 100%;
-          align-items: stretch;
-        }
-        .login-id .id-card {
-          background: linear-gradient(180deg, var(--bg-1), var(--bg));
-          border: 1px solid var(--line-strong);
-          padding: 16px;
-          display: flex; flex-direction: column; gap: 14px;
-          box-shadow:
-            0 0 0 1px rgba(0,0,0,0.4),
-            0 14px 30px rgba(0,0,0,0.5);
-        }
-        .id-row { display: flex; justify-content: space-between; align-items: center; }
-        .id-row-top { font-size: 10px; }
-        .id-portrait {
-          aspect-ratio: 1; border: 1px solid var(--line-strong);
-          background: var(--bg);
-          position: relative;
-        }
-        .id-table { display: grid; grid-template-columns: 1fr; gap: 6px; font-size: 10px; font-family: var(--mono); }
-        .id-table > div { display: flex; justify-content: space-between; gap: 12px; }
-        .id-table .lbl { color: var(--fg-mute); letter-spacing: 0.16em; }
-        .id-table .val { color: var(--fg); }
-        .login-terminal { position: relative; transform: perspective(1400px) rotateY(-2deg); transform-style: preserve-3d; }
-        .login-terminal.shake { animation: shake 0.4s; }
-        @keyframes shake {
-          0%, 100% { transform: perspective(1400px) rotateY(-2deg) translateX(0); }
-          25% { transform: perspective(1400px) rotateY(-2deg) translateX(-6px); }
-          75% { transform: perspective(1400px) rotateY(-2deg) translateX(6px); }
-        }
-        .terminal-body { min-height: 320px; display: flex; flex-direction: column; gap: 18px; }
-        .boot { font-family: var(--mono); font-size: 12px; line-height: 1.8; }
-        .boot-line { color: var(--fg-dim); }
-        .boot-line:first-child { color: var(--fg); }
-        .prompt-label { display: block; font-size: 12px; margin-bottom: 8px; }
-        .prompt-input {
-          display: flex; align-items: center;
-          padding: 12px 14px;
-          background: rgba(0,0,0,0.4);
-          border: 1px solid var(--line-strong);
-          font-family: var(--mono);
-          font-size: 16px;
-          letter-spacing: 0.3em;
-        }
-        .prompt-input input {
-          flex: 1; min-width: 0;
-          background: transparent;
-          color: var(--accent);
-          font-family: var(--mono);
-          font-size: 16px;
-          letter-spacing: 0.3em;
-        }
-        .prompt-input input::placeholder { color: var(--fg-mute); }
-        .prompt-msg { font-size: 11px; margin-top: 12px; min-height: 16px; }
-      `}</style>
     </div>
   );
 }

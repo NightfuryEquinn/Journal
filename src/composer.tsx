@@ -1,7 +1,7 @@
 // composer.tsx — console-style writer
 import { useEffect, useRef, useState } from 'react';
 import type { JournalEntry } from './types';
-import { SoundManager, DecodeText, Panel, Btn, fmtDate, fmtTime, pad } from './hud';
+import { SoundManager, DecodeText, Panel, Btn, Caret, fmtDate, fmtTime, pad } from './hud';
 
 const MOOD_OPTS = ['LOW', 'DIM', 'STEADY', 'GOOD', 'HIGH'];
 const ENERGY_OPTS = ['DRAINED', 'LOW', 'STEADY', 'CHARGED', 'PEAKED'];
@@ -24,6 +24,13 @@ interface ComposerScreenProps {
   onDelete: (entry: JournalEntry) => void;
 }
 
+const CHIP =
+  'border px-[7px] py-0.5 font-mono text-[9.5px] tracking-[0.1em] text-accent bg-accent-soft border-[color-mix(in_oklab,var(--accent)_35%,transparent)]';
+
+const HUD_FIELD =
+  'w-full border border-line-strong bg-black/40 px-2.5 py-2 font-mono text-[11px] tracking-[0.08em] text-fg';
+
+/** Console-style composer for creating or editing journal entries. */
 export function ComposerScreen({ existing, onSave, onCancel, onDelete }: ComposerScreenProps) {
   const isEdit = !!existing;
   const now = new Date();
@@ -44,13 +51,17 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
   const wc = body.trim() ? body.trim().split(/\s+/).length : 0;
   const cc = body.length;
 
+  /** Play type sound on keystroke. */
   const handleType = () => SoundManager.type();
 
+  /** Validate and commit the entry with a short write animation. */
   const save = () => {
     if (!title.trim() || !body.trim()) {
       SoundManager.deny();
+
       return;
     }
+
     setSavingState('saving');
     SoundManager.click();
     const entry: JournalEntry = {
@@ -68,6 +79,7 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
         .map((t) => t.trim().toLowerCase())
         .filter(Boolean),
     };
+
     setTimeout(() => {
       setSavingState('saved');
       SoundManager.confirm();
@@ -76,15 +88,15 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
   };
 
   return (
-    <div className="composer-wrap">
-      <div className="composer-top">
+    <div className="mx-auto max-w-[1400px] px-4 pt-4 pb-6 max-phone:px-3 laptop:px-7 laptop:pt-5 laptop:pb-7">
+      <div className="mb-[22px] grid grid-cols-1 items-center gap-3 tablet:grid-cols-[auto_1fr_auto] tablet:gap-[18px]">
         <Btn variant="ghost" onClick={onCancel}>
           ◂ DISCARD
         </Btn>
-        <div className="composer-crumbs mono mute">
+        <div className="min-w-0 truncate text-center font-mono text-[10px] tracking-[0.18em] text-fg-mute max-tablet:order-first max-tablet:text-left">
           {isEdit ? 'ARCHIVE / EDIT' : 'ARCHIVE / NEW LOG'} · OPERATOR-01
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="flex flex-wrap gap-2">
           {isEdit && existing && (
             <Btn variant="danger" onClick={() => onDelete(existing)}>
               ✕ DELETE
@@ -102,37 +114,41 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
         </div>
       </div>
 
-      <div className="composer-row">
-        <main className="console-main">
+      <div className="grid grid-cols-1 items-start gap-5 tablet:grid-cols-[minmax(0,1fr)_minmax(0,320px)] tablet:gap-[22px]">
+        <main className="min-w-0">
           <Panel
             title={<DecodeText text="CONSOLE · COMPOSE" />}
             meta={`tty/02 · ${isEdit ? 'PATCH' : 'INSERT'} MODE`}
             headerRight={
-              <span className="mono dim" style={{ fontSize: 10 }}>
+              <span className="font-mono text-[10px] tracking-[0.02em] text-fg-dim max-phone:hidden">
                 {savingState === 'saving' ? (
-                  <span className="acc">// committing to cluster …</span>
+                  <span className="text-accent">// committing to cluster …</span>
                 ) : savingState === 'saved' ? (
-                  <span style={{ color: 'var(--good)' }}>// ack 3/3 replicas</span>
+                  <span className="text-good">// ack 3/3 replicas</span>
                 ) : (
                   '// awaiting input'
                 )}
               </span>
             }
           >
-            <div className="console-shell">
-              <div className="console-line">
-                <span className="mono dim">$</span>
-                <span className="mono acc"> operator@meridian:</span>
-                <span className="mono dim">
+            <div className="font-mono text-[13px] leading-[1.7]">
+              <div className="py-1 text-fg-dim">
+                <span className="font-mono tracking-[0.02em] text-fg-dim">$</span>
+                <span className="font-mono tracking-[0.02em] text-accent"> operator@journs:</span>
+                <span className="font-mono tracking-[0.02em] text-fg-dim">
                   ~/log/{now.getFullYear()}/{pad(now.getMonth() + 1)}/${' '}
                 </span>
-                <span className="mono">{isEdit && existing ? `patch ${existing.id}` : 'new --title'}</span>
+                <span className="font-mono tracking-[0.02em]">
+                  {isEdit && existing ? `patch ${existing.id}` : 'new --title'}
+                </span>
               </div>
-              <div className="console-field">
-                <label className="console-pfx mono dim">title:</label>
+              <div className="mb-2.5 flex items-center border-b border-dashed border-line py-2.5">
+                <label className="mr-2.5 font-mono text-xs tracking-[0.02em] text-fg-dim">
+                  title:
+                </label>
                 <input
                   ref={titleRef}
-                  className="console-input"
+                  className="min-w-0 flex-1 font-mono text-lg tracking-[0.04em] text-accent placeholder:text-fg-mute"
                   value={title}
                   onChange={(e) => {
                     setTitle(e.target.value);
@@ -141,15 +157,23 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
                   placeholder="enter title …"
                   spellCheck={false}
                 />
-                {title === '' && <span className="caret" />}
+                {title === '' && <Caret />}
               </div>
-              <div className="console-line">
-                <span className="mono dim">$ body --multiline</span>
+              <div className="py-1 text-fg-dim">
+                <span className="font-mono tracking-[0.02em] text-fg-dim">$ body --multiline</span>
               </div>
-              <div className="console-body-wrap">
+              <div className="relative mt-1.5 grid grid-cols-[36px_1fr] border border-line-strong bg-black/40 max-phone:grid-cols-1">
+                <div
+                  className="select-none border-r border-line bg-black/40 py-3 pr-2 text-right font-mono text-[10.5px] leading-[1.7] text-fg-mute max-phone:hidden"
+                  aria-hidden="true"
+                >
+                  {Array.from({ length: Math.max(12, body.split('\n').length) }, (_, i) => (
+                    <div key={i}>{pad(i + 1)}</div>
+                  ))}
+                </div>
                 <textarea
                   ref={bodyRef}
-                  className="console-body"
+                  className="min-h-[360px] w-full resize-y px-3.5 py-3 font-mono text-[13px] leading-[1.7] text-fg placeholder:text-fg-mute max-phone:min-h-[280px]"
                   value={body}
                   onChange={(e) => {
                     setBody(e.target.value);
@@ -164,46 +188,43 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
                     }
                   }}
                 />
-                <div className="line-numbers" aria-hidden="true">
-                  {Array.from({ length: Math.max(12, body.split('\n').length) }, (_, i) => (
-                    <div key={i}>{pad(i + 1)}</div>
-                  ))}
-                </div>
               </div>
-              <div className="console-foot mono mute">
+              <div className="mt-2.5 flex flex-wrap items-center gap-4 font-mono text-[10px] tracking-[0.14em] text-fg-mute">
                 <span>
-                  WC <span className="acc">{wc}</span>
+                  WC <span className="text-accent">{wc}</span>
                 </span>
                 <span>
-                  CC <span className="acc">{cc}</span>
+                  CC <span className="text-accent">{cc}</span>
                 </span>
                 <span>
-                  LN <span className="acc">{body.split('\n').length}</span>
+                  LN <span className="text-accent">{body.split('\n').length}</span>
                 </span>
-                <span style={{ flex: 1 }} />
-                <span>⌘ + ↵ TO COMMIT</span>
+                <span className="flex-1" />
+                <span className="max-phone:hidden">⌘ + ↵ TO COMMIT</span>
               </div>
             </div>
           </Panel>
         </main>
 
-        <aside className="composer-side">
+        <aside className="min-w-0">
           <Panel title="METADATA" meta="REQUIRED">
-            <div className="meta-form">
-              <div className="mf-field">
-                <label className="mf-label mono">DATE / TIME</label>
-                <div className="mono acc" style={{ fontSize: 12 }}>
+            <div className="flex flex-col gap-[18px]">
+              <div className="flex flex-col gap-1.5">
+                <label className="font-mono text-[9.5px] tracking-[0.2em] text-fg-mute">
+                  DATE / TIME
+                </label>
+                <div className="font-mono text-xs tracking-[0.02em] text-accent">
                   {fmtDate(now)} · {fmtTime(now)}
                 </div>
-                <span className="mono mute" style={{ fontSize: 9.5 }}>
+                <span className="font-mono text-[9.5px] tracking-[0.02em] text-fg-mute">
                   // auto-captured
                 </span>
               </div>
 
-              <div className="mf-field">
-                <label className="mf-label mono">
+              <div className="flex flex-col gap-1.5">
+                <label className="font-mono text-[9.5px] tracking-[0.2em] text-fg-mute">
                   MOOD{' '}
-                  <span className="mute">
+                  <span className="tracking-[0.06em] text-fg-mute">
                     {mood}/5 · {MOOD_OPTS[mood - 1]}
                   </span>
                 </label>
@@ -218,19 +239,19 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
                   }}
                   className="hud-range"
                 />
-                <div className="mf-scale mono mute">
-                  <span>LOW</span>
+                <div className="grid grid-cols-5 text-center font-mono text-[8.5px] tracking-[0.14em] text-fg-mute">
+                  <span className="text-left">LOW</span>
                   <span>·</span>
                   <span>·</span>
                   <span>·</span>
-                  <span>HIGH</span>
+                  <span className="text-right">HIGH</span>
                 </div>
               </div>
 
-              <div className="mf-field">
-                <label className="mf-label mono">
+              <div className="flex flex-col gap-1.5">
+                <label className="font-mono text-[9.5px] tracking-[0.2em] text-fg-mute">
                   ENERGY{' '}
-                  <span className="mute">
+                  <span className="tracking-[0.06em] text-fg-mute">
                     {energy}/5 · {ENERGY_OPTS[energy - 1]}
                   </span>
                 </label>
@@ -245,32 +266,36 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
                   }}
                   className="hud-range"
                 />
-                <div className="mf-scale mono mute">
-                  <span>DRAINED</span>
+                <div className="grid grid-cols-5 text-center font-mono text-[8.5px] tracking-[0.14em] text-fg-mute">
+                  <span className="text-left">DRAINED</span>
                   <span>·</span>
                   <span>·</span>
                   <span>·</span>
-                  <span>PEAKED</span>
+                  <span className="text-right">PEAKED</span>
                 </div>
               </div>
 
-              <div className="mf-field">
-                <label className="mf-label mono">WEATHER</label>
-                <select className="hud-select mono" value={weather} onChange={(e) => setWeather(e.target.value)}>
+              <div className="flex flex-col gap-1.5">
+                <label className="font-mono text-[9.5px] tracking-[0.2em] text-fg-mute">WEATHER</label>
+                <select
+                  className={HUD_FIELD}
+                  value={weather}
+                  onChange={(e) => setWeather(e.target.value)}
+                >
                   {WEATHER_OPTS.map((w) => (
-                    <option key={w} value={w}>
+                    <option key={w} value={w} className="bg-bg-1 text-fg">
                       {w}
                     </option>
                   ))}
                 </select>
               </div>
 
-              <div className="mf-field">
-                <label className="mf-label mono">
-                  TAGS <span className="mute">comma-separated</span>
+              <div className="flex flex-col gap-1.5">
+                <label className="font-mono text-[9.5px] tracking-[0.2em] text-fg-mute">
+                  TAGS <span className="tracking-[0.06em] text-fg-mute">comma-separated</span>
                 </label>
                 <input
-                  className="hud-input mono"
+                  className={HUD_FIELD}
                   value={tagsStr}
                   onChange={(e) => {
                     setTagsStr(e.target.value);
@@ -278,13 +303,13 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
                   }}
                   placeholder="recon, self, …"
                 />
-                <div className="mf-chips">
+                <div className="mt-1 flex flex-wrap gap-1">
                   {tagsStr
                     .split(',')
                     .map((t) => t.trim())
                     .filter(Boolean)
                     .map((t, i) => (
-                      <span key={i} className="chip mono">
+                      <span key={i} className={CHIP}>
                         #{t}
                       </span>
                     ))}
@@ -293,145 +318,36 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
             </div>
           </Panel>
 
-          <div style={{ height: 14 }} />
+          <div className="h-3.5" />
           <Panel title="DB · WRITE PATH">
-            <div className="op-log mono">
-              <div className="op-line">
-                <span className="op-time">→</span>
-                <span className="op-tag">VALIDATE</span>
-                <span className="op-id">title, body, tags</span>
-              </div>
-              <div className="op-line">
-                <span className="op-time">→</span>
-                <span className="op-tag">{isEdit ? 'UPDATE' : 'INSERT'}</span>
-                <span className="op-id">db.meridian.entries</span>
-              </div>
-              <div className="op-line">
-                <span className="op-time">→</span>
-                <span className="op-tag">REPLICATE</span>
-                <span className="op-id">3 replicas · ATL-07</span>
-              </div>
-              <div className="op-line">
-                <span className="op-time">→</span>
-                <span className="op-tag good">ACK</span>
-                <span className="op-id">durable</span>
-              </div>
+            <div className="flex flex-col gap-1 font-mono text-[10.5px]">
+              {(
+                [
+                  ['→', 'VALIDATE', 'title, body, tags', false],
+                  ['→', isEdit ? 'UPDATE' : 'INSERT', 'db.journs.entries', false],
+                  ['→', 'REPLICATE', '3 replicas · ATL-07', false],
+                  ['→', 'ACK', 'durable', true],
+                ] as const
+              ).map(([time, tag, id, good]) => (
+                <div
+                  key={tag}
+                  className="grid grid-cols-[70px_60px_1fr] items-center gap-2 py-1 text-fg-dim max-phone:grid-cols-[auto_auto_1fr]"
+                >
+                  <span>{time}</span>
+                  <span
+                    className={`text-[9.5px] tracking-[0.14em] ${good ? 'text-good' : 'text-fg'}`}
+                  >
+                    {tag}
+                  </span>
+                  <span className="overflow-hidden text-[10px] tracking-[0.06em] text-ellipsis whitespace-nowrap text-fg-mute">
+                    {id}
+                  </span>
+                </div>
+              ))}
             </div>
           </Panel>
         </aside>
       </div>
-
-      <style>{`
-        .composer-wrap { padding: 20px 28px 28px; max-width: 1400px; margin: 0 auto; }
-        .composer-top {
-          display: grid; grid-template-columns: auto 1fr auto;
-          gap: 18px; align-items: center; margin-bottom: 22px;
-        }
-        .composer-crumbs { font-size: 10px; letter-spacing: 0.18em; text-align: center; }
-        .composer-row {
-          display: grid;
-          grid-template-columns: 1fr 320px;
-          gap: 22px;
-          align-items: start;
-        }
-        .console-shell {
-          font-family: var(--mono);
-          font-size: 13px;
-          line-height: 1.7;
-        }
-        .console-line { padding: 4px 0; color: var(--fg-dim); }
-        .console-field {
-          display: flex; align-items: center;
-          padding: 10px 0;
-          border-bottom: 1px dashed var(--line);
-          margin-bottom: 10px;
-        }
-        .console-pfx { margin-right: 10px; font-size: 12px; }
-        .console-input {
-          flex: 1; min-width: 0;
-          color: var(--accent);
-          font-family: var(--mono);
-          font-size: 18px;
-          letter-spacing: 0.04em;
-        }
-        .console-input::placeholder { color: var(--fg-mute); }
-        .console-body-wrap {
-          position: relative;
-          display: grid;
-          grid-template-columns: 36px 1fr;
-          background: rgba(0,0,0,0.4);
-          border: 1px solid var(--line-strong);
-          margin-top: 6px;
-        }
-        .line-numbers {
-          grid-column: 1;
-          padding: 12px 8px 12px 0;
-          background: rgba(0,0,0,0.4);
-          border-right: 1px solid var(--line);
-          text-align: right;
-          font-family: var(--mono);
-          font-size: 10.5px;
-          color: var(--fg-mute);
-          line-height: 1.7;
-          user-select: none;
-        }
-        .console-body {
-          grid-column: 2;
-          width: 100%;
-          min-height: 360px;
-          padding: 12px 14px;
-          resize: vertical;
-          color: var(--fg);
-          font-family: var(--mono);
-          font-size: 13px;
-          line-height: 1.7;
-        }
-        .console-body::placeholder { color: var(--fg-mute); }
-        .console-foot {
-          display: flex; gap: 16px; align-items: center;
-          margin-top: 10px;
-          font-size: 10px; letter-spacing: 0.14em;
-        }
-
-        .meta-form { display: flex; flex-direction: column; gap: 18px; }
-        .mf-field { display: flex; flex-direction: column; gap: 6px; }
-        .mf-label { font-size: 9.5px; letter-spacing: 0.2em; color: var(--fg-mute); }
-        .mf-label .mute { letter-spacing: 0.06em; }
-        .hud-range {
-          width: 100%; appearance: none; height: 4px;
-          background: var(--line-strong);
-          outline: none;
-        }
-        .hud-range::-webkit-slider-thumb {
-          appearance: none; width: 14px; height: 14px;
-          background: var(--accent); transform: rotate(45deg);
-          box-shadow: 0 0 10px var(--accent);
-          cursor: pointer;
-        }
-        .hud-range::-moz-range-thumb {
-          width: 14px; height: 14px; border-radius: 0;
-          background: var(--accent); transform: rotate(45deg);
-          box-shadow: 0 0 10px var(--accent);
-        }
-        .mf-scale {
-          display: grid; grid-template-columns: repeat(5, 1fr);
-          font-size: 8.5px; letter-spacing: 0.14em;
-          text-align: center;
-        }
-        .mf-scale span:first-child { text-align: left; }
-        .mf-scale span:last-child { text-align: right; }
-        .hud-select, .hud-input {
-          width: 100%;
-          padding: 8px 10px;
-          background: rgba(0,0,0,0.4);
-          border: 1px solid var(--line-strong);
-          color: var(--fg);
-          font-size: 11px;
-          letter-spacing: 0.08em;
-        }
-        .hud-select option { background: var(--bg-1); color: var(--fg); }
-        .mf-chips { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
-      `}</style>
     </div>
   );
 }

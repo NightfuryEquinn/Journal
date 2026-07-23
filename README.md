@@ -1,4 +1,4 @@
-# Journ
+# Journs
 
 THIRTEENTH Self Project — a field journal web app (React + TypeScript + Vite).
 
