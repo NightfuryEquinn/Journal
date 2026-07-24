@@ -1,15 +1,23 @@
-// app.tsx — main state machine
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { AppView, DeviceIdentity, JournalEntry, ListLayout, QuestProgress } from './types';
 import { SoundManager, DecodeText, Bracket, Panel, Btn, TopBar, Backdrop } from './hud';
-import { SEED_ENTRIES } from './seed';
-import { loadIdentity } from './identity';
-import { loadProgress, saveProgress, settleAura } from './quests';
+import { clearLegacyLocalData, loadIdentity, type AuthSession } from './identity';
+import { emptyProgress, settleAura } from './quests';
+import { decryptEntry, encryptEntry } from './crypto';
+import {
+  apiDeleteEntry,
+  apiGetProgress,
+  apiListEntries,
+  apiPutEntries,
+  apiPutProgress,
+} from './api';
 import { LoginScreen } from './login';
 import { ListScreen } from './list';
 import { ReaderScreen } from './reader';
 import { ComposerScreen } from './composer';
 import { ProfileScreen } from './profile';
+import { TransparencyScreen } from './transparency';
+import { maybeStartTour, resetTour, TOUR_KEY } from './tours';
 
 const THEME = {
   palette: 'oceanic',
@@ -19,56 +27,23 @@ const THEME = {
   scanlines: true,
 } as const;
 
-const STORAGE_KEY = 'journs.entries.v1';
-const LEGACY_STORAGE_KEY = 'meridian.entries.v1';
-
-/** Load entries from localStorage, migrating the legacy Meridian key once. */
-function loadEntries(): JournalEntry[] {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-
-    if (stored) {
-      return JSON.parse(stored) as JournalEntry[];
-    }
-
-    const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
-
-    if (legacy) {
-      const parsed = JSON.parse(legacy) as JournalEntry[];
-      localStorage.setItem(STORAGE_KEY, legacy);
-      localStorage.removeItem(LEGACY_STORAGE_KEY);
-
-      return parsed;
-    }
-  } catch {
-    /* ignore */
-  }
-
-  return SEED_ENTRIES;
-}
-
-/** Root shell: view routing, persistence, and chrome. */
+/** Root shell: auth session, E2EE sync, view routing, chrome. */
 export default function App() {
   const [identity, setIdentity] = useState<DeviceIdentity | null>(() => loadIdentity());
-  const [session, setSession] = useState(false);
+  const [session, setSession] = useState<AuthSession | null>(null);
   const [view, setView] = useState<AppView>({ name: 'login' });
   const [listLayout, setListLayout] = useState<ListLayout>('stack');
   const [soundOn, setSoundOn] = useState(false);
-  const [entries, setEntries] = useState<JournalEntry[]>(loadEntries);
-  const [progress, setProgress] = useState<QuestProgress>(() => settleAura(loadProgress()));
+  const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const [progress, setProgress] = useState<QuestProgress>(() => emptyProgress());
   const [confirmDel, setConfirmDel] = useState<JournalEntry | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [loadingArchive, setLoadingArchive] = useState(false);
+  const pendingTour = useRef(false);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-    } catch {
-      /* ignore */
-    }
-  }, [entries]);
-
-  useEffect(() => {
-    saveProgress(progress);
-  }, [progress]);
+    clearLegacyLocalData();
+  }, []);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -83,30 +58,114 @@ export default function App() {
     SoundManager.setEnabled(soundOn);
   }, [soundOn]);
 
-  /** Authenticate, settle AURA, and enter the archive list. */
-  const onAuth = (next: DeviceIdentity) => {
-    setIdentity(next);
-    setProgress((p) => settleAura(p));
-    setSession(true);
-    setView({ name: 'list' });
+  /** Kick off tour once the archive list is painted (esp. after signup). */
+  useEffect(() => {
+    if (view.name !== 'list' || loadingArchive || !pendingTour.current) {
+      return;
+    }
+
+    pendingTour.current = false;
+    maybeStartTour({ force: true });
+  }, [view, loadingArchive]);
+
+  /** After auth: pull ciphertext from Atlas, decrypt, load quests. */
+  const bootstrapSession = async (
+    next: AuthSession,
+    options?: { isNewUser?: boolean },
+  ) => {
+    setSession(next);
+    setIdentity(next.identity);
+    setSyncError(null);
+    setLoadingArchive(true);
+    setEntries([]);
+    clearLegacyLocalData();
+
+    if (options?.isNewUser) {
+      pendingTour.current = true;
+      resetTour();
+    }
+
+    try {
+      const { entries: blobs } = await apiListEntries(next.token);
+      const decrypted: JournalEntry[] = [];
+
+      for (const blob of blobs) {
+        try {
+          decrypted.push(await decryptEntry(next.dek, blob.ciphertext, blob.nonce));
+        } catch {
+          /* skip corrupt blob */
+        }
+      }
+
+      decrypted.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      setEntries(decrypted);
+
+      const { progress: remote } = await apiGetProgress(next.token);
+      setProgress(settleAura(remote));
+      setView({ name: 'list' });
+
+      if (!options?.isNewUser && localStorage.getItem(TOUR_KEY) !== '1') {
+        pendingTour.current = true;
+      }
+    } catch (err) {
+      setSyncError(err instanceof Error ? err.message : 'Sync failed');
+      setSession(null);
+      setEntries([]);
+      pendingTour.current = false;
+      throw err;
+    } finally {
+      setLoadingArchive(false);
+    }
   };
 
-  /** Clear session and return to login (identity stays on device). */
+  /** Authenticate and enter the archive. */
+  const onAuth = async (
+    next: AuthSession,
+    options?: { isNewUser?: boolean },
+  ) => {
+    await bootstrapSession(next, options);
+  };
+
+  /** Clear in-memory session (identity stays on device). */
   const signOut = () => {
-    setSession(false);
+    setSession(null);
+    setEntries([]);
+    setProgress(emptyProgress());
     setView({ name: 'login' });
   };
 
-  /** Persist quest/AURA updates from profile. */
-  const onProgressChange = (next: QuestProgress) => {
+  /** Persist quest updates to the server. */
+  const onProgressChange = async (next: QuestProgress) => {
     setProgress(next);
+
+    if (!session) {
+      return;
+    }
+
+    try {
+      const { progress: saved } = await apiPutProgress(session.token, next);
+      setProgress(saved);
+    } catch (err) {
+      setSyncError(err instanceof Error ? err.message : 'Quest sync failed');
+    }
   };
 
-  /** Open profile and re-settle AURA for period rollover. */
-  const openProfile = () => {
-    setProgress((p) => settleAura(p));
+  /** Open profile and refresh settled progress from server. */
+  const openProfile = async () => {
+    if (session) {
+      try {
+        const { progress: remote } = await apiGetProgress(session.token);
+        setProgress(settleAura(remote));
+      } catch {
+        setProgress((p) => settleAura(p));
+      }
+    }
+
     setView({ name: 'profile' });
   };
+
+  /** Open transparency diagram. */
+  const openTransparency = () => setView({ name: 'transparency' });
 
   /** Open an entry in the reader. */
   const openEntry = (e: JournalEntry) => setView({ name: 'read', entry: e });
@@ -117,8 +176,17 @@ export default function App() {
   /** Open the composer to edit an existing entry. */
   const editEntry = (e: JournalEntry) => setView({ name: 'compose', existing: e });
 
-  /** Persist an entry and open it in the reader. */
-  const saveEntry = (e: JournalEntry) => {
+  /** Encrypt + upsert entry, then open reader. */
+  const saveEntry = async (e: JournalEntry) => {
+    if (!session) {
+      return;
+    }
+
+    const { ciphertext, nonce } = await encryptEntry(session.dek, e);
+    await apiPutEntries(session.token, [
+      { entryId: e.id, ciphertext, nonce, schemaVersion: 1 },
+    ]);
+
     setEntries((prev) => {
       const i = prev.findIndex((x) => x.id === e.id);
 
@@ -137,24 +205,52 @@ export default function App() {
   /** Prompt for delete confirmation. */
   const requestDelete = (e: JournalEntry) => setConfirmDel(e);
 
-  /** Confirm and purge the pending entry. */
-  const confirmDelete = () => {
+  /** Confirm and purge entry remotely + locally. */
+  const confirmDelete = async () => {
     const e = confirmDel;
 
-    if (!e) {
+    if (!e || !session) {
       return;
     }
 
+    await apiDeleteEntry(session.token, e.id);
     setEntries((prev) => prev.filter((x) => x.id !== e.id));
     setConfirmDel(null);
     SoundManager.deny();
     setView({ name: 'list' });
   };
 
+  /** Merge imported plaintext entries and re-encrypt to server. */
+  const importEntries = async (incoming: JournalEntry[]) => {
+    if (!session) {
+      return;
+    }
+
+    const byId = new Map(entries.map((e) => [e.id, e]));
+
+    for (const e of incoming) {
+      byId.set(e.id, e);
+    }
+
+    const merged = Array.from(byId.values()).sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    );
+    const encrypted = await Promise.all(
+      incoming.map(async (e) => {
+        const { ciphertext, nonce } = await encryptEntry(session.dek, e);
+
+        return { entryId: e.id, ciphertext, nonce, schemaVersion: 1 };
+      }),
+    );
+    await apiPutEntries(session.token, encrypted);
+    setEntries(merged);
+  };
+
   const currentRead =
     view.name === 'read' ? entries.find((x) => x.id === view.entry.id) || view.entry : null;
 
   const userLabel = session && identity ? identity.operatorId : '—';
+  const authed = Boolean(session);
 
   return (
     <div className="fixed inset-0 grid grid-rows-[minmax(56px,auto)_1fr] bg-bg">
@@ -162,16 +258,16 @@ export default function App() {
 
       <TopBar
         user={userLabel}
-        onSignOut={session ? signOut : null}
+        onSignOut={authed ? signOut : null}
         soundOn={soundOn}
         onToggleSound={() => setSoundOn((s) => !s)}
-        onOpenProfile={session ? openProfile : null}
+        onOpenProfile={authed ? openProfile : null}
       />
 
       <div className="relative z-5 grid overflow-hidden">
         <div className="col-start-1 row-start-1 overflow-auto">
           {view.name === 'login' && (
-            <LoginScreen onAuth={onAuth} identity={identity} />
+            <LoginScreen onAuth={onAuth} identity={identity} syncError={syncError} />
           )}
           {view.name === 'list' && (
             <ListScreen
@@ -182,6 +278,7 @@ export default function App() {
               onLayoutChange={setListLayout}
               onDelete={requestDelete}
               onOpenProfile={openProfile}
+              loading={loadingArchive}
             />
           )}
           {view.name === 'read' && currentRead && (
@@ -209,7 +306,12 @@ export default function App() {
               progress={progress}
               onBack={() => setView({ name: 'list' })}
               onProgressChange={onProgressChange}
+              onImport={importEntries}
+              onOpenTransparency={openTransparency}
             />
+          )}
+          {view.name === 'transparency' && (
+            <TransparencyScreen onBack={() => setView({ name: 'profile' })} />
           )}
         </div>
       </div>
@@ -223,7 +325,7 @@ export default function App() {
             <Bracket>
               <Panel title="CONFIRM PURGE" meta="DESTRUCTIVE OPERATION">
                 <div className="mb-3.5 text-[13px] leading-[1.6]">
-                  <DecodeText text="// this will erase the log entry from the cluster." speed={14} />
+                  <DecodeText text="// this will erase the ciphertext blob from Atlas." speed={14} />
                   <div className="mt-2 text-fg-mute">
                     <span className="font-mono tracking-[0.02em]">_id:</span>{' '}
                     <span className="font-mono tracking-[0.02em] text-accent">{confirmDel.id}</span>
@@ -237,7 +339,7 @@ export default function App() {
                   <Btn variant="ghost" onClick={() => setConfirmDel(null)}>
                     CANCEL
                   </Btn>
-                  <Btn variant="danger" onClick={confirmDelete}>
+                  <Btn variant="danger" onClick={() => void confirmDelete()}>
                     ✕ PURGE ENTRY
                   </Btn>
                 </div>

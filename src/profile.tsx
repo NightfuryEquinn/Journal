@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { DeviceIdentity, JournalEntry, QuestProgress } from './types';
 import { SoundManager, Bracket, Panel, Btn, fmtDate, fmtStamp } from './hud';
 import {
@@ -11,38 +11,89 @@ import {
   questProgressRatio,
   type QuestDef,
 } from './quests';
+import { journalEntrySchema } from '../shared/schemas';
+import { z } from 'zod';
 
 const CHIP =
   'border px-[7px] py-0.5 font-mono text-[9.5px] tracking-[0.1em] text-accent bg-accent-soft border-[color-mix(in_oklab,var(--accent)_35%,transparent)]';
+
+const exportSchema = z.array(journalEntrySchema);
 
 interface ProfileScreenProps {
   identity: DeviceIdentity;
   entries: JournalEntry[];
   progress: QuestProgress;
   onBack: () => void;
-  onProgressChange: (progress: QuestProgress) => void;
+  onProgressChange: (progress: QuestProgress) => void | Promise<void>;
+  onImport: (entries: JournalEntry[]) => void | Promise<void>;
+  onOpenTransparency: () => void;
 }
 
-/** Operator profile: AURA, quests, and special tags. */
+/** Operator profile: AURA, quests, import/export, transparency. */
 export function ProfileScreen({
   identity,
   entries,
   progress,
   onBack,
   onProgressChange,
+  onImport,
+  onOpenTransparency,
 }: ProfileScreenProps) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [ioStatus, setIoStatus] = useState<string | null>(null);
+
   /** Claim a daily/weekly quest for AURA. */
   const onClaimTimed = (quest: QuestDef) => {
     const next = claimTimedQuest(progress, quest, entries);
-    onProgressChange(next);
+    void onProgressChange(next);
     SoundManager.confirm();
   };
 
   /** Claim a milestone special tag. */
   const onClaimTag = (quest: QuestDef) => {
     const next = claimMilestoneTag(progress, quest, entries);
-    onProgressChange(next);
+    void onProgressChange(next);
     SoundManager.confirm();
+  };
+
+  /** Download decrypted journal JSON backup. */
+  const exportJson = () => {
+    const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const blob = new Blob([JSON.stringify(entries, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `journs-export-${stamp}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    SoundManager.confirm();
+    setIoStatus(`// exported ${entries.length} entries`);
+  };
+
+  /** Import plaintext JSON and merge via parent sync. */
+  const onFile = async (file: File | null) => {
+    if (!file) {
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      const parsed = exportSchema.safeParse(JSON.parse(text));
+
+      if (!parsed.success) {
+        setIoStatus('// import failed · invalid journal JSON');
+        SoundManager.deny();
+
+        return;
+      }
+
+      await onImport(parsed.data);
+      SoundManager.confirm();
+      setIoStatus(`// imported ${parsed.data.length} entries`);
+    } catch {
+      setIoStatus('// import failed · could not parse file');
+      SoundManager.deny();
+    }
   };
 
   const created = useMemo(() => new Date(identity.createdAt), [identity.createdAt]);
@@ -66,15 +117,13 @@ export function ProfileScreen({
       <div className="grid grid-cols-1 items-start gap-5 tablet:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] tablet:gap-5.5 laptop:grid-cols-[minmax(280px,340px)_minmax(0,1fr)]">
         <aside className="flex min-w-0 flex-col gap-5">
           <Bracket>
-            <Panel title="OPERATOR" meta="LOCAL DEMO">
+            <Panel title="OPERATOR" meta="E2EE SESSION">
               <div className="grid gap-2.5 font-mono text-[11px]">
                 <Row label="CALLSIGN" value={identity.operatorId} accent />
+                <Row label="ACCOUNT" value={`${identity.accountId.slice(0, 12)}…`} />
                 <Row label="CREATED" value={fmtDate(created)} />
                 <Row label="RECOVERY" value="CONFIRMED" accent />
-                <Row
-                  label="ENTRIES"
-                  value={String(entries.length).padStart(4, '0')}
-                />
+                <Row label="ENTRIES" value={String(entries.length).padStart(4, '0')} />
               </div>
             </Panel>
           </Bracket>
@@ -105,9 +154,39 @@ export function ProfileScreen({
               )}
             </Panel>
           </Bracket>
+
+          <Bracket>
+            <Panel title="DATA" meta="LOCAL · CLOUD">
+              <div className="flex flex-col gap-2.5">
+                <div className="flex flex-wrap gap-2">
+                  <Btn variant="ghost" onClick={exportJson}>
+                    EXPORT JSON
+                  </Btn>
+                  <Btn variant="ghost" onClick={() => fileRef.current?.click()}>
+                    IMPORT JSON
+                  </Btn>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="application/json,.json"
+                    className="hidden"
+                    onChange={(e) => void onFile(e.target.files?.[0] ?? null)}
+                  />
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Btn variant="ghost" onClick={onOpenTransparency} data-tour="tour-transparency">
+                    TRANSPARENCY
+                  </Btn>
+                </div>
+                {ioStatus && (
+                  <p className="font-mono text-[10px] tracking-[0.04em] text-fg-mute">{ioStatus}</p>
+                )}
+              </div>
+            </Panel>
+          </Bracket>
         </aside>
 
-        <div className="flex min-w-0 flex-col gap-5">
+        <div className="flex min-w-0 flex-col gap-5" data-tour="tour-quests">
           <QuestPanel
             title="DAILY QUESTS"
             meta={progress.period.dayKey}

@@ -154,10 +154,10 @@ export function ReaderScreen({ entry, onBack, onEdit, onDelete }: ReaderScreenPr
             <div className="flex flex-col gap-1 font-mono text-[10.5px]">
               {(
                 [
-                  [fmtTime(d), 'INSERT', `_id: ${entry.id}`, true],
-                  [fmtTime(new Date(d.getTime() + 1200)), 'SYNC', 'cluster.ATL-07', false],
-                  [fmtTime(new Date(d.getTime() + 1800)), 'ACK', 'replica 3/3', true],
-                  [fmtTime(new Date()), 'FETCH', 'operator-01', false],
+                  [fmtTime(d), 'ENCRYPT', 'aes-gcm · local dek', true],
+                  [fmtTime(new Date(d.getTime() + 1200)), 'SYNC', 'vercel → atlas', false],
+                  [fmtTime(new Date(d.getTime() + 1800)), 'ACK', 'ciphertext stored', true],
+                  [fmtTime(new Date()), 'DECRYPT', 'operator session', false],
                 ] as const
               ).map(([time, tag, id, good]) => (
                 <div

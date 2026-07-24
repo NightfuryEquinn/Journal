@@ -20,7 +20,7 @@ type SavingState = 'idle' | 'saving' | 'saved';
 
 interface ComposerScreenProps {
   existing: JournalEntry | null;
-  onSave: (entry: JournalEntry) => void;
+  onSave: (entry: JournalEntry) => void | Promise<void>;
   onCancel: () => void;
   onDelete: (entry: JournalEntry) => void;
 }
@@ -84,7 +84,9 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
     setTimeout(() => {
       setSavingState('saved');
       SoundManager.confirm();
-      setTimeout(() => onSave(entry), 400);
+      setTimeout(() => {
+        void onSave(entry);
+      }, 400);
     }, 700);
   };
 
@@ -119,13 +121,13 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
         <main className="min-w-0">
           <Panel
             title={<DecodeText text="CONSOLE · COMPOSE" />}
-            meta={`tty/02 · ${isEdit ? 'PATCH' : 'INSERT'} MODE`}
+            meta={`${isEdit ? 'PATCH' : 'INSERT'} · e2ee`}
             headerRight={
               <span className="font-mono text-[10px] tracking-[0.02em] text-fg-dim max-phone:hidden">
                 {savingState === 'saving' ? (
-                  <span className="text-accent">// committing to cluster …</span>
+                  <span className="text-accent">// encrypting · PUT /api/entries …</span>
                 ) : savingState === 'saved' ? (
-                  <span className="text-good">// ack 3/3 replicas</span>
+                  <span className="text-good">// ack · atlas durable</span>
                 ) : (
                   '// awaiting input'
                 )}
@@ -319,9 +321,9 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
             <div className="flex flex-col gap-1 font-mono text-[10.5px]">
               {(
                 [
-                  ['→', 'VALIDATE', 'title, body, tags', false],
-                  ['→', isEdit ? 'UPDATE' : 'INSERT', 'db.journs.entries', false],
-                  ['→', 'REPLICATE', '3 replicas · ATL-07', false],
+                  ['→', 'ENCRYPT', 'aes-gcm · local dek', false],
+                  ['→', isEdit ? 'UPSERT' : 'INSERT', 'atlas.entries ciphertext', false],
+                  ['→', 'SYNC', 'vercel /api/entries', false],
                   ['→', 'ACK', 'durable', true],
                 ] as const
               ).map(([time, tag, id, good]) => (

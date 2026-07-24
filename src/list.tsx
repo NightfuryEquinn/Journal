@@ -2,6 +2,7 @@
 import { useMemo, useState } from 'react';
 import type { JournalEntry, ListLayout } from './types';
 import { SoundManager, DecodeText, Bracket, Panel, Btn, fmtDate, fmtTime, pad } from './hud';
+import { maybeStartTour, resetTour } from './tours';
 
 interface MoodBarsProps {
   value: number;
@@ -52,6 +53,7 @@ interface ListScreenProps {
   onLayoutChange: (layout: ListLayout) => void;
   onDelete: (entry: JournalEntry) => void;
   onOpenProfile: () => void;
+  loading?: boolean;
 }
 
 /** Archive list with search, tags, and timeline/stack layouts. */
@@ -63,6 +65,7 @@ export function ListScreen({
   onLayoutChange,
   onDelete,
   onOpenProfile,
+  loading = false,
 }: ListScreenProps) {
   const [search, setSearch] = useState('');
   const [tagFilter, setTagFilter] = useState<string | null>(null);
@@ -88,7 +91,7 @@ export function ListScreen({
 
   return (
     <div className="mx-auto max-w-350 px-4 pt-4 pb-6 max-phone:px-3 laptop:px-7 laptop:pt-5 laptop:pb-7">
-      <div className="mb-5.5 flex flex-col gap-3 tablet:grid tablet:grid-cols-[1fr_auto_auto_auto] tablet:items-center tablet:gap-4.5">
+      <div className="mb-5.5 flex flex-col gap-3 tablet:grid tablet:grid-cols-[1fr_auto_auto_auto_auto] tablet:items-center tablet:gap-4.5">
         <Bracket className="min-w-0 w-full">
           <div className="flex items-center border border-line-strong bg-black/40 px-3.5 py-2 font-mono">
             <span className="mr-2 font-mono tracking-[0.02em] text-accent">⌕</span>
@@ -127,30 +130,61 @@ export function ListScreen({
             </button>
           ))}
         </div>
-        <Btn variant="ghost" onClick={onOpenProfile} className="w-full tablet:w-auto">
+        <Btn
+          variant="ghost"
+          onClick={onOpenProfile}
+          className="w-full tablet:w-auto"
+          data-tour="tour-profile"
+        >
           PROFILE
         </Btn>
-        <Btn variant="primary" onClick={onNew} className="w-full tablet:w-auto">
+        <Btn
+          variant="ghost"
+          className="w-full tablet:w-auto"
+          onClick={() => {
+            resetTour();
+            maybeStartTour();
+          }}
+        >
+          REPLAY TOUR
+        </Btn>
+        <Btn
+          variant="primary"
+          onClick={onNew}
+          className="w-full tablet:w-auto"
+          data-tour="tour-compose"
+        >
           + NEW ENTRY
         </Btn>
       </div>
 
-      <div className="grid grid-cols-1 items-start gap-5 tablet:grid-cols-[minmax(0,280px)_1fr] tablet:gap-5.5">
+      <div
+        className="grid grid-cols-1 items-start gap-5 tablet:grid-cols-[minmax(0,280px)_1fr] tablet:gap-5.5"
+        data-tour="tour-archive"
+      >
         <aside className="min-w-0">
-          <Panel title="ARCHIVE" meta={`${entries.length} entries`}>
+          <Panel title="ARCHIVE" meta={loading ? 'syncing…' : `${entries.length} entries`}>
             <div className="grid grid-cols-2 gap-row">
               {(
                 [
                   ['TOTAL', entries.length.toString().padStart(4, '0'), false],
                   [
                     'FIRST',
-                    fmtDate(new Date(entries[entries.length - 1]?.date || Date.now())),
+                    entries.length
+                      ? fmtDate(new Date(entries[entries.length - 1]!.date))
+                      : '—',
                     false,
                   ],
-                  ['LAST', fmtDate(new Date(entries[0]?.date || Date.now())), false],
+                  [
+                    'LAST',
+                    entries.length ? fmtDate(new Date(entries[0]!.date)) : '—',
+                    false,
+                  ],
                   [
                     'AVG MOOD',
-                    `${(entries.reduce((s, e) => s + e.mood, 0) / Math.max(1, entries.length)).toFixed(1)}/5`,
+                    entries.length
+                      ? `${(entries.reduce((s, e) => s + e.mood, 0) / entries.length).toFixed(1)}/5`
+                      : '—',
                     true,
                   ],
                 ] as const
@@ -216,15 +250,22 @@ export function ListScreen({
         </aside>
 
         <main className="min-w-0">
-          {layout === 'timeline' && (
+          {loading && (
+            <div className="py-15 text-center font-mono tracking-[0.02em] text-fg-dim">
+              // syncing ciphertext from Atlas …
+            </div>
+          )}
+          {!loading && layout === 'timeline' && (
             <TimelineLayout entries={filtered} onOpen={onOpen} onDelete={onDelete} />
           )}
-          {layout === 'stack' && (
+          {!loading && layout === 'stack' && (
             <StackLayout entries={filtered} onOpen={onOpen} onDelete={onDelete} />
           )}
-          {filtered.length === 0 && (
+          {!loading && filtered.length === 0 && (
             <div className="py-15 text-center font-mono tracking-[0.02em] text-fg-dim">
-              // no entries match. clear filters or create a new log.
+              {entries.length === 0
+                ? '// archive empty · write your first encrypted log'
+                : '// no entries match. clear filters or create a new log.'}
             </div>
           )}
         </main>

@@ -6,17 +6,27 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "db:drop-all": "bun --preload ./scripts/bun-v8-patch.ts ./scripts/drop-all.ts",
+    "db:purge-stale": "bun --preload ./scripts/bun-v8-patch.ts ./scripts/purge-stale-users.ts"
   },
   "dependencies": {
+    "@scure/bip39": "^2.2.0",
+    "jose": "^6.2.4",
+    "mermaid": "^11.16.0",
+    "mongodb": "^7.5.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "vercel": "^56.4.1"
+    "shepherd.js": "^15.2.2",
+    "vercel": "^56.4.1",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^26.1.1",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
+    "@vercel/node": "^5.8.26",
     "@vitejs/plugin-react": "^4.5.2",
     "tailwindcss": "^4.3.3",
     "typescript": "~5.8.3",

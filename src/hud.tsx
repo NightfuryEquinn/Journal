@@ -287,6 +287,7 @@ export function Btn({
   type = 'button',
   style,
   className = '',
+  ...rest
 }: {
   children?: ReactNode;
   onClick?: (e: MouseEvent<HTMLButtonElement>) => void;
@@ -295,7 +296,7 @@ export function Btn({
   type?: ButtonHTMLAttributes<HTMLButtonElement>['type'];
   style?: CSSProperties;
   className?: string;
-}) {
+} & Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'type' | 'onClick' | 'disabled' | 'style' | 'className'>) {
   const handler = (e: MouseEvent<HTMLButtonElement>) => {
     if (disabled) return;
     SoundManager.click();
@@ -312,6 +313,7 @@ export function Btn({
       onMouseEnter={() => SoundManager.hover()}
       disabled={disabled}
       style={{ opacity: disabled ? 0.4 : 1, ...style }}
+      {...rest}
     >
       {children}
     </button>
@@ -410,7 +412,7 @@ export function TopBar({
       <div className="flex min-w-0 items-center gap-4 overflow-hidden text-fg-dim max-tablet:hidden desktop:gap-6">
         <span className="flex min-w-0 flex-col items-start gap-0.5 leading-none">
           <span className="text-[9px] tracking-[0.18em] text-fg-mute">LINK</span>
-          <span className="truncate text-fg">CLUSTER · ATL-07</span>
+          <span className="truncate text-fg">HOST · VERCEL+ATLAS</span>
         </span>
         {onOpenProfile ? (
           <button
@@ -422,6 +424,7 @@ export function TopBar({
             }}
             title="Open profile"
             aria-label="Open profile"
+            data-tour="tour-profile-top"
           >
             <span className="text-[9px] tracking-[0.18em] text-fg-mute">USER</span>
             <span className="truncate text-fg">{user || '—'}</span>

@@ -1,32 +1,58 @@
 import { useEffect, useRef, useState, type FormEvent, type RefObject } from 'react';
 import { SoundManager, DecodeText, Bracket, Panel, Btn, Caret } from './hud';
 import {
-  createIdentity,
   generateRecoveryPhrase,
-  loadIdentity,
-  recoverWithPhrase,
-  verifyPassphrase,
+  recoverAccount,
+  registerAccount,
+  unlockAccount,
+  type AuthSession,
 } from './identity';
 import type { DeviceIdentity } from './types';
 
 const TYPED_BOOT_LINES = [
-  '$ journs.init --secure',
-  '> binding to cluster ATL-07.mongodb.local:27017',
-  '> handshake … TLS 1.3 OK',
-  '> integrity check … sha256 OK',
+  '$ journs.init --e2ee',
+  '> resolve MongoDB Atlas · TLS 1.3 OK',
+  '> vercel host · /api routes ready',
+  '> dek envelope · aes-gcm standby',
   '> awaiting operator credentials',
 ];
 
 type BootPhase = 'boot' | 'ready';
-type Mode = 'choose' | 'unlock' | 'create-phrase' | 'create-pass' | 'recover-phrase' | 'recover-pass';
+type Mode =
+  | 'choose'
+  | 'unlock'
+  | 'create-phrase'
+  | 'create-verify'
+  | 'create-pass'
+  | 'recover-phrase'
+  | 'recover-pass';
+
+/** Pick `count` distinct word indices (1-based display uses +1) from a 12-word phrase. */
+function pickVerifySlots(count = 3): number[] {
+  const idx = Array.from({ length: 12 }, (_, i) => i);
+
+  for (let i = idx.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const a = idx[i]!;
+    idx[i] = idx[j]!;
+    idx[j] = a;
+  }
+
+  return idx.slice(0, count).sort((a, b) => a - b);
+}
 
 /** Secure terminal: unlock, create ID, or recover with 12 words. */
 export function LoginScreen({
   onAuth,
   identity,
+  syncError,
 }: {
-  onAuth: (identity: DeviceIdentity) => void;
+  onAuth: (
+    session: AuthSession,
+    options?: { isNewUser?: boolean },
+  ) => void | Promise<void>;
   identity: DeviceIdentity | null;
+  syncError?: string | null;
 }) {
   const [boot, setBoot] = useState<BootPhase>('boot');
   const [bootIdx, setBootIdx] = useState(0);
@@ -39,6 +65,8 @@ export function LoginScreen({
   const [phrase, setPhrase] = useState<string[]>([]);
   const [recoverWords, setRecoverWords] = useState<string[]>(() => Array(12).fill(''));
   const [savedOk, setSavedOk] = useState(false);
+  const [verifySlots, setVerifySlots] = useState<number[]>([]);
+  const [verifyAnswers, setVerifyAnswers] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -87,22 +115,14 @@ export function LoginScreen({
     SoundManager.click();
 
     try {
-      const ok = await verifyPassphrase(identity, pwd);
-
-      if (!ok) {
-        deny('// access denied · bad passphrase');
-        setBusy(false);
-        setTimeout(() => inputRef.current?.focus(), 50);
-
-        return;
-      }
-
+      const session = await unlockAccount(identity, pwd);
       SoundManager.confirm();
-      setStatus('// access granted · loading vessel state');
-      setTimeout(() => onAuth(identity), 700);
-    } catch {
-      deny('// verify failed');
+      setStatus('// access granted · syncing encrypted archive');
+      await onAuth(session);
+    } catch (err) {
+      deny(err instanceof Error ? `// ${err.message}` : '// verify failed');
       setBusy(false);
+      setTimeout(() => inputRef.current?.focus(), 50);
     }
   };
 
@@ -111,19 +131,50 @@ export function LoginScreen({
     SoundManager.click();
     setPhrase(generateRecoveryPhrase());
     setSavedOk(false);
+    setVerifySlots([]);
+    setVerifyAnswers([]);
     setPwd('');
     setPwd2('');
     setStatus(null);
     setMode('create-phrase');
   };
 
-  /** Advance from phrase confirm to passphrase setup. */
+  /** Advance from phrase save → 3-word verification challenge. */
   const confirmPhraseSaved = () => {
     if (!savedOk) {
       return;
     }
 
     SoundManager.click();
+    const slots = pickVerifySlots(3);
+    setVerifySlots(slots);
+    setVerifyAnswers(slots.map(() => ''));
+    setStatus(null);
+    setMode('create-verify');
+  };
+
+  /** Check the three recovery words, then advance to passphrase setup. */
+  const submitPhraseVerify = (e?: FormEvent) => {
+    e?.preventDefault();
+
+    const ok = verifySlots.every((slot, i) => {
+      const expected = phrase[slot]?.toLowerCase() ?? '';
+      const got = (verifyAnswers[i] ?? '').trim().toLowerCase();
+
+      return expected.length > 0 && got === expected;
+    });
+
+    if (!ok) {
+      deny('// verification failed · check word positions');
+      const slots = pickVerifySlots(3);
+      setVerifySlots(slots);
+      setVerifyAnswers(slots.map(() => ''));
+
+      return;
+    }
+
+    SoundManager.confirm();
+    setStatus(null);
     setMode('create-pass');
     setTimeout(() => inputRef.current?.focus(), 50);
   };
@@ -149,14 +200,14 @@ export function LoginScreen({
     }
 
     setBusy(true);
-    setStatus('// forging operator identity …');
+    setStatus('// registering on Atlas · sealing E2EE envelope');
     SoundManager.click();
 
     try {
-      const next = await createIdentity(phrase, pwd);
+      const session = await registerAccount(phrase, pwd);
       SoundManager.confirm();
-      setStatus('// identity sealed · entering archive');
-      setTimeout(() => onAuth(next), 700);
+      setStatus('// identity sealed · syncing ciphertext archive');
+      await onAuth(session, { isNewUser: true });
     } catch (err) {
       deny(err instanceof Error ? `// ${err.message}` : '// create failed');
       setBusy(false);
@@ -224,11 +275,10 @@ export function LoginScreen({
     SoundManager.click();
 
     try {
-      const existing = loadIdentity();
-      const next = await recoverWithPhrase(recoverWords, pwd, existing);
+      const session = await recoverAccount(recoverWords, pwd);
       SoundManager.confirm();
       setStatus('// device lock reset · access granted');
-      setTimeout(() => onAuth(next), 700);
+      await onAuth(session);
     } catch (err) {
       deny(err instanceof Error ? `// ${err.message}` : '// recover failed');
       setBusy(false);
@@ -272,13 +322,13 @@ export function LoginScreen({
                   <line x1="100" y1="166" x2="100" y2="188" />
                 </g>
                 <text x="14" y="22" fill="var(--fg-mute)" fontFamily="JetBrains Mono" fontSize="8">
-                  ID-7741
+                  E2EE
                 </text>
                 <text x="14" y="194" fill="var(--fg-mute)" fontFamily="JetBrains Mono" fontSize="8">
-                  RECON
+                  ATLAS
                 </text>
-                <text x="156" y="194" fill="var(--accent)" fontFamily="JetBrains Mono" fontSize="8">
-                  ·LIVE
+                <text x="148" y="194" fill="var(--accent)" fontFamily="JetBrains Mono" fontSize="8">
+                  ·VERCEL
                 </text>
               </svg>
             </div>
@@ -286,10 +336,10 @@ export function LoginScreen({
               {(
                 [
                   ['CALLSIGN', callsign, false],
-                  ['VESSEL', 'JOURNS-01', false],
-                  ['ROLE', 'SOLE AUTHOR', false],
+                  ['HOST', 'VERCEL · ATLAS', false],
+                  ['CIPHER', 'AES-GCM · DEK', false],
                   ['RECOVERY', identity ? 'CONFIRMED' : 'UNSET', true],
-                  ['BOUND', 'mongodb://journs.atl-07', false],
+                  ['STORE', 'ciphertext only', false],
                 ] as const
               ).map(([lbl, val, accent]) => (
                 <div key={lbl} className="flex justify-between gap-3">
@@ -304,7 +354,7 @@ export function LoginScreen({
         <div
           className={`relative min-w-0 tablet:transform-[perspective(1400px)_rotateY(-2deg)] tablet:transform-3d ${shake ? 'animate-shake' : ''}`}
         >
-          <Panel title={<DecodeText text="SECURE TERMINAL" />} meta="tty/01 · 9600 8N1">
+          <Panel title={<DecodeText text="SECURE TERMINAL" />} meta="auth · e2ee · atlas">
             <div className="flex min-h-70 flex-col gap-4.5 max-phone:min-h-60">
               <div className="font-mono text-xs leading-[1.8]">
                 {TYPED_BOOT_LINES.slice(0, bootIdx).map((l, i) => (
@@ -319,14 +369,20 @@ export function LoginScreen({
                 )}
               </div>
 
+              {boot === 'ready' && syncError && (
+                <div className="font-mono text-[11px] tracking-[0.02em] text-accent">
+                  // sync error · {syncError}
+                </div>
+              )}
+
               {boot === 'ready' && mode === 'choose' && (
                 <div className="flex flex-col gap-3">
                   <p className="font-mono text-[11px] tracking-[0.02em] text-fg-dim">
-                    // no device identity · create a new ID or recover with 12 words
+                    // no local session · create a new user on Atlas or recover with 12 words
                   </p>
                   <div className="flex flex-wrap gap-2.5">
                     <Btn variant="primary" onClick={startCreate}>
-                      ▸ CREATE NEW ID
+                      ▸ CREATE NEW USER
                     </Btn>
                     <Btn variant="ghost" onClick={startRecover}>
                       RECOVER / NEW DEVICE
@@ -364,7 +420,7 @@ export function LoginScreen({
                         {status}
                       </span>
                     ) : (
-                      <span>// enter device passphrase to unlock</span>
+                      <span>// passphrase unlocks DEK · then sync ciphertext</span>
                     )}
                   </div>
                   <div className="mt-4.5 flex flex-wrap gap-2.5">
@@ -377,10 +433,21 @@ export function LoginScreen({
                       onClick={() => {
                         setPwd('');
                         setStatus(null);
+                        startCreate();
+                      }}
+                    >
+                      CREATE NEW USER
+                    </Btn>
+                    <Btn
+                      variant="ghost"
+                      disabled={busy}
+                      onClick={() => {
+                        setPwd('');
+                        setStatus(null);
                         startRecover();
                       }}
                     >
-                      NEW DEVICE / RECOVER
+                      RECOVER / NEW DEVICE
                     </Btn>
                   </div>
                 </form>
@@ -389,7 +456,7 @@ export function LoginScreen({
               {boot === 'ready' && mode === 'create-phrase' && (
                 <div className="flex flex-col gap-3.5">
                   <p className="font-mono text-[11px] tracking-[0.02em] text-fg-dim">
-                    // write down these 12 recovery words · demo only · not a real chain wallet
+                    // write down these 12 BIP39 words · they unwrap your DEK · never leave this device
                   </p>
                   <div className="grid grid-cols-2 gap-2 phone:grid-cols-3">
                     {phrase.map((w, i) => (
@@ -418,7 +485,7 @@ export function LoginScreen({
                     <Btn
                       variant="ghost"
                       onClick={() => {
-                        setMode('choose');
+                        setMode(identity ? 'unlock' : 'choose');
                         setPhrase([]);
                         setSavedOk(false);
                       }}
@@ -429,10 +496,62 @@ export function LoginScreen({
                 </div>
               )}
 
+              {boot === 'ready' && mode === 'create-verify' && (
+                <form onSubmit={submitPhraseVerify} className="flex flex-col gap-3.5">
+                  <p className="font-mono text-[11px] tracking-[0.02em] text-fg-dim">
+                    // confirm 3 words from your recovery phrase
+                  </p>
+                  <div className="flex flex-col gap-2.5">
+                    {verifySlots.map((slot, i) => (
+                      <label key={slot} className="flex flex-col gap-1.5">
+                        <span className="font-mono text-[10px] tracking-[0.14em] text-fg-mute">
+                          WORD {String(slot + 1).padStart(2, '0')}
+                        </span>
+                        <input
+                          type="text"
+                          className="border border-line-strong bg-black/40 px-3.5 py-3 font-mono text-[13px] tracking-[0.08em] text-accent max-tablet:min-h-11"
+                          value={verifyAnswers[i] ?? ''}
+                          autoFocus={i === 0}
+                          spellCheck={false}
+                          autoComplete="off"
+                          autoCapitalize="off"
+                          onChange={(e) => {
+                            const next = [...verifyAnswers];
+                            next[i] = e.target.value.toLowerCase().replace(/\s+/g, '');
+                            setVerifyAnswers(next);
+                            SoundManager.type();
+                          }}
+                        />
+                      </label>
+                    ))}
+                  </div>
+                  <StatusLine status={status} />
+                  <div className="flex flex-wrap gap-2.5">
+                    <Btn
+                      type="submit"
+                      variant="primary"
+                      disabled={verifyAnswers.some((w) => !w.trim())}
+                    >
+                      ▸ VERIFY WORDS
+                    </Btn>
+                    <Btn
+                      variant="ghost"
+                      onClick={() => {
+                        setMode('create-phrase');
+                        setStatus(null);
+                        setVerifyAnswers([]);
+                      }}
+                    >
+                      BACK
+                    </Btn>
+                  </div>
+                </form>
+              )}
+
               {boot === 'ready' && mode === 'create-pass' && (
                 <form onSubmit={submitCreatePass} className="flex flex-col gap-3">
                   <p className="font-mono text-[11px] tracking-[0.02em] text-fg-dim">
-                    // set a device passphrase for this browser
+                    // set a device passphrase · wraps DEK · authenticates to Atlas
                   </p>
                   <PassFields
                     inputRef={inputRef}
@@ -451,9 +570,12 @@ export function LoginScreen({
                       variant="ghost"
                       disabled={busy}
                       onClick={() => {
-                        setMode('create-phrase');
+                        setMode('create-verify');
                         setPwd('');
                         setPwd2('');
+                        const slots = pickVerifySlots(3);
+                        setVerifySlots(slots);
+                        setVerifyAnswers(slots.map(() => ''));
                       }}
                     >
                       BACK
@@ -465,7 +587,7 @@ export function LoginScreen({
               {boot === 'ready' && mode === 'recover-phrase' && (
                 <div className="flex flex-col gap-3.5">
                   <p className="font-mono text-[11px] tracking-[0.02em] text-fg-dim">
-                    // new device login · enter your 12 recovery words
+                    // new device · enter 12 words to unwrap DEK from Atlas
                   </p>
                   <input
                     type="text"
@@ -525,7 +647,7 @@ export function LoginScreen({
               {boot === 'ready' && mode === 'recover-pass' && (
                 <form onSubmit={submitRecoverPass} className="flex flex-col gap-3">
                   <p className="font-mono text-[11px] tracking-[0.02em] text-fg-dim">
-                    // set a new device passphrase for this browser
+                    // set a new device passphrase · rewraps DEK on Atlas
                   </p>
                   <PassFields
                     inputRef={inputRef}
@@ -623,7 +745,11 @@ function StatusLine({ status }: { status: string | null }) {
     return <div className="min-h-4" />;
   }
 
-  const ok = status.includes('granted') || status.includes('sealed') || status.includes('forging');
+  const ok =
+    status.includes('granted') ||
+    status.includes('sealed') ||
+    status.includes('registering') ||
+    status.includes('forging');
 
   return (
     <div className="min-h-4 font-mono text-[11px] tracking-[0.02em] text-fg-dim">
