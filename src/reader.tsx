@@ -116,12 +116,11 @@ export function ReaderScreen({ entry, onBack, onEdit, onDelete }: ReaderScreenPr
               {(
                 [
                   ['CAPTURED', `${fmtDate(d)} · ${fmtTime(d)}`, 'mono'],
-                  ['WEATHER', entry.weather, 'mono'],
+                  ['WEATHER', entry.weather.split(' · ')[0], 'mono'],
                   ['MOOD', null, 'mood'],
                   ['ENERGY', null, 'energy'],
                   ['WORD COUNT', String(wc), 'mono acc'],
                   ['READ TIME', `~ ${rt} MIN`, 'mono'],
-                  ['PRIVACY', 'OPERATOR-ONLY', 'mono acc'],
                 ] as const
               ).map(([lbl, val, kind]) => (
                 <div

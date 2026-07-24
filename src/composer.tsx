@@ -1,19 +1,20 @@
 // composer.tsx — console-style writer
 import { useEffect, useRef, useState } from 'react';
 import type { JournalEntry } from './types';
-import { SoundManager, DecodeText, Panel, Btn, Caret, fmtDate, fmtTime, pad } from './hud';
+import { SoundManager, DecodeText, Panel, Btn, Caret, HudSelect, fmtDate, fmtTime, pad } from './hud';
 
 const MOOD_OPTS = ['LOW', 'DIM', 'STEADY', 'GOOD', 'HIGH'];
 const ENERGY_OPTS = ['DRAINED', 'LOW', 'STEADY', 'CHARGED', 'PEAKED'];
-const WEATHER_OPTS = [
-  'CLEAR · 14°C · NW 6km/h',
-  'OVERCAST · 11°C · N 4km/h',
-  'LIGHT RAIN · 9°C · W 8km/h',
-  'HEAVY RAIN · 12°C · SW 14km/h',
-  'FOG · 8°C · CALM',
-  'SNOW · -2°C · NE 7km/h',
-  'CLEAR · 22°C · S 3km/h',
-];
+const WEATHER_OPTS = ['CLEAR', 'OVERCAST', 'WINDY', 'LIGHT RAIN', 'HEAVY RAIN', 'FOG', 'SNOW'] as const;
+
+/** Resolve a stored weather string to a known condition label. */
+function resolveWeather(raw?: string): string {
+  const label = (raw || '').split(' · ')[0].trim();
+
+  return WEATHER_OPTS.includes(label as (typeof WEATHER_OPTS)[number])
+    ? label
+    : WEATHER_OPTS[0];
+}
 
 type SavingState = 'idle' | 'saving' | 'saved';
 
@@ -38,7 +39,7 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
   const [body, setBody] = useState(existing?.body || '');
   const [mood, setMood] = useState(existing?.mood ?? 4);
   const [energy, setEnergy] = useState(existing?.energy ?? 3);
-  const [weather, setWeather] = useState(existing?.weather || WEATHER_OPTS[0]);
+  const [weather, setWeather] = useState(() => resolveWeather(existing?.weather));
   const [tagsStr, setTagsStr] = useState((existing?.tags || []).join(', '));
   const [savingState, setSavingState] = useState<SavingState>('idle');
   const titleRef = useRef<HTMLInputElement>(null);
@@ -277,17 +278,12 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
 
               <div className="flex flex-col gap-1.5">
                 <label className="font-mono text-[9.5px] tracking-[0.2em] text-fg-mute">WEATHER</label>
-                <select
-                  className={HUD_FIELD}
+                <HudSelect
+                  aria-label="Weather"
                   value={weather}
-                  onChange={(e) => setWeather(e.target.value)}
-                >
-                  {WEATHER_OPTS.map((w) => (
-                    <option key={w} value={w} className="bg-bg-1 text-fg">
-                      {w}
-                    </option>
-                  ))}
-                </select>
+                  options={WEATHER_OPTS}
+                  onChange={setWeather}
+                />
               </div>
 
               <div className="flex flex-col gap-1.5">

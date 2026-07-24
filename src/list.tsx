@@ -305,7 +305,7 @@ function TimelineLayout({ entries, onOpen, onDelete }: EntryLayoutProps) {
                   ))}
                 </div>
                 <div className="font-mono text-[10px] tracking-[0.14em] text-fg-mute">
-                  {e.weather}
+                  {e.weather.split(' · ')[0]}
                 </div>
               </div>
             </div>

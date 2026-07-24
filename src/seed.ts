@@ -7,7 +7,7 @@ export const SEED_ENTRIES: JournalEntry[] = [
     title: 'Quiet protocol on the ridge road',
     mood: 4,
     energy: 3,
-    weather: 'CLEAR · 12°C · NW 6km/h',
+    weather: 'CLEAR',
     tags: ['recon', 'self', 'commute'],
     body: `Drove the ridge road back. There were three deer at the second switchback; I cut the engine and watched them for a long moment.
 
@@ -21,7 +21,7 @@ Tomorrow: finish the schematic for the relay tower. Don't forget to call M.`,
     title: 'First coffee, then everything else',
     mood: 5,
     energy: 4,
-    weather: 'OVERCAST · 9°C · N 4km/h',
+    weather: 'OVERCAST',
     tags: ['ritual', 'work'],
     body: `Slept eight hours for the first time in two weeks. Body remembered how that feels — strange.
 
@@ -33,7 +33,7 @@ Cleaned the workbench before sitting down. Found the notebook I thought I'd lost
     title: 'Long phone call with K.',
     mood: 3,
     energy: 2,
-    weather: 'LIGHT RAIN · 11°C · W 9km/h',
+    weather: 'LIGHT RAIN',
     tags: ['family', 'difficult'],
     body: `K. is moving again. Third time in two years. I tried not to sound disappointed. I think I failed.
 
@@ -45,7 +45,7 @@ Reminder: love is not the same as approval. Sit with that.`,
     title: 'Field test · cold cell pack #4',
     mood: 4,
     energy: 4,
-    weather: 'CLEAR · 7°C · CALM',
+    weather: 'CLEAR',
     tags: ['lab', 'equipment'],
     body: `Cell #4 held charge for the full 9-hour outdoor cycle at near-freezing. That's a 22% improvement over the previous batch.
 
@@ -57,7 +57,7 @@ Photos in the side folder. Need to write up findings before Monday's review.`,
     title: 'Morning fog observation',
     mood: 4,
     energy: 3,
-    weather: 'FOG · 8°C · CALM',
+    weather: 'FOG',
     tags: ['ritual', 'nature'],
     body: `Walked to the overlook before sunrise. Couldn't see the river but I could hear it.
 
@@ -69,7 +69,7 @@ A heron passed overhead, just a shape in the grey. Counted: 14 wingbeats, then a
     title: 'Insomnia ledger',
     mood: 2,
     energy: 1,
-    weather: 'CLEAR · 6°C · SW 5km/h',
+    weather: 'CLEAR',
     tags: ['health', 'difficult'],
     body: `Third night in a row. Mind kept circling the same three problems.
 
@@ -81,7 +81,7 @@ Reading helped a little. Made tea at 02:30. Watched the kitchen window go from b
     title: 'Month-end review',
     mood: 4,
     energy: 4,
-    weather: 'CLEAR · 16°C · S 3km/h',
+    weather: 'CLEAR',
     tags: ['review', 'planning'],
     body: `April was a month of small steady wins.
 
@@ -97,7 +97,7 @@ May goals: finish the third module, write to D., and take one day completely off
     title: 'Lab note · solar array calibration',
     mood: 3,
     energy: 3,
-    weather: 'CLEAR · 18°C · NW 4km/h',
+    weather: 'CLEAR',
     tags: ['lab', 'equipment'],
     body: `Recalibrated panels A2 and B3. Output up 4%. Still below the simulation prediction by ~7%.
 

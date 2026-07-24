@@ -497,7 +497,7 @@ export function Backdrop({ depth }: { depth: number }) {
       />
       <div
         data-layer
-        className="absolute inset-[-8%] bg-[url('/hexgrid.svg')] bg-[length:240px_208px] bg-repeat opacity-[0.18] will-change-transform"
+        className="absolute inset-[-8%] bg-[url('/hexgrid.svg')] bg-size-[240px_208px] bg-repeat opacity-[0.18] will-change-transform"
       />
       <div
         data-layer
@@ -515,5 +515,113 @@ export function Caret({ className = '' }: { className?: string }) {
     <span
       className={`ml-0.5 inline-block h-[1em] w-[0.6em] animate-caret bg-accent align-[-0.15em] shadow-[0_0_8px_var(--accent)] ${className}`}
     />
+  );
+}
+
+/** Themed HUD dropdown that matches field / panel styling. */
+export function HudSelect({
+  value,
+  options,
+  onChange,
+  className = '',
+  'aria-label': ariaLabel,
+}: {
+  value: string;
+  options: readonly string[];
+  onChange: (value: string) => void;
+  className?: string;
+  'aria-label'?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    /** Close the menu when clicking outside. */
+    const onDoc = (e: globalThis.MouseEvent) => {
+      if (!rootRef.current?.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+
+    /** Close the menu on Escape. */
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onKey);
+
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={rootRef} className={`relative ${className}`}>
+      <button
+        type="button"
+        aria-label={ariaLabel}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        className="flex w-full items-center justify-between gap-2 border border-line-strong bg-black/40 px-2.5 py-2 font-mono text-[11px] tracking-[0.08em] text-fg transition-[border-color,background] duration-100 hover:border-accent hover:bg-accent-soft"
+        onClick={() => {
+          SoundManager.click();
+          setOpen((v) => !v);
+        }}
+        onMouseEnter={() => SoundManager.hover()}
+      >
+        <span className="min-w-0 truncate">{value}</span>
+        <span
+          className={`shrink-0 text-[9px] tracking-[0.14em] text-fg-mute transition-transform duration-100 ${open ? 'rotate-180 text-accent' : ''}`}
+          aria-hidden="true"
+        >
+          ▾
+        </span>
+      </button>
+
+      {open && (
+        <ul
+          role="listbox"
+          className="absolute top-[calc(100%+4px)] right-0 left-0 z-20 max-h-52 overflow-auto border border-line-strong bg-bg-1 shadow-[0_8px_24px_rgba(0,0,0,0.55)]"
+        >
+          {options.map((opt) => {
+            const selected = opt === value;
+
+            return (
+              <li key={opt} role="option" aria-selected={selected}>
+                <button
+                  type="button"
+                  className={`flex w-full items-center justify-between gap-2 px-2.5 py-2 text-left font-mono text-[11px] tracking-[0.08em] transition-[background,color] duration-75 ${
+                    selected
+                      ? 'bg-accent-soft text-accent'
+                      : 'text-fg hover:bg-accent-soft hover:text-accent'
+                  }`}
+                  onClick={() => {
+                    SoundManager.click();
+                    onChange(opt);
+                    setOpen(false);
+                  }}
+                  onMouseEnter={() => SoundManager.hover()}
+                >
+                  <span>{opt}</span>
+                  {selected && (
+                    <span className="text-[9px] tracking-[0.14em]" aria-hidden="true">
+                      ●
+                    </span>
+                  )}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
   );
 }
