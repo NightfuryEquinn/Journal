@@ -1,12 +1,15 @@
 // app.tsx — main state machine
 import { useEffect, useState } from 'react';
-import type { AppView, JournalEntry, ListLayout } from './types';
+import type { AppView, DeviceIdentity, JournalEntry, ListLayout, QuestProgress } from './types';
 import { SoundManager, DecodeText, Bracket, Panel, Btn, TopBar, Backdrop } from './hud';
 import { SEED_ENTRIES } from './seed';
+import { loadIdentity } from './identity';
+import { loadProgress, saveProgress, settleAura } from './quests';
 import { LoginScreen } from './login';
 import { ListScreen } from './list';
 import { ReaderScreen } from './reader';
 import { ComposerScreen } from './composer';
+import { ProfileScreen } from './profile';
 
 const THEME = {
   palette: 'oceanic',
@@ -46,11 +49,13 @@ function loadEntries(): JournalEntry[] {
 
 /** Root shell: view routing, persistence, and chrome. */
 export default function App() {
-  const [user, setUser] = useState<string | null>(null);
+  const [identity, setIdentity] = useState<DeviceIdentity | null>(() => loadIdentity());
+  const [session, setSession] = useState(false);
   const [view, setView] = useState<AppView>({ name: 'login' });
   const [listLayout, setListLayout] = useState<ListLayout>('stack');
   const [soundOn, setSoundOn] = useState(false);
   const [entries, setEntries] = useState<JournalEntry[]>(loadEntries);
+  const [progress, setProgress] = useState<QuestProgress>(() => settleAura(loadProgress()));
   const [confirmDel, setConfirmDel] = useState<JournalEntry | null>(null);
 
   useEffect(() => {
@@ -60,6 +65,10 @@ export default function App() {
       /* ignore */
     }
   }, [entries]);
+
+  useEffect(() => {
+    saveProgress(progress);
+  }, [progress]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -74,16 +83,29 @@ export default function App() {
     SoundManager.setEnabled(soundOn);
   }, [soundOn]);
 
-  /** Authenticate and enter the archive list. */
-  const onAuth = (u: string) => {
-    setUser(u);
+  /** Authenticate, settle AURA, and enter the archive list. */
+  const onAuth = (next: DeviceIdentity) => {
+    setIdentity(next);
+    setProgress((p) => settleAura(p));
+    setSession(true);
     setView({ name: 'list' });
   };
 
-  /** Clear session and return to login. */
+  /** Clear session and return to login (identity stays on device). */
   const signOut = () => {
-    setUser(null);
+    setSession(false);
     setView({ name: 'login' });
+  };
+
+  /** Persist quest/AURA updates from profile. */
+  const onProgressChange = (next: QuestProgress) => {
+    setProgress(next);
+  };
+
+  /** Open profile and re-settle AURA for period rollover. */
+  const openProfile = () => {
+    setProgress((p) => settleAura(p));
+    setView({ name: 'profile' });
   };
 
   /** Open an entry in the reader. */
@@ -132,20 +154,25 @@ export default function App() {
   const currentRead =
     view.name === 'read' ? entries.find((x) => x.id === view.entry.id) || view.entry : null;
 
+  const userLabel = session && identity ? identity.operatorId : '—';
+
   return (
     <div className="fixed inset-0 grid grid-rows-[minmax(56px,auto)_1fr] bg-bg">
       <Backdrop depth={THEME.depth} />
 
       <TopBar
-        user={user || '—'}
-        onSignOut={user ? signOut : null}
+        user={userLabel}
+        onSignOut={session ? signOut : null}
         soundOn={soundOn}
         onToggleSound={() => setSoundOn((s) => !s)}
+        onOpenProfile={session ? openProfile : null}
       />
 
       <div className="relative z-5 grid overflow-hidden">
         <div className="col-start-1 row-start-1 overflow-auto">
-          {view.name === 'login' && <LoginScreen onAuth={onAuth} />}
+          {view.name === 'login' && (
+            <LoginScreen onAuth={onAuth} identity={identity} />
+          )}
           {view.name === 'list' && (
             <ListScreen
               entries={entries}
@@ -154,6 +181,7 @@ export default function App() {
               layout={listLayout}
               onLayoutChange={setListLayout}
               onDelete={requestDelete}
+              onOpenProfile={openProfile}
             />
           )}
           {view.name === 'read' && currentRead && (
@@ -172,6 +200,15 @@ export default function App() {
                 setView(view.existing ? { name: 'read', entry: view.existing } : { name: 'list' })
               }
               onDelete={requestDelete}
+            />
+          )}
+          {view.name === 'profile' && identity && (
+            <ProfileScreen
+              identity={identity}
+              entries={entries}
+              progress={progress}
+              onBack={() => setView({ name: 'list' })}
+              onProgressChange={onProgressChange}
             />
           )}
         </div>

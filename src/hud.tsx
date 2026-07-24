@@ -395,11 +395,13 @@ export function TopBar({
   onSignOut,
   soundOn,
   onToggleSound,
+  onOpenProfile,
 }: {
   user: string;
   onSignOut: (() => void) | null;
   soundOn: boolean;
   onToggleSound: () => void;
+  onOpenProfile?: (() => void) | null;
 }) {
   const now = useClock();
 
@@ -410,10 +412,26 @@ export function TopBar({
           <span className="text-[9px] tracking-[0.18em] text-fg-mute">LINK</span>
           <span className="truncate text-fg">CLUSTER · ATL-07</span>
         </span>
-        <span className="flex min-w-0 flex-col items-start gap-0.5 leading-none">
-          <span className="text-[9px] tracking-[0.18em] text-fg-mute">USER</span>
-          <span className="truncate text-fg">{user || '—'}</span>
-        </span>
+        {onOpenProfile ? (
+          <button
+            type="button"
+            className="tap-target flex min-w-0 flex-col items-start gap-0.5 leading-none text-left hover:text-accent"
+            onClick={() => {
+              SoundManager.click();
+              onOpenProfile();
+            }}
+            title="Open profile"
+            aria-label="Open profile"
+          >
+            <span className="text-[9px] tracking-[0.18em] text-fg-mute">USER</span>
+            <span className="truncate text-fg">{user || '—'}</span>
+          </button>
+        ) : (
+          <span className="flex min-w-0 flex-col items-start gap-0.5 leading-none">
+            <span className="text-[9px] tracking-[0.18em] text-fg-mute">USER</span>
+            <span className="truncate text-fg">{user || '—'}</span>
+          </span>
+        )}
       </div>
       <div className="flex shrink-0 flex-col items-center gap-1 px-1 leading-none max-tablet:col-start-1 max-tablet:justify-self-start">
         <span className="font-display text-sm font-semibold tracking-[0.32em] text-fg">JOURNS</span>
@@ -433,6 +451,20 @@ export function TopBar({
           </span>
         </div>
         <div className="flex shrink-0 items-center gap-1.5 border-l border-line pl-5 max-tablet:border-0 max-tablet:pl-0 desktop:pl-8">
+          {onOpenProfile && (
+            <button
+              type="button"
+              className={`tap-target shrink-0 ${BTN_BASE} ${BTN_VARIANTS.ghost} px-2 py-1.5 max-tablet:min-h-11 tablet:hidden`}
+              onClick={() => {
+                SoundManager.click();
+                onOpenProfile();
+              }}
+              title="Open profile"
+              aria-label="Open profile"
+            >
+              ID
+            </button>
+          )}
           <button
             type="button"
             className={`tap-target shrink-0 ${BTN_BASE} ${BTN_VARIANTS.ghost} px-2 py-1.5 max-tablet:min-h-11 max-tablet:min-w-11`}

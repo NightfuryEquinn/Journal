@@ -51,6 +51,7 @@ interface ListScreenProps {
   layout: ListLayout;
   onLayoutChange: (layout: ListLayout) => void;
   onDelete: (entry: JournalEntry) => void;
+  onOpenProfile: () => void;
 }
 
 /** Archive list with search, tags, and timeline/stack layouts. */
@@ -61,6 +62,7 @@ export function ListScreen({
   layout,
   onLayoutChange,
   onDelete,
+  onOpenProfile,
 }: ListScreenProps) {
   const [search, setSearch] = useState('');
   const [tagFilter, setTagFilter] = useState<string | null>(null);
@@ -86,7 +88,7 @@ export function ListScreen({
 
   return (
     <div className="mx-auto max-w-350 px-4 pt-4 pb-6 max-phone:px-3 laptop:px-7 laptop:pt-5 laptop:pb-7">
-      <div className="mb-5.5 flex flex-col gap-3 tablet:grid tablet:grid-cols-[1fr_auto_auto] tablet:items-center tablet:gap-4.5">
+      <div className="mb-5.5 flex flex-col gap-3 tablet:grid tablet:grid-cols-[1fr_auto_auto_auto] tablet:items-center tablet:gap-4.5">
         <Bracket className="min-w-0 w-full">
           <div className="flex items-center border border-line-strong bg-black/40 px-3.5 py-2 font-mono">
             <span className="mr-2 font-mono tracking-[0.02em] text-accent">⌕</span>
@@ -125,6 +127,9 @@ export function ListScreen({
             </button>
           ))}
         </div>
+        <Btn variant="ghost" onClick={onOpenProfile} className="w-full tablet:w-auto">
+          PROFILE
+        </Btn>
         <Btn variant="primary" onClick={onNew} className="w-full tablet:w-auto">
           + NEW ENTRY
         </Btn>
