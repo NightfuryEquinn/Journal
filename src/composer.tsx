@@ -153,10 +153,8 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
                   ref={titleRef}
                   className="min-w-0 flex-1 font-mono text-lg tracking-[0.04em] text-accent placeholder:text-fg-mute"
                   value={title}
-                  onChange={(e) => {
-                    setTitle(e.target.value);
-                    handleType();
-                  }}
+                  onChange={(e) => setTitle(e.target.value)}
+                  onKeyDown={handleType}
                   placeholder="enter title …"
                   spellCheck={false}
                 />
@@ -178,13 +176,12 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
                   ref={bodyRef}
                   className="min-h-90 w-full resize-y px-3.5 py-3 font-mono text-[13px] leading-[1.7] text-fg placeholder:text-fg-mute max-phone:min-h-70"
                   value={body}
-                  onChange={(e) => {
-                    setBody(e.target.value);
-                    handleType();
-                  }}
+                  onChange={(e) => setBody(e.target.value)}
                   placeholder={`> type your log entry …\n> markdown shorthand is fine — this is a personal feed.\n> press ⌘+enter to commit when ready.`}
                   spellCheck={false}
                   onKeyDown={(e) => {
+                    handleType();
+
                     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
                       e.preventDefault();
                       save();
@@ -238,7 +235,6 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
                   value={mood}
                   onChange={(e) => {
                     setMood(Number(e.target.value));
-                    SoundManager.type();
                   }}
                   className="hud-range"
                 />
@@ -265,7 +261,6 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
                   value={energy}
                   onChange={(e) => {
                     setEnergy(Number(e.target.value));
-                    SoundManager.type();
                   }}
                   className="hud-range"
                 />
@@ -295,10 +290,8 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
                 <input
                   className={HUD_FIELD}
                   value={tagsStr}
-                  onChange={(e) => {
-                    setTagsStr(e.target.value);
-                    SoundManager.type();
-                  }}
+                  onChange={(e) => setTagsStr(e.target.value)}
+                  onKeyDown={handleType}
                   placeholder="recon, self, …"
                 />
                 <div className="mt-1 flex flex-wrap gap-1">

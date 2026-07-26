@@ -8,139 +8,90 @@ import {
   type MouseEvent,
   type ReactNode,
 } from 'react';
+import { Howl, Howler } from 'howler';
+import onclickSrc from '../audio/onclick.wav?url';
+import ondeleteSrc from '../audio/ondelete.wav?url';
+import onhoverSrc from '../audio/onhover.wav?url';
+import onpageloadSrc from '../audio/onpageload.wav?url';
+import onshepherdSrc from '../audio/onshepherd.wav?url';
+import ontypeSrc from '../audio/ontype.wav?url';
 
-/** Procedural UI sounds via the Web Audio API. */
+/** Howler-backed UI sound effects gated by the topbar audio toggle. */
 export const SoundManager = (() => {
-  let ctx: AudioContext | null = null;
   let enabled = false;
+  let playedPageLoad = false;
 
-  /** Lazily create or resume the shared AudioContext. */
-  const ensure = (): AudioContext | null => {
-    if (!ctx) {
-      try {
-        const Ctx = window.AudioContext || window.webkitAudioContext;
-        ctx = Ctx ? new Ctx() : null;
-      } catch {
-        ctx = null;
-      }
-    }
+  Howler.mute(true);
 
-    if (ctx && ctx.state === 'suspended') {
-      void ctx.resume();
-    }
+  /** Create a preloaded Howl for a WAV asset. */
+  const make = (src: string, volume = 0.55) =>
+    new Howl({
+      src: [src],
+      volume,
+      preload: true,
+    });
 
-    return ctx;
-  };
+  const clickSound = make(onclickSrc, 0.5);
+  const deleteSound = make(ondeleteSrc, 0.55);
+  const hoverSound = make(onhoverSrc, 0.3);
+  const pageLoadSound = make(onpageloadSrc, 0.6);
+  const shepherdSound = make(onshepherdSrc, 0.55);
+  const typeSound = make(ontypeSrc, 0.35);
 
-  /** Play a short oscillator tone, optionally sliding frequency. */
-  const tone = (
-    freq: number,
-    dur: number,
-    type: OscillatorType = 'sine',
-    vol = 0.04,
-    slide = 0,
-  ) => {
+  /** Play a Howl when audio is enabled. */
+  const play = (sound: Howl) => {
     if (!enabled) {
       return;
     }
 
-    const c = ensure();
-
-    if (!c) {
-      return;
-    }
-
-    const t0 = c.currentTime;
-    const osc = c.createOscillator();
-    const g = c.createGain();
-
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, t0);
-
-    if (slide) {
-      osc.frequency.exponentialRampToValueAtTime(freq + slide, t0 + dur);
-    }
-
-    g.gain.setValueAtTime(0, t0);
-    g.gain.linearRampToValueAtTime(vol, t0 + 0.005);
-    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-    osc.connect(g).connect(c.destination);
-    osc.start(t0);
-    osc.stop(t0 + dur + 0.02);
+    sound.play();
   };
 
-  /** Play a short filtered noise burst. */
-  const noise = (dur: number, vol = 0.025, hp = 1200) => {
-    if (!enabled) {
+  /** Play page-load stinger once per session when audio is on. */
+  const playPageLoad = () => {
+    if (playedPageLoad || !enabled) {
       return;
     }
 
-    const c = ensure();
-
-    if (!c) {
-      return;
-    }
-
-    const t0 = c.currentTime;
-    const buf = c.createBuffer(1, Math.ceil(c.sampleRate * dur), c.sampleRate);
-    const ch = buf.getChannelData(0);
-
-    for (let i = 0; i < ch.length; i++) {
-      ch[i] = Math.random() * 2 - 1;
-    }
-
-    const src = c.createBufferSource();
-    src.buffer = buf;
-    const f = c.createBiquadFilter();
-    f.type = 'highpass';
-    f.frequency.value = hp;
-    const g = c.createGain();
-    g.gain.setValueAtTime(0, t0);
-    g.gain.linearRampToValueAtTime(vol, t0 + 0.005);
-    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-    src.connect(f).connect(g).connect(c.destination);
-    src.start(t0);
-    src.stop(t0 + dur + 0.02);
+    playedPageLoad = true;
+    pageLoadSound.play();
   };
 
   return {
     /** Enable or disable sound output. */
     setEnabled(v: boolean) {
       enabled = !!v;
-
-      if (v) {
-        ensure();
-      }
+      Howler.mute(!enabled);
     },
     /** Whether sound is currently enabled. */
     isEnabled: () => enabled,
-    /** Soft hover blip. */
+    /** Button / interactive hover. */
     hover() {
-      tone(880 + Math.random() * 200, 0.04, 'sine', 0.02);
+      play(hoverSound);
     },
-    /** Click / select blip. */
+    /** CTA / button click. */
     click() {
-      tone(520, 0.06, 'square', 0.05, -120);
+      play(clickSound);
     },
-    /** Keystroke tick with noise. */
+    /** Keyboard typing keydown. */
     type() {
-      const f = 1400 + Math.random() * 600;
-      tone(f, 0.018, 'square', 0.015);
-      noise(0.02, 0.012, 2000);
+      play(typeSound);
     },
-    /** Success / confirm chime. */
-    confirm() {
-      tone(880, 0.08, 'sine', 0.04);
-      setTimeout(() => tone(1320, 0.1, 'sine', 0.04), 80);
+    /** No-op confirm (no dedicated asset). */
+    confirm() {},
+    /** No-op deny (no dedicated asset). */
+    deny() {},
+    /** Full page / app load stinger (once per session). */
+    pageLoad: playPageLoad,
+    /** Alias for page-load stinger (login boot sequence). */
+    boot: playPageLoad,
+    /** Delete-confirmation modal open. */
+    delete() {
+      play(deleteSound);
     },
-    /** Error / deny buzz. */
-    deny() {
-      tone(220, 0.12, 'sawtooth', 0.05, -80);
-    },
-    /** Boot-sequence sweep. */
-    boot() {
-      tone(220, 0.4, 'sine', 0.05, 800);
-      setTimeout(() => tone(660, 0.15, 'sine', 0.04), 200);
+    /** Shepherd tour modal open. */
+    shepherd() {
+      play(shepherdSound);
     },
   };
 })();
@@ -422,6 +373,7 @@ export function TopBar({
               SoundManager.click();
               onOpenProfile();
             }}
+            onMouseEnter={() => SoundManager.hover()}
             title="Open profile"
             aria-label="Open profile"
             data-tour="tour-profile-top"
@@ -462,6 +414,7 @@ export function TopBar({
                 SoundManager.click();
                 onOpenProfile();
               }}
+              onMouseEnter={() => SoundManager.hover()}
               title="Open profile"
               aria-label="Open profile"
             >
@@ -472,9 +425,15 @@ export function TopBar({
             type="button"
             className={`tap-target shrink-0 ${BTN_BASE} ${BTN_VARIANTS.ghost} px-2 py-1.5 max-tablet:min-h-11 max-tablet:min-w-11`}
             onClick={() => {
+              const next = !soundOn;
+              SoundManager.setEnabled(next);
               onToggleSound();
-              SoundManager.click();
+
+              if (next) {
+                SoundManager.click();
+              }
             }}
+            onMouseEnter={() => SoundManager.hover()}
             title={soundOn ? 'Mute audio' : 'Enable audio'}
             aria-label={soundOn ? 'Mute audio' : 'Enable audio'}
             aria-pressed={soundOn}
@@ -489,6 +448,7 @@ export function TopBar({
                 SoundManager.click();
                 onSignOut();
               }}
+              onMouseEnter={() => SoundManager.hover()}
               title="Sign out"
               aria-label="Sign out"
             >
@@ -607,10 +567,8 @@ export function HudSelect({
         aria-haspopup="listbox"
         className="flex w-full items-center justify-between gap-2 border border-line-strong bg-black/40 px-2.5 py-2 font-mono text-[11px] tracking-[0.08em] text-fg transition-[border-color,background] duration-100 hover:border-accent hover:bg-accent-soft"
         onClick={() => {
-          SoundManager.click();
           setOpen((v) => !v);
         }}
-        onMouseEnter={() => SoundManager.hover()}
       >
         <span className="min-w-0 truncate">{value}</span>
         <span
@@ -639,11 +597,9 @@ export function HudSelect({
                       : 'text-fg hover:bg-accent-soft hover:text-accent'
                   }`}
                   onClick={() => {
-                    SoundManager.click();
                     onChange(opt);
                     setOpen(false);
                   }}
-                  onMouseEnter={() => SoundManager.hover()}
                 >
                   <span>{opt}</span>
                   {selected && (

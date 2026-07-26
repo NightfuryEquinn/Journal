@@ -404,10 +404,8 @@ export function LoginScreen({
                       type="password"
                       className="min-w-0 flex-1 bg-transparent font-mono text-base tracking-[0.3em] text-accent"
                       value={pwd}
-                      onChange={(e) => {
-                        setPwd(e.target.value);
-                        SoundManager.type();
-                      }}
+                      onChange={(e) => setPwd(e.target.value)}
+                      onKeyDown={() => SoundManager.type()}
                       disabled={busy}
                       autoComplete="current-password"
                       spellCheck={false}
@@ -519,8 +517,8 @@ export function LoginScreen({
                             const next = [...verifyAnswers];
                             next[i] = e.target.value.toLowerCase().replace(/\s+/g, '');
                             setVerifyAnswers(next);
-                            SoundManager.type();
                           }}
+                          onKeyDown={() => SoundManager.type()}
                         />
                       </label>
                     ))}
@@ -618,8 +616,8 @@ export function LoginScreen({
                             const next = [...recoverWords];
                             next[i] = e.target.value.toLowerCase().replace(/\s+/g, '');
                             setRecoverWords(next);
-                            SoundManager.type();
                           }}
+                          onKeyDown={() => SoundManager.type()}
                           spellCheck={false}
                           autoComplete="off"
                         />
@@ -711,10 +709,8 @@ function PassFields({
           className="min-w-0 flex-1 bg-transparent font-mono text-base tracking-[0.3em] text-accent"
           value={pwd}
           placeholder="PASS"
-          onChange={(e) => {
-            setPwd(e.target.value);
-            SoundManager.type();
-          }}
+          onChange={(e) => setPwd(e.target.value)}
+          onKeyDown={() => SoundManager.type()}
           disabled={disabled}
           autoComplete="new-password"
           spellCheck={false}
@@ -726,10 +722,8 @@ function PassFields({
           className="min-w-0 flex-1 bg-transparent font-mono text-base tracking-[0.3em] text-accent"
           value={pwd2}
           placeholder="CONFIRM"
-          onChange={(e) => {
-            setPwd2(e.target.value);
-            SoundManager.type();
-          }}
+          onChange={(e) => setPwd2(e.target.value)}
+          onKeyDown={() => SoundManager.type()}
           disabled={disabled}
           autoComplete="new-password"
           spellCheck={false}

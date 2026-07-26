@@ -27,13 +27,15 @@ const THEME = {
   scanlines: true,
 } as const;
 
+const SOUND_KEY = 'journs.sound';
+
 /** Root shell: auth session, E2EE sync, view routing, chrome. */
 export default function App() {
   const [identity, setIdentity] = useState<DeviceIdentity | null>(() => loadIdentity());
   const [session, setSession] = useState<AuthSession | null>(null);
   const [view, setView] = useState<AppView>({ name: 'login' });
   const [listLayout, setListLayout] = useState<ListLayout>('stack');
-  const [soundOn, setSoundOn] = useState(false);
+  const [soundOn, setSoundOn] = useState(() => localStorage.getItem(SOUND_KEY) === '1');
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [progress, setProgress] = useState<QuestProgress>(() => emptyProgress());
   const [confirmDel, setConfirmDel] = useState<JournalEntry | null>(null);
@@ -55,8 +57,19 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    localStorage.setItem(SOUND_KEY, soundOn ? '1' : '0');
     SoundManager.setEnabled(soundOn);
   }, [soundOn]);
+
+  useEffect(() => {
+    SoundManager.pageLoad();
+  }, []);
+
+  useEffect(() => {
+    if (confirmDel) {
+      SoundManager.delete();
+    }
+  }, [confirmDel]);
 
   /** Kick off tour once the archive list is painted (esp. after signup). */
   useEffect(() => {

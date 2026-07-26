@@ -1,5 +1,6 @@
 import Shepherd from 'shepherd.js';
 import 'shepherd.js/dist/css/shepherd.css';
+import { SoundManager } from './hud';
 
 export const TOUR_KEY = 'journs.tour.v1';
 
@@ -75,13 +76,14 @@ export function maybeStartTour(options?: { force?: boolean }): void {
 
   tour.on('cancel', () => markTourDone());
   tour.on('complete', () => markTourDone());
+  tour.on('show', () => SoundManager.shepherd());
 
   /** Wait for archive anchors after signup → list transition. */
   const startWhenReady = (attempt = 0) => {
     const hasAnchor = document.querySelector('[data-tour="tour-archive"]');
 
     if (hasAnchor) {
-      tour.start();
+      void tour.start();
 
       return;
     }

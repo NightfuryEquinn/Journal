@@ -37,6 +37,7 @@ function EntryDeleteBtn({ onDelete }: { onDelete: () => void }) {
         SoundManager.click();
         onDelete();
       }}
+      onMouseEnter={() => SoundManager.hover()}
       title="Delete"
       aria-label="Delete"
     >
@@ -101,12 +102,14 @@ export function ListScreen({
               placeholder="QUERY · TITLE OR BODY"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={() => SoundManager.type()}
             />
             {search && (
               <button
                 type="button"
                 className="tap-target px-1.5 text-fg-mute max-tablet:min-h-11 max-tablet:min-w-11"
                 onClick={() => setSearch('')}
+                onMouseEnter={() => SoundManager.hover()}
               >
                 ✕
               </button>
@@ -125,6 +128,7 @@ export function ListScreen({
                 onLayoutChange(k);
                 SoundManager.click();
               }}
+              onMouseEnter={() => SoundManager.hover()}
             >
               {k.toUpperCase()}
             </button>
@@ -217,6 +221,7 @@ export function ListScreen({
                   setTagFilter(null);
                   SoundManager.click();
                 }}
+                onMouseEnter={() => SoundManager.hover()}
               >
                 <span className="size-1.25 shrink-0 bg-current opacity-70" />
                 ALL
@@ -238,6 +243,7 @@ export function ListScreen({
                       setTagFilter(tagFilter === t ? null : t);
                       SoundManager.click();
                     }}
+                    onMouseEnter={() => SoundManager.hover()}
                   >
                     <span className="size-1.25 shrink-0 bg-current opacity-70" />
                     {t}
