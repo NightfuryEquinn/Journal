@@ -63,7 +63,7 @@ export default function App() {
 
   useEffect(() => {
     SoundManager.pageLoad();
-  }, []);
+  }, [view.name]);
 
   useEffect(() => {
     if (confirmDel) {

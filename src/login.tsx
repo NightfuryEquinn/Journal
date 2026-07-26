@@ -74,7 +74,6 @@ export function LoginScreen({
       return;
     }
 
-    SoundManager.boot();
     let i = 0;
     const id = setInterval(() => {
       i++;

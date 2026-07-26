@@ -19,7 +19,6 @@ import ontypeSrc from '../audio/ontype.wav?url';
 /** Howler-backed UI sound effects gated by the topbar audio toggle. */
 export const SoundManager = (() => {
   let enabled = false;
-  let playedPageLoad = false;
 
   Howler.mute(true);
 
@@ -47,16 +46,6 @@ export const SoundManager = (() => {
     sound.play();
   };
 
-  /** Play page-load stinger once per session when audio is on. */
-  const playPageLoad = () => {
-    if (playedPageLoad || !enabled) {
-      return;
-    }
-
-    playedPageLoad = true;
-    pageLoadSound.play();
-  };
-
   return {
     /** Enable or disable sound output. */
     setEnabled(v: boolean) {
@@ -81,10 +70,14 @@ export const SoundManager = (() => {
     confirm() {},
     /** No-op deny (no dedicated asset). */
     deny() {},
-    /** Full page / app load stinger (once per session). */
-    pageLoad: playPageLoad,
+    /** Screen / page transition stinger. */
+    pageLoad() {
+      play(pageLoadSound);
+    },
     /** Alias for page-load stinger (login boot sequence). */
-    boot: playPageLoad,
+    boot() {
+      play(pageLoadSound);
+    },
     /** Delete-confirmation modal open. */
     delete() {
       play(deleteSound);
