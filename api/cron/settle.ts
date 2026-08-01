@@ -1,7 +1,7 @@
-import type { VercelRequest, VercelResponse } from '../_lib/vercel';
-import { settleAura } from '../../shared/quests';
-import { questProgressCol } from '../_lib/db';
-import { applyCors, handleOptions, safeEqual, sendError, sendJson } from '../_lib/http';
+import type { VercelRequest, VercelResponse } from '../_lib/vercel.js';
+import { settleAura } from '../../shared/quests.js';
+import { questProgressCol } from '../_lib/db.js';
+import { applyCors, bearerToken, handleOptions, safeEqual, sendError, sendJson } from '../_lib/http.js';
 
 /**
  * Settle daily/weekly quests for all users.
@@ -26,10 +26,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  const header = req.headers.authorization ?? '';
-  const token = header.startsWith('Bearer ') ? header.slice(7) : '';
-
-  if (!safeEqual(token, secret)) {
+  if (!safeEqual(bearerToken(req), secret)) {
     sendError(res, 401, 'Unauthorized');
 
     return;

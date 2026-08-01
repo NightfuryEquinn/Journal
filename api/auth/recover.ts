@@ -1,7 +1,7 @@
-import type { VercelRequest, VercelResponse } from '../_lib/vercel';
-import { recoverBodySchema } from '../_lib/schemas';
-import { usersCol } from '../_lib/db';
-import { handleOptions, sendError, sendJson, signSession } from '../_lib/http';
+import type { VercelRequest, VercelResponse } from '../_lib/vercel.js';
+import { recoverBodySchema } from '../_lib/schemas.js';
+import { usersCol } from '../_lib/db.js';
+import { handleOptions, sendError, sendJson, signSession } from '../_lib/http.js';
 
 /**
  * Rotate passphrase wrap + auth verifier after client unwrapped DEK via recovery phrase.

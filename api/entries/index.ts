@@ -1,7 +1,7 @@
-import type { VercelRequest, VercelResponse } from '../_lib/vercel';
-import { putEntriesBodySchema } from '../_lib/schemas';
-import { entriesCol, touchActive } from '../_lib/db';
-import { handleOptions, sendError, sendJson, verifySession } from '../_lib/http';
+import type { VercelRequest, VercelResponse } from '../_lib/vercel.js';
+import { putEntriesBodySchema } from '../_lib/schemas.js';
+import { entriesCol, touchActive } from '../_lib/db.js';
+import { handleOptions, sendError, sendJson, verifySession } from '../_lib/http.js';
 
 /** List or upsert encrypted journal entries for the authenticated account. */
 export default async function handler(req: VercelRequest, res: VercelResponse) {

@@ -1,7 +1,7 @@
-import type { VercelRequest, VercelResponse } from '../_lib/vercel';
-import { loginBodySchema } from '../_lib/schemas';
-import { touchActive, usersCol } from '../_lib/db';
-import { handleOptions, safeEqual, sendError, sendJson, signSession } from '../_lib/http';
+import type { VercelRequest, VercelResponse } from '../_lib/vercel.js';
+import { loginBodySchema } from '../_lib/schemas.js';
+import { touchActive, usersCol } from '../_lib/db.js';
+import { handleOptions, safeEqual, sendError, sendJson, signSession } from '../_lib/http.js';
 
 /** Login with accountId + auth verifier; returns JWT and wrapped DEKs. */
 export default async function handler(req: VercelRequest, res: VercelResponse) {

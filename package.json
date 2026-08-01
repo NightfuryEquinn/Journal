@@ -19,7 +19,6 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "shepherd.js": "^15.2.2",
-    "vercel": "^56.4.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -28,10 +27,10 @@
     "@types/node": "^26.1.1",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
-    "@vercel/node": "^5.8.26",
     "@vitejs/plugin-react": "^4.5.2",
     "tailwindcss": "^4.3.3",
     "typescript": "~5.8.3",
+    "vercel": "^56.4.1",
     "vite": "^6.3.5"
   }
 }

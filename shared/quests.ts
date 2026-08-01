@@ -1,4 +1,4 @@
-import type { JournalEntry, QuestPeriodState, QuestProgress } from './types';
+import type { JournalEntry, QuestPeriodState, QuestProgress } from './types.js';
 
 export type QuestKind = 'daily' | 'weekly' | 'milestone';
 

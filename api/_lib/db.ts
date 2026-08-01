@@ -1,7 +1,7 @@
 import { MongoClient, type Db, type Collection } from 'mongodb';
 import dns from 'node:dns';
-import type { QuestProgress } from '../../shared/types';
-import { resolveMongoUri } from './resolve-uri';
+import type { QuestProgress } from '../../shared/types.js';
+import { resolveMongoUri } from './resolve-uri.js';
 
 // Bun's c-ares SRV resolution hangs for Atlas hosts on Vercel
 // (oven-sh/bun#25718); public resolvers make `mongodb+srv` lookups work.

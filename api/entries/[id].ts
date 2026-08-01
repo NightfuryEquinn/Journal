@@ -1,6 +1,6 @@
-import type { VercelRequest, VercelResponse } from '../_lib/vercel';
-import { entriesCol, touchActive } from '../_lib/db';
-import { handleOptions, sendError, sendJson, verifySession } from '../_lib/http';
+import type { VercelRequest, VercelResponse } from '../_lib/vercel.js';
+import { entriesCol, touchActive } from '../_lib/db.js';
+import { handleOptions, sendError, sendJson, verifySession } from '../_lib/http.js';
 
 /** Delete a single encrypted entry by id. */
 export default async function handler(req: VercelRequest, res: VercelResponse) {

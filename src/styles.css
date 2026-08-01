@@ -404,75 +404,16 @@
   box-shadow: 0 0 10px var(--accent);
 }
 
-.twk-slider {
-  appearance: none;
-  -webkit-appearance: none;
-  width: 100%;
-  height: 4px;
-  margin: 6px 0;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.12);
-  outline: none;
-}
-
-.twk-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #fff;
-  border: 0.5px solid rgba(0, 0, 0, 0.12);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-  cursor: default;
-}
-
-.twk-slider::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #fff;
-  border: 0.5px solid rgba(0, 0, 0, 0.12);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-  cursor: default;
-}
-
-.twk-swatch::-webkit-color-swatch-wrapper {
-  padding: 0;
-}
-
-.twk-swatch::-webkit-color-swatch {
-  border: 0;
-  border-radius: 5.5px;
-}
-
-.twk-swatch::-moz-color-swatch {
-  border: 0;
-  border-radius: 5.5px;
-}
-
-.twk-field-select {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='rgba(0,0,0,.5)' d='M0 0h10L5 6z'/></svg>");
-  background-repeat: no-repeat;
-  background-position: right 8px center;
-}
-
-.twk-num input::-webkit-inner-spin-button,
-.twk-num input::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.twk-num input {
-  -moz-appearance: textfield;
-}
-
-/* Responsive chrome — match phone / tablet / laptop breakpoints */
-.twk-panel {
-  width: min(280px, calc(100vw - 32px));
-}
-
+/* Responsive chrome — match phone / tablet / laptop breakpoints.
+   Density tokens step down here so every `p-pad*` / `gap-row` utility
+   tightens at once; declared after the [data-density] blocks to win. */
 @media (max-width: 860px) {
+  :root {
+    --pad: 14px;
+    --pad-lg: 22px;
+    --row-gap: 10px;
+  }
+
   .tap-target {
     min-height: 44px;
     min-width: 44px;
@@ -484,11 +425,10 @@
 }
 
 @media (max-width: 560px) {
-  .twk-panel {
-    right: 8px !important;
-    bottom: 8px !important;
-    width: min(280px, calc(100vw - 16px));
-    max-height: calc(100vh - 16px);
+  :root {
+    --pad: 11px;
+    --pad-lg: 15px;
+    --row-gap: 8px;
   }
 }
 

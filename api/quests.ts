@@ -1,8 +1,8 @@
-import type { VercelRequest, VercelResponse } from './_lib/vercel';
-import { settleAura } from '../../shared/quests';
-import { questProgressSchema } from '../_lib/schemas';
-import { questProgressCol, touchActive } from '../_lib/db';
-import { handleOptions, sendError, sendJson, verifySession } from '../_lib/http';
+import type { VercelRequest, VercelResponse } from './_lib/vercel.js';
+import { settleAura } from '../shared/quests.js';
+import { questProgressSchema } from './_lib/schemas.js';
+import { questProgressCol, touchActive } from './_lib/db.js';
+import { handleOptions, sendError, sendJson, verifySession } from './_lib/http.js';
 
 /** Fetch or replace quest progress for the authenticated account. */
 export default async function handler(req: VercelRequest, res: VercelResponse) {

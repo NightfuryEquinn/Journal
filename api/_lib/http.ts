@@ -1,5 +1,5 @@
 import { SignJWT, jwtVerify } from 'jose';
-import type { VercelRequest, VercelResponse } from './vercel';
+import type { VercelRequest, VercelResponse } from './vercel.js';
 
 /** Read JWT secret from env. */
 function jwtSecret(): Uint8Array {
@@ -21,16 +21,21 @@ export async function signSession(accountId: string): Promise<string> {
     .sign(jwtSecret());
 }
 
-/** Verify Bearer JWT and return accountId. */
-export async function verifySession(req: VercelRequest): Promise<string | null> {
+/** Extract the raw Bearer token from an Authorization header. */
+export function bearerToken(req: VercelRequest): string {
   const raw = req.headers.authorization ?? req.headers.Authorization;
   const header = Array.isArray(raw) ? raw[0] : raw;
 
-  if (!header?.startsWith('Bearer ')) {
+  return header?.startsWith('Bearer ') ? header.slice(7) : '';
+}
+
+/** Verify Bearer JWT and return accountId. */
+export async function verifySession(req: VercelRequest): Promise<string | null> {
+  const token = bearerToken(req);
+
+  if (!token) {
     return null;
   }
-
-  const token = header.slice(7);
 
   try {
     const { payload } = await jwtVerify(token, jwtSecret());

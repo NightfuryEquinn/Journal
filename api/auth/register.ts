@@ -1,8 +1,8 @@
-import type { VercelRequest, VercelResponse } from '../_lib/vercel';
-import { emptyProgress } from '../../shared/quests';
-import { registerBodySchema } from '../_lib/schemas';
-import { questProgressCol, usersCol } from '../_lib/db';
-import { handleOptions, sendError, sendJson, signSession } from '../_lib/http';
+import type { VercelRequest, VercelResponse } from '../_lib/vercel.js';
+import { emptyProgress } from '../../shared/quests.js';
+import { registerBodySchema } from '../_lib/schemas.js';
+import { questProgressCol, usersCol } from '../_lib/db.js';
+import { handleOptions, sendError, sendJson, signSession } from '../_lib/http.js';
 
 /** Register a new E2EE account with wrapped DEKs and auth verifier. */
 export default async function handler(req: VercelRequest, res: VercelResponse) {

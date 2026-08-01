@@ -187,7 +187,7 @@ export function Panel({
         aria-hidden="true"
       />
       {title && (
-        <div className="flex items-center justify-between border-b border-line bg-[linear-gradient(180deg,rgba(255,255,255,0.02),transparent)] px-3.5 py-2.5">
+        <div className="flex items-center justify-between border-b border-line bg-[linear-gradient(180deg,rgba(255,255,255,0.02),transparent)] px-3.5 py-2.5 max-phone:px-3 max-phone:py-2">
           <div className="inline-flex items-center gap-2.5 font-display text-xs font-semibold tracking-[0.22em] text-fg uppercase">
             <span
               className="size-2 rotate-45 bg-accent shadow-[0_0_10px_var(--accent)]"
@@ -211,7 +211,7 @@ export function Panel({
 }
 
 const BTN_BASE =
-  'relative inline-flex items-center gap-2.5 border border-line-strong bg-white/[0.02] px-3.5 py-2 font-display text-[11px] font-semibold tracking-[0.2em] text-fg uppercase transition-[background,color,transform] duration-100 [clip-path:polygon(0_0,calc(100%-10px)_0,100%_10px,100%_100%,10px_100%,0_calc(100%-10px))] hover:bg-accent-soft hover:text-accent active:translate-y-px max-tablet:min-h-11';
+  'relative inline-flex items-center border border-line-strong bg-white/[0.02] px-3.5 py-2 font-display text-[11px] font-semibold tracking-[0.2em] text-fg uppercase transition-[background,color] duration-100 [clip-path:polygon(0_0,calc(100%-10px)_0,100%_10px,100%_100%,10px_100%,0_calc(100%-10px))] hover:bg-accent-soft hover:text-accent [&:active>span]:translate-y-px max-tablet:min-h-11';
 
 const BTN_VARIANTS: Record<string, string> = {
   primary:
@@ -259,7 +259,9 @@ export function Btn({
       style={{ opacity: disabled ? 0.4 : 1, ...style }}
       {...rest}
     >
-      {children}
+      <span className="inline-flex items-center gap-2.5 transition-transform duration-100">
+        {children}
+      </span>
     </button>
   );
 }
@@ -558,7 +560,7 @@ export function HudSelect({
         aria-label={ariaLabel}
         aria-expanded={open}
         aria-haspopup="listbox"
-        className="flex w-full items-center justify-between gap-2 border border-line-strong bg-black/40 px-2.5 py-2 font-mono text-[11px] tracking-[0.08em] text-fg transition-[border-color,background] duration-100 hover:border-accent hover:bg-accent-soft"
+        className="flex w-full items-center justify-between gap-2 border border-line-strong bg-black/40 px-2.5 py-2 font-mono text-[11px] tracking-[0.08em] text-fg transition-[border-color,background] duration-100 hover:border-accent hover:bg-accent-soft max-tablet:min-h-11"
         onClick={() => {
           setOpen((v) => !v);
         }}
@@ -584,7 +586,7 @@ export function HudSelect({
               <li key={opt} role="option" aria-selected={selected}>
                 <button
                   type="button"
-                  className={`flex w-full items-center justify-between gap-2 px-2.5 py-2 text-left font-mono text-[11px] tracking-[0.08em] transition-[background,color] duration-75 ${
+                  className={`flex w-full items-center justify-between gap-2 px-2.5 py-2 text-left font-mono text-[11px] tracking-[0.08em] transition-[background,color] duration-75 max-tablet:min-h-11 ${
                     selected
                       ? 'bg-accent-soft text-accent'
                       : 'text-fg hover:bg-accent-soft hover:text-accent'

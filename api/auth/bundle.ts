@@ -1,7 +1,7 @@
-import type { VercelRequest, VercelResponse } from '../_lib/vercel';
-import { hexString } from '../_lib/schemas';
-import { usersCol } from '../_lib/db';
-import { handleOptions, sendError, sendJson } from '../_lib/http';
+import type { VercelRequest, VercelResponse } from '../_lib/vercel.js';
+import { hexString } from '../_lib/schemas.js';
+import { usersCol } from '../_lib/db.js';
+import { handleOptions, sendError, sendJson } from '../_lib/http.js';
 
 /**
  * Fetch recovery wrap material by accountId (derived from mnemonic on the client).

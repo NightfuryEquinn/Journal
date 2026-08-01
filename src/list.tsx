@@ -257,7 +257,7 @@ export function ListScreen({
 
         <main className="min-w-0">
           {loading && (
-            <div className="py-15 text-center font-mono tracking-[0.02em] text-fg-dim">
+            <div className="py-15 text-center font-mono tracking-[0.02em] text-fg-dim max-phone:py-8">
               // syncing ciphertext from Atlas …
             </div>
           )}
@@ -268,7 +268,7 @@ export function ListScreen({
             <StackLayout entries={filtered} onOpen={onOpen} onDelete={onDelete} />
           )}
           {!loading && filtered.length === 0 && (
-            <div className="py-15 text-center font-mono tracking-[0.02em] text-fg-dim">
+            <div className="py-15 text-center font-mono tracking-[0.02em] text-fg-dim max-phone:py-8">
               {entries.length === 0
                 ? '// archive empty · write your first encrypted log'
                 : '// no entries match. clear filters or create a new log.'}

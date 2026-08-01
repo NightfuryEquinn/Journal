@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { journalEntrySchema, questPeriodSchema, questProgressSchema } from '../../shared/schemas';
+import { journalEntrySchema, questPeriodSchema, questProgressSchema } from '../../shared/schemas.js';
 
 export { journalEntrySchema, questPeriodSchema, questProgressSchema };
 

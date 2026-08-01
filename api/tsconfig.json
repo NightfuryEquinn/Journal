@@ -1,0 +1,14 @@
+{
+  // Read by @vercel/node when it type-checks the serverless functions during a
+  // deploy. Without it the check falls back to ES5 / non-strict defaults, which
+  // makes zod infer every nullable key as optional and reports false positives.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "skipLibCheck": true
+  },
+  "include": ["**/*.ts", "../shared/**/*.ts"]
+}

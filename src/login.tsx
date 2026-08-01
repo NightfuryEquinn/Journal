@@ -27,6 +27,37 @@ type Mode =
   | 'recover-phrase'
   | 'recover-pass';
 
+/**
+ * Write to the clipboard, falling back to a detached textarea + execCommand.
+ * `navigator.clipboard` is undefined on insecure origins, which includes the
+ * dev server whenever it is reached over a LAN IP rather than localhost.
+ */
+async function writeClipboard(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    // Falls through to the legacy path below.
+  }
+
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.setAttribute('readonly', '');
+  ta.style.position = 'fixed';
+  ta.style.top = '-9999px';
+  document.body.appendChild(ta);
+
+  try {
+    ta.select();
+    ta.setSelectionRange(0, text.length);
+    return document.execCommand('copy');
+  } catch {
+    return false;
+  } finally {
+    ta.remove();
+  }
+}
+
 /** Pick `count` distinct word indices (1-based display uses +1) from a 12-word phrase. */
 function pickVerifySlots(count = 3): number[] {
   const idx = Array.from({ length: 12 }, (_, i) => i);
@@ -65,6 +96,7 @@ export function LoginScreen({
   const [phrase, setPhrase] = useState<string[]>([]);
   const [recoverWords, setRecoverWords] = useState<string[]>(() => Array(12).fill(''));
   const [savedOk, setSavedOk] = useState(false);
+  const [copied, setCopied] = useState<'ok' | 'fail' | null>(null);
   const [verifySlots, setVerifySlots] = useState<number[]>([]);
   const [verifyAnswers, setVerifyAnswers] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -125,10 +157,37 @@ export function LoginScreen({
     }
   };
 
+  useEffect(() => {
+    if (!copied) {
+      return;
+    }
+
+    const t = setTimeout(() => {
+      setCopied(null);
+    }, 2000);
+
+    return () => {
+      clearTimeout(t);
+    };
+  }, [copied]);
+
+  /** Copy the mnemonic as plain space-separated words, importable elsewhere. */
+  const copyPhrase = async () => {
+    setCopied((await writeClipboard(phrase.join(' '))) ? 'ok' : 'fail');
+  };
+
+  /** Roll a fresh mnemonic · the old one is discarded and never persisted. */
+  const rerollPhrase = () => {
+    setPhrase(generateRecoveryPhrase());
+    setCopied(null);
+    setSavedOk(false);
+  };
+
   /** Begin create-ID flow with a fresh 12-word phrase. */
   const startCreate = () => {
     SoundManager.click();
     setPhrase(generateRecoveryPhrase());
+    setCopied(null);
     setSavedOk(false);
     setVerifySlots([]);
     setVerifyAnswers([]);
@@ -351,7 +410,7 @@ export function LoginScreen({
         </Bracket>
 
         <div
-          className={`relative min-w-0 tablet:transform-[perspective(1400px)_rotateY(-2deg)] tablet:transform-3d ${shake ? 'animate-shake' : ''}`}
+          className={`relative min-w-0 tablet:transform-[perspective(1400px)_rotateY(-2deg)] ${shake ? 'animate-shake' : ''}`}
         >
           <Panel title={<DecodeText text="SECURE TERMINAL" />} meta="auth · e2ee · atlas">
             <div className="flex min-h-70 flex-col gap-4.5 max-phone:min-h-60">
@@ -455,6 +514,19 @@ export function LoginScreen({
                   <p className="font-mono text-[11px] tracking-[0.02em] text-fg-dim">
                     // write down these 12 BIP39 words · they unwrap your DEK · never leave this device
                   </p>
+                  <div className="flex flex-wrap items-center justify-between gap-2.5">
+                    <span className="font-mono text-[10px] tracking-[0.14em] text-fg-mute">
+                      RECOVERY PHRASE · 12 WORDS
+                    </span>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <Btn variant="ghost" onClick={rerollPhrase} title="Generate a different phrase">
+                        ⟳ REROLL
+                      </Btn>
+                      <Btn variant="ghost" onClick={copyPhrase}>
+                        {copied === 'ok' ? '✓ COPIED' : copied === 'fail' ? 'COPY FAILED' : 'COPY ALL'}
+                      </Btn>
+                    </div>
+                  </div>
                   <div className="grid grid-cols-2 gap-2 phone:grid-cols-3">
                     {phrase.map((w, i) => (
                       <div
@@ -484,6 +556,7 @@ export function LoginScreen({
                       onClick={() => {
                         setMode(identity ? 'unlock' : 'choose');
                         setPhrase([]);
+                        setCopied(null);
                         setSavedOk(false);
                       }}
                     >
