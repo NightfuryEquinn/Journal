@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { AppView, DeviceIdentity, JournalEntry, ListLayout, QuestProgress } from './types';
 import { SoundManager, DecodeText, Bracket, Panel, Btn, TopBar, Backdrop } from './hud';
 import { clearLegacyLocalData, loadIdentity, type AuthSession } from './identity';
-import { emptyProgress, settleAura } from './quests';
+import { countJournaledDays, emptyProgress, settleAura } from './quests';
 import { decryptEntry, encryptEntry } from './crypto';
 import {
   apiDeleteEntry,
@@ -275,6 +275,7 @@ export default function App() {
         soundOn={soundOn}
         onToggleSound={() => setSoundOn((s) => !s)}
         onOpenProfile={authed ? openProfile : null}
+        journaledDays={authed ? countJournaledDays(entries) : null}
       />
 
       <div className="relative z-5 grid overflow-hidden">

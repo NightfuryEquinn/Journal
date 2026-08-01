@@ -112,6 +112,33 @@ export function emptyProgress(now = new Date()): QuestProgress {
   };
 }
 
+/** Count of unique calendar days (UTC) that have at least one journal entry. */
+export function countJournaledDays(entries: JournalEntry[]): number {
+  return new Set(entries.map((e) => dayKey(new Date(e.date)))).size;
+}
+
+/**
+ * Current consecutive-day writing streak, counted backward from today (UTC).
+ * Not having written yet today doesn't break a streak that ran through yesterday.
+ */
+export function computeStreak(entries: JournalEntry[], now = new Date()): number {
+  const days = new Set(entries.map((e) => dayKey(new Date(e.date))));
+  const cursor = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+
+  if (!days.has(dayKey(cursor))) {
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
+  }
+
+  let streak = 0;
+
+  while (days.has(dayKey(cursor))) {
+    streak += 1;
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
+  }
+
+  return streak;
+}
+
 /** True if entry date falls on the given UTC day key. */
 function entryOnDay(entry: JournalEntry, dk: string): boolean {
   return dayKey(new Date(entry.date)) === dk;

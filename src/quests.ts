@@ -8,6 +8,8 @@ export {
   MILESTONE_QUESTS,
   dayKey,
   weekKey,
+  countJournaledDays,
+  computeStreak,
   emptyProgress,
   isQuestSatisfied,
   questProgressRatio,

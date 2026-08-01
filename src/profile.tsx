@@ -7,6 +7,7 @@ import {
   WEEKLY_QUESTS,
   claimMilestoneTag,
   claimTimedQuest,
+  computeStreak,
   isQuestSatisfied,
   questProgressRatio,
   type QuestDef,
@@ -97,6 +98,7 @@ export function ProfileScreen({
   };
 
   const created = useMemo(() => new Date(identity.createdAt), [identity.createdAt]);
+  const streak = useMemo(() => computeStreak(entries), [entries]);
 
   return (
     <div className="mx-auto max-w-350 px-4 pt-4 pb-6 max-phone:px-3 laptop:px-7 laptop:pt-5 laptop:pb-7">
@@ -125,6 +127,17 @@ export function ProfileScreen({
                 <Row label="RECOVERY" value="CONFIRMED" accent />
                 <Row label="ENTRIES" value={String(entries.length).padStart(4, '0')} />
               </div>
+            </Panel>
+          </Bracket>
+
+          <Bracket>
+            <Panel title="STREAK" meta="CONSECUTIVE DAYS">
+              <div className="mb-2 font-display text-4xl font-semibold tracking-[0.12em] text-accent">
+                {streak}
+              </div>
+              <p className="font-mono text-[10px] leading-[1.6] tracking-[0.04em] text-fg-mute">
+                // consecutive days with a journal entry · resets on a missed day
+              </p>
             </Panel>
           </Bracket>
 

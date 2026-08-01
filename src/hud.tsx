@@ -344,12 +344,15 @@ export function TopBar({
   soundOn,
   onToggleSound,
   onOpenProfile,
+  journaledDays,
 }: {
   user: string;
   onSignOut: (() => void) | null;
   soundOn: boolean;
   onToggleSound: () => void;
   onOpenProfile?: (() => void) | null;
+  /** Count of distinct days with a journal entry; null when signed out. */
+  journaledDays: number | null;
 }) {
   const now = useClock();
 
@@ -393,7 +396,9 @@ export function TopBar({
         <div className="flex min-w-0 items-center gap-4 overflow-hidden max-tablet:hidden desktop:gap-6">
           <span className="flex flex-col items-end gap-0.5 leading-none">
             <span className="text-[9px] tracking-[0.18em] text-fg-mute">J-DAY</span>
-            <span className="text-fg">{fmtJDay(now)}</span>
+            <span className="text-fg">
+              {journaledDays === null ? '—' : String(journaledDays).padStart(3, '0')}
+            </span>
           </span>
           <span className="flex min-w-0 flex-col items-end gap-0.5 leading-none">
             <span className="text-[9px] tracking-[0.18em] text-fg-mute">GMT+8</span>
