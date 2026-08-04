@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import type { AppView, DeviceIdentity, JournalEntry, ListLayout, QuestProgress } from './types';
 import { SoundManager, DecodeText, Bracket, Panel, Btn, TopBar, Backdrop } from './hud';
-import { clearLegacyLocalData, loadIdentity, type AuthSession } from './identity';
+import {
+  clearLegacyLocalData,
+  loadIdentity,
+  requestPersistentStorage,
+  type AuthSession,
+} from './identity';
 import { countJournaledDays, emptyProgress, settleAura } from './quests';
 import { decryptEntry, encryptEntry } from './crypto';
 import {
@@ -92,6 +97,9 @@ export default function App() {
     setLoadingArchive(true);
     setEntries([]);
     clearLegacyLocalData();
+    // Auth is the strongest engagement signal we get, so it is the best moment
+    // to ask the browser to keep the identity around.
+    void requestPersistentStorage();
 
     if (options?.isNewUser) {
       pendingTour.current = true;

@@ -66,6 +66,25 @@ export function saveIdentity(identity: DeviceIdentity): void {
   localStorage.setItem(IDENTITY_KEY, JSON.stringify(identity));
 }
 
+/**
+ * Ask the browser to exempt this origin from storage eviction. Losing the
+ * identity drops the device back to a 12-word recovery, and script-written
+ * localStorage is evictable by default — Safari caps it at seven days without
+ * interaction. Best effort only: Firefox prompts, Chrome decides on engagement
+ * heuristics, and a browser may refuse or not implement it at all.
+ */
+export async function requestPersistentStorage(): Promise<boolean> {
+  try {
+    if (!navigator.storage?.persist || !navigator.storage.persisted) {
+      return false;
+    }
+
+    return (await navigator.storage.persisted()) || (await navigator.storage.persist());
+  } catch {
+    return false;
+  }
+}
+
 /** Build DeviceIdentity from auth response + local verifier cache. */
 function identityFromAuth(
   auth: AuthResponse,
