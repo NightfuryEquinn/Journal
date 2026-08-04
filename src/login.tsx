@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent, type RefObject } from 'rea
 import { SoundManager, DecodeText, Bracket, Panel, Btn, Caret } from './hud';
 import {
   generateRecoveryPhrase,
+  loadIdentity,
   recoverAccount,
   registerAccount,
   unlockAccount,
@@ -56,6 +57,17 @@ async function writeClipboard(text: string): Promise<boolean> {
   } finally {
     ta.remove();
   }
+}
+
+/**
+ * Fingerprint of the stored identity. Register and recover both persist before
+ * the archive sync runs, so comparing this across a failed submit tells us the
+ * account exists on this device now — retrying create would only 409.
+ */
+function identityStamp(): string | null {
+  const id = loadIdentity();
+
+  return id ? `${id.accountId}:${id.authVerifier}` : null;
 }
 
 /** Pick `count` distinct word indices (1-based display uses +1) from a 12-word phrase. */
@@ -131,6 +143,24 @@ export function LoginScreen({
     setTimeout(() => setShake(false), 500);
     setPwd('');
     setPwd2('');
+  };
+
+  /**
+   * Land on the unlock form after the identity was written but the session
+   * did not survive. Drops the mnemonic from memory — it is already saved and
+   * the account exists, so unlock is the only flow that can retry.
+   */
+  const fallBackToUnlock = () => {
+    setPhrase([]);
+    setRecoverWords(Array(12).fill(''));
+    setSavedOk(false);
+    setVerifySlots([]);
+    setVerifyAnswers([]);
+    setPwd('');
+    setPwd2('');
+    setStatus('// identity saved on this device · unlock to retry sync');
+    setMode('unlock');
+    setTimeout(() => inputRef.current?.focus(), 50);
   };
 
   /** Unlock with device passphrase. */
@@ -260,6 +290,7 @@ export function LoginScreen({
     setBusy(true);
     setStatus('// registering on Atlas · sealing E2EE envelope');
     SoundManager.click();
+    const before = identityStamp();
 
     try {
       const session = await registerAccount(phrase, pwd);
@@ -269,6 +300,10 @@ export function LoginScreen({
     } catch (err) {
       deny(err instanceof Error ? `// ${err.message}` : '// create failed');
       setBusy(false);
+
+      if (identityStamp() !== before) {
+        fallBackToUnlock();
+      }
     }
   };
 
@@ -331,6 +366,7 @@ export function LoginScreen({
     setBusy(true);
     setStatus('// verifying recovery phrase …');
     SoundManager.click();
+    const before = identityStamp();
 
     try {
       const session = await recoverAccount(recoverWords, pwd);
@@ -340,6 +376,10 @@ export function LoginScreen({
     } catch (err) {
       deny(err instanceof Error ? `// ${err.message}` : '// recover failed');
       setBusy(false);
+
+      if (identityStamp() !== before) {
+        fallBackToUnlock();
+      }
     }
   };
 

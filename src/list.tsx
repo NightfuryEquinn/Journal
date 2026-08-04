@@ -1,7 +1,17 @@
 // list.tsx — entry list with timeline / stack layouts
 import { useMemo, useState } from 'react';
 import type { JournalEntry, ListLayout } from './types';
-import { SoundManager, DecodeText, Bracket, Panel, Btn, fmtDate, fmtTime, pad } from './hud';
+import {
+  SoundManager,
+  DecodeText,
+  Bracket,
+  Panel,
+  Btn,
+  fmtDate,
+  fmtTime,
+  fmtJDay,
+  pad,
+} from './hud';
 import { maybeStartTour, resetTour } from './tours';
 
 interface MoodBarsProps {
@@ -393,7 +403,7 @@ function StackLayout({ entries, onOpen, onDelete }: EntryLayoutProps) {
             <div className="flex items-start justify-between gap-2.5">
               <div className="flex min-w-0 flex-col gap-0.5">
                 <span className="font-display text-[9px] font-medium tracking-[0.12em] text-fg-dim uppercase">
-                  LOG · {String(i + 1).padStart(4, '0')}
+                  LOG · {fmtJDay(d).padStart(4, '0')}
                 </span>
                 <span className="font-mono text-[10px] tracking-[0.02em] text-fg-mute">
                   {fmtDate(d)} · {fmtTime(d).slice(0, 5)}
