@@ -29,6 +29,17 @@ export interface RecoveryBundle {
   createdAt: string;
 }
 
+/** Failed API response, carrying the HTTP status for callers that branch on it. */
+export class ApiError extends Error {
+  readonly status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
 /** Low-level JSON fetch against the Journs API. */
 async function apiFetch<T>(
   path: string,
@@ -49,7 +60,7 @@ async function apiFetch<T>(
   const data = (await res.json().catch(() => ({}))) as { error?: string } & T;
 
   if (!res.ok) {
-    throw new Error(data.error || `Request failed (${res.status})`);
+    throw new ApiError(res.status, data.error || `Request failed (${res.status})`);
   }
 
   return data;
