@@ -299,6 +299,11 @@ export function fmtJDay(d: Date) {
   return String(Math.floor(diff / 86400000)).padStart(3, '0');
 }
 
+/** Format a log sequence number as a zero-padded 4-digit string. */
+export function fmtSeq(n: number) {
+  return String(n).padStart(4, '0');
+}
+
 /** Format as DDMMYYYY.HHmmss (24h). */
 export function fmtStamp(d: Date) {
   return `${pad(d.getDate())}${pad(d.getMonth() + 1)}${d.getFullYear()}.${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;

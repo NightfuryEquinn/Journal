@@ -9,7 +9,7 @@ import {
   Btn,
   fmtDate,
   fmtTime,
-  fmtJDay,
+  fmtSeq,
   pad,
 } from './hud';
 import { maybeStartTour, resetTour } from './tours';
@@ -85,6 +85,16 @@ export function ListScreen({
     entries.forEach((e) => e.tags.forEach((t) => set.add(t)));
 
     return Array.from(set).sort();
+  }, [entries]);
+  // Log numbers count up from the oldest entry, so they stay put while the
+  // list is searched, filtered, or re-sorted.
+  const seqById = useMemo(() => {
+    const m = new Map<string, number>();
+    [...entries]
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .forEach((e, i) => m.set(e.id, i + 1));
+
+    return m;
   }, [entries]);
   const filtered = useMemo(
     () =>
@@ -272,10 +282,20 @@ export function ListScreen({
             </div>
           )}
           {!loading && layout === 'timeline' && (
-            <TimelineLayout entries={filtered} onOpen={onOpen} onDelete={onDelete} />
+            <TimelineLayout
+              entries={filtered}
+              seqById={seqById}
+              onOpen={onOpen}
+              onDelete={onDelete}
+            />
           )}
           {!loading && layout === 'stack' && (
-            <StackLayout entries={filtered} onOpen={onOpen} onDelete={onDelete} />
+            <StackLayout
+              entries={filtered}
+              seqById={seqById}
+              onOpen={onOpen}
+              onDelete={onDelete}
+            />
           )}
           {!loading && filtered.length === 0 && (
             <div className="py-15 text-center font-mono tracking-[0.02em] text-fg-dim max-phone:py-8">
@@ -292,12 +312,14 @@ export function ListScreen({
 
 interface EntryLayoutProps {
   entries: JournalEntry[];
+  /** Entry id → sequential log number, oldest entry first. */
+  seqById: Map<string, number>;
   onOpen: (entry: JournalEntry) => void;
   onDelete: (entry: JournalEntry) => void;
 }
 
 /** Vertical timeline of journal entries. */
-function TimelineLayout({ entries, onOpen, onDelete }: EntryLayoutProps) {
+function TimelineLayout({ entries, seqById, onOpen, onDelete }: EntryLayoutProps) {
   return (
     <div className="relative flex flex-col gap-1.75 pl-0 max-phone:pl-0 tablet:pl-10">
       <div className="absolute top-1.5 bottom-1.5 left-12 w-px bg-line-strong max-tablet:hidden" />
@@ -345,7 +367,7 @@ function TimelineLayout({ entries, onOpen, onDelete }: EntryLayoutProps) {
               />
               <div className="mb-2 flex items-center justify-between gap-2">
                 <div className="font-mono text-[10px] tracking-[0.14em] text-fg-mute">
-                  {fmtTime(d)}
+                  LOG · {fmtSeq(seqById.get(e.id) ?? 0)} · {fmtTime(d)}
                 </div>
                 <div className="flex items-center gap-1.5">
                   <EntryDeleteBtn onDelete={() => onDelete(e)} />
@@ -379,7 +401,7 @@ function TimelineLayout({ entries, onOpen, onDelete }: EntryLayoutProps) {
 }
 
 /** Card grid stack of journal entries. */
-function StackLayout({ entries, onOpen, onDelete }: EntryLayoutProps) {
+function StackLayout({ entries, seqById, onOpen, onDelete }: EntryLayoutProps) {
   return (
     <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,280px),1fr))] gap-3.5">
       {entries.map((e, i) => {
@@ -403,7 +425,7 @@ function StackLayout({ entries, onOpen, onDelete }: EntryLayoutProps) {
             <div className="flex items-start justify-between gap-2.5">
               <div className="flex min-w-0 flex-col gap-0.5">
                 <span className="font-display text-[9px] font-medium tracking-[0.12em] text-fg-dim uppercase">
-                  LOG · {fmtJDay(d).padStart(4, '0')}
+                  LOG · {fmtSeq(seqById.get(e.id) ?? 0)}
                 </span>
                 <span className="font-mono text-[10px] tracking-[0.02em] text-fg-mute">
                   {fmtDate(d)} · {fmtTime(d).slice(0, 5)}
