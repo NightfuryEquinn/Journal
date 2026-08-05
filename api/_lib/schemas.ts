@@ -38,7 +38,24 @@ export const putEntriesBodySchema = z.object({
   entries: z.array(encryptedEntrySchema).min(1),
 });
 
+// Push keys are base64url, not hex, so hexString does not apply here.
+export const pushSubscribeBodySchema = z.object({
+  subscription: z.object({
+    endpoint: z.url().max(2048),
+    keys: z.object({
+      p256dh: z.string().min(1).max(256),
+      auth: z.string().min(1).max(256),
+    }),
+  }),
+  timeZone: z.string().min(1).max(64),
+});
+
+export const pushUnsubscribeBodySchema = z.object({
+  endpoint: z.url().max(2048),
+});
+
 export type RegisterBody = z.infer<typeof registerBodySchema>;
 export type LoginBody = z.infer<typeof loginBodySchema>;
 export type RecoverBody = z.infer<typeof recoverBodySchema>;
 export type EncryptedEntryPayload = z.infer<typeof encryptedEntrySchema>;
+export type PushSubscribeBody = z.infer<typeof pushSubscribeBodySchema>;

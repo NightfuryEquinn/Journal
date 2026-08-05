@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { DeviceIdentity, JournalEntry, QuestProgress } from './types';
 import { SoundManager, Bracket, Panel, Btn, fmtDate, fmtStamp } from './hud';
 import {
@@ -13,6 +13,15 @@ import {
   type QuestDef,
 } from './quests';
 import { journalEntrySchema } from '../shared/schemas';
+import { REMINDER_SLOTS } from '../shared/push';
+import {
+  currentSubscription,
+  disablePush,
+  enablePush,
+  pushConfigured,
+  pushPermission,
+  pushSupported,
+} from './push';
 import { z } from 'zod';
 
 const CHIP =
@@ -22,6 +31,8 @@ const exportSchema = z.array(journalEntrySchema);
 
 interface ProfileScreenProps {
   identity: DeviceIdentity;
+  /** Session token, or null when the session has lapsed. */
+  token: string | null;
   entries: JournalEntry[];
   progress: QuestProgress;
   onBack: () => void;
@@ -33,6 +44,7 @@ interface ProfileScreenProps {
 /** Operator profile: AURA, quests, import/export, transparency. */
 export function ProfileScreen({
   identity,
+  token,
   entries,
   progress,
   onBack,
@@ -197,6 +209,8 @@ export function ProfileScreen({
               </div>
             </Panel>
           </Bracket>
+
+          <NotificationsPanel token={token} />
         </aside>
 
         <div className="flex min-w-0 flex-col gap-5" data-tour="tour-quests">
@@ -231,6 +245,128 @@ export function ProfileScreen({
         </div>
       </div>
     </div>
+  );
+}
+
+const SLOT_LABEL = REMINDER_SLOTS.map((s) => `${String(s.hour).padStart(2, '0')}:00`).join(' · ');
+
+/** Enable / disable local-time journal reminders on this device. */
+function NotificationsPanel({ token }: { token: string | null }) {
+  const supported = pushSupported() && pushConfigured();
+  const [permission, setPermission] = useState<NotificationPermission>(() => pushPermission());
+  const [subscribed, setSubscribed] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!supported) {
+      return;
+    }
+
+    let live = true;
+    void currentSubscription().then((sub) => {
+      if (live) {
+        setSubscribed(Boolean(sub));
+      }
+    });
+
+    return () => {
+      live = false;
+    };
+  }, [supported]);
+
+  /** Request permission, subscribe, and register with the server. */
+  const onEnable = async () => {
+    if (!token) {
+      setStatus('// session expired · sign in again');
+
+      return;
+    }
+
+    setBusy(true);
+
+    try {
+      const result = await enablePush(token);
+      setPermission(result);
+
+      if (result === 'granted') {
+        setSubscribed(true);
+        setStatus(`// reminders on · ${Intl.DateTimeFormat().resolvedOptions().timeZone}`);
+        SoundManager.confirm();
+      } else {
+        setStatus('// permission not granted');
+        SoundManager.deny();
+      }
+    } catch (err) {
+      setStatus(`// failed · ${err instanceof Error ? err.message : 'could not subscribe'}`);
+      SoundManager.deny();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /** Drop the server row, then the local subscription. */
+  const onDisable = async () => {
+    if (!token) {
+      setStatus('// session expired · sign in again');
+
+      return;
+    }
+
+    setBusy(true);
+
+    try {
+      await disablePush(token);
+      setSubscribed(false);
+      setStatus('// reminders off');
+      SoundManager.confirm();
+    } catch (err) {
+      setStatus(`// failed · ${err instanceof Error ? err.message : 'could not unsubscribe'}`);
+      SoundManager.deny();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Bracket>
+      <Panel title="NOTIFICATIONS" meta={SLOT_LABEL}>
+        <div className="flex flex-col gap-2.5">
+          {!pushConfigured() ? (
+            <p className="font-mono text-[10px] leading-[1.6] tracking-[0.04em] text-fg-mute">
+              // reminders unavailable · VITE_VAPID_PUBLIC_KEY not set at build time
+            </p>
+          ) : !supported ? (
+            <p className="font-mono text-[10px] leading-[1.6] tracking-[0.04em] text-fg-mute">
+              // push not supported on this browser · on iOS, add Journs to the home screen first
+            </p>
+          ) : permission === 'denied' ? (
+            <p className="font-mono text-[10px] leading-[1.6] tracking-[0.04em] text-fg-mute">
+              // blocked · re-enable notifications in browser site settings
+            </p>
+          ) : (
+            <>
+              <div className="flex flex-wrap gap-2">
+                <Btn
+                  variant="ghost"
+                  disabled={busy || !token}
+                  onClick={() => void (subscribed ? onDisable() : onEnable())}
+                >
+                  {busy ? 'WORKING…' : subscribed ? 'DISABLE REMINDERS' : 'ENABLE REMINDERS'}
+                </Btn>
+              </div>
+              <p className="font-mono text-[10px] leading-[1.6] tracking-[0.04em] text-fg-mute">
+                // a nudge to write, on this device's local clock · no entry content ever leaves
+                encrypted
+              </p>
+            </>
+          )}
+          {status && (
+            <p className="font-mono text-[10px] tracking-[0.04em] text-fg-mute">{status}</p>
+          )}
+        </div>
+      </Panel>
+    </Bracket>
   );
 }
 

@@ -16,6 +16,7 @@ import {
   apiPutEntries,
   apiPutProgress,
 } from './api';
+import { syncPush } from './push';
 import { LoginScreen } from './login';
 import { ListScreen } from './list';
 import { ReaderScreen } from './reader';
@@ -100,6 +101,11 @@ export default function App() {
     // Auth is the strongest engagement signal we get, so it is the best moment
     // to ask the browser to keep the identity around.
     void requestPersistentStorage();
+    // Same moment, same reason: refresh the push endpoint and timezone in case
+    // the browser rotated one or the user travelled.
+    void syncPush(next.token).catch(() => {
+      /* reminders are best-effort; never block the archive on them */
+    });
 
     if (options?.isNewUser) {
       pendingTour.current = true;
@@ -324,6 +330,7 @@ export default function App() {
           {view.name === 'profile' && identity && (
             <ProfileScreen
               identity={identity}
+              token={session?.token ?? null}
               entries={entries}
               progress={progress}
               onBack={() => setView({ name: 'list' })}

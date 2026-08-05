@@ -1,0 +1,24 @@
+{
+  "name": "Journs",
+  "short_name": "Journs",
+  "description": "End-to-end encrypted field journal.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#060c12",
+  "theme_color": "#3dd1e0",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

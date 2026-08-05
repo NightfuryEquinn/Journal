@@ -154,6 +154,27 @@ export function apiPutProgress(
   });
 }
 
+/** Register a Web Push subscription for this device. */
+export function apiSubscribePush(
+  token: string,
+  subscription: { endpoint: string; keys: { p256dh: string; auth: string } },
+  timeZone: string,
+): Promise<{ ok: boolean }> {
+  return apiFetch('/api/push/subscription', {
+    method: 'POST',
+    token,
+    body: JSON.stringify({ subscription, timeZone }),
+  });
+}
+
+/** Drop a Web Push subscription. */
+export function apiUnsubscribePush(token: string, endpoint: string): Promise<{ ok: boolean }> {
+  return apiFetch(
+    `/api/push/subscription?endpoint=${encodeURIComponent(endpoint)}`,
+    { method: 'DELETE', token },
+  );
+}
+
 /** Decrypt helper type for sync layer. */
 export type DecryptFn = (
   ciphertext: string,

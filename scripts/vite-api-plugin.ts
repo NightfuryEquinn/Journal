@@ -10,6 +10,8 @@ import entriesHandler from '../api/entries/index.js';
 import entryByIdHandler from '../api/entries/[id].js';
 import questsHandler from '../api/quests.js';
 import cronSettleHandler from '../api/cron/settle.js';
+import cronPushHandler from '../api/cron/push.js';
+import pushSubscriptionHandler from '../api/push/subscription.js';
 
 type Handler = (req: VercelRequest, res: VercelResponse) => void | Promise<void>;
 
@@ -21,6 +23,8 @@ const ROUTES: Record<string, Handler> = {
   '/api/entries': entriesHandler,
   '/api/quests': questsHandler,
   '/api/cron/settle': cronSettleHandler,
+  '/api/cron/push': cronPushHandler,
+  '/api/push/subscription': pushSubscriptionHandler,
 };
 
 /** Buffer the Node request body. */
@@ -109,7 +113,7 @@ export function journsApiPlugin(): Plugin {
         const { pathname } = url;
 
         // Only real HTTP API routes — never Vite modules under /api/_lib, etc.
-        if (!/^\/api\/(auth|entries|quests|cron)(\/|$)/.test(pathname)) {
+        if (!/^\/api\/(auth|entries|quests|cron|push)(\/|$)/.test(pathname)) {
           next();
 
           return;

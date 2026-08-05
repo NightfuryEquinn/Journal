@@ -35,6 +35,19 @@ export interface QuestProgressDoc extends QuestProgress {
   updatedAt: Date;
 }
 
+export interface PushSubscriptionDoc {
+  accountId: string;
+  /** Push service URL — unique per browser install, used as the primary key. */
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+  /** IANA zone, e.g. 'Asia/Kuala_Lumpur'. Reminders fire on local wall clock. */
+  timeZone: string;
+  /** `${localDay}:${slotHour}` of the last reminder sent, for dedup. */
+  lastSentKey: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 declare global {
   // eslint-disable-next-line no-var
   var _journsMongo: { client: MongoClient; db: Db } | undefined;
@@ -85,6 +98,12 @@ export async function entriesCol(): Promise<Collection<EntryDoc>> {
 /** quest_progress collection. */
 export async function questProgressCol(): Promise<Collection<QuestProgressDoc>> {
   return (await getDb()).collection<QuestProgressDoc>('quest_progress');
+}
+
+/** push_subscriptions collection. */
+// ponytail: no unique index on endpoint — add one if subscription count grows.
+export async function pushSubsCol(): Promise<Collection<PushSubscriptionDoc>> {
+  return (await getDb()).collection<PushSubscriptionDoc>('push_subscriptions');
 }
 
 /** Bump lastActiveAt for an account. */

@@ -11,9 +11,10 @@ React 19 + TypeScript + Vite SPA, Vercel serverless API, MongoDB Atlas. Auth is 
 | Frontend | Vite + React 19 SPA (`src/`) |
 | API | Vercel serverless under `api/` |
 | Shared | Zod schemas + quest logic (`shared/`) |
-| Database | MongoDB Atlas (`users`, `entries`, `quest_progress`) |
+| Database | MongoDB Atlas (`users`, `entries`, `quest_progress`, `push_subscriptions`) |
 | Auth | BIP39 mnemonic + passphrase → DEK wraps + JWT |
-| Scheduler | [cron-job.org](https://cron-job.org) → `/api/cron/settle` (not Vercel Cron) |
+| Scheduler | [cron-job.org](https://cron-job.org) → `/api/cron/settle`, `/api/cron/push` (not Vercel Cron) |
+| Reminders | W3C Push API (VAPID + `web-push`), `public/sw.js`, installable via `public/manifest.webmanifest` |
 | Audio | Howler.js + WAVs in `audio/` |
 
 ## Repository map
@@ -24,12 +25,14 @@ React 19 + TypeScript + Vite SPA, Vercel serverless API, MongoDB Atlas. Auth is 
 │   ├── auth/              # register, login, bundle, recover
 │   ├── entries/           # ciphertext CRUD
 │   ├── quests.ts          # AURA / quest progress
+│   ├── push/              # push subscription register / drop
 │   ├── cron/settle.ts     # period settlement
+│   ├── cron/push.ts       # reminder fan-out
 │   └── _lib/              # db, schemas, http, Atlas URI helpers
-├── shared/                # types, Zod schemas, quest defs / settle / claim
-├── src/                   # SPA screens, crypto, identity, HUD, tours
-├── scripts/               # Vite /api middleware, Mongo maintenance, Bun polyfill
-├── public/                # favicon, logo, backdrop SVGs
+├── shared/                # types, Zod schemas, quest defs / settle / claim, reminder slots
+├── src/                   # SPA screens, crypto, identity, HUD, tours, push
+├── scripts/               # Vite /api middleware, Mongo maintenance, Bun polyfill, push check
+├── public/                # favicon, logo, backdrop SVGs, service worker, manifest
 └── .env.example
 ```
 
@@ -52,6 +55,8 @@ Supporting modules: `app.tsx` (session + routing), `crypto.ts` / `identity.ts`, 
 bun install
 cp .env.example .env
 # fill MONGODB_URI, MONGODB_DB, JWT_SECRET, CRON_SECRET
+bunx web-push generate-vapid-keys
+# fill VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT, VITE_VAPID_PUBLIC_KEY
 ```
 
 ### Local development
@@ -78,7 +83,11 @@ Deployed builds call same-origin `/api/*` on Vercel.
 | `MONGODB_URI` | server / scripts | Atlas connection string |
 | `MONGODB_DB` | server / scripts | Database name (default `journs`) |
 | `JWT_SECRET` | server | Session signing (≥16 chars) |
-| `CRON_SECRET` | server | Bearer token for settle (≥16 chars) |
+| `CRON_SECRET` | server | Bearer token for settle + push cron (≥16 chars) |
+| `VAPID_PUBLIC_KEY` | server | Web Push application server key |
+| `VAPID_PRIVATE_KEY` | server | Web Push signing key |
+| `VAPID_SUBJECT` | server | `mailto:` or `https://` contact for push services |
+| `VITE_VAPID_PUBLIC_KEY` | frontend | Same value as `VAPID_PUBLIC_KEY`; baked in at build time |
 | `VITE_API_BASE` | frontend (optional) | Absolute API origin; empty = same-origin `/api` |
 
 ## Auth & E2EE
@@ -157,6 +166,32 @@ Vercel only exposes the handler. Configure the schedule externally:
 
 Do **not** enable Vercel Cron / `vercel.json` `crons`.
 
+## Reminders (W3C Push API)
+
+Three nudges per day on the subscriber's **local** clock — 09:00, 17:00, 22:00 — defined in `shared/push.ts`. Opt in from **Profile → NOTIFICATIONS**; the button click is the user gesture `Notification.requestPermission()` requires.
+
+Second cron-job.org job:
+
+- **URL:** `POST https://<your-deploy>/api/cron/push`
+- **Header:** `Authorization: Bearer <CRON_SECRET>`
+- **Schedule:** **every 15 minutes**
+
+The cadence must be at least as frequent as `WINDOW_MINUTES` (15) or slots are skipped. The 15-minute window is also what makes `:30` and `:45` offset zones (Asia/Kolkata, Asia/Kathmandu, Pacific/Chatham) fire on the hour locally instead of half an hour late.
+
+Notes:
+
+- Payloads are generic copy only. The server holds no DEK, so a reminder can never mention entry content.
+- `push_subscriptions` is keyed on `endpoint`, so one account can have several devices and re-subscribing is idempotent. `syncPush` re-registers on every authed boot, which is how endpoint rotation and travel (timezone change) are picked up — the service worker has no session token of its own.
+- Dedup is claim-before-send on `lastSentKey` (`${localDay}:${hour}`): at-most-once, so a retried cron run cannot double-push.
+- `404`/`410` from a push service prunes the row.
+- `?hour=9|17|22` on the cron URL forces a slot for testing. Dedup still applies, so a forced re-run is a no-op.
+- iOS Safari only delivers push to a Home-Screen-installed PWA — hence `public/manifest.webmanifest`.
+- `public/sw.js` has **no** `fetch` handler. No journal data is stored locally, so there is nothing to cache.
+
+```bash
+bun run check:push   # reminder scheduling + service worker logic
+```
+
 ## API surface
 
 | Route | Auth | Role |
@@ -168,7 +203,10 @@ Do **not** enable Vercel Cron / `vercel.json` `crons`.
 | `GET/PUT /api/entries` | JWT | List / upsert ciphertext |
 | `DELETE /api/entries/:id` | JWT | Delete one entry |
 | `GET/PUT /api/quests` | JWT | Fetch / save quest progress |
+| `POST /api/push/subscription` | JWT | Register a push subscription + timezone |
+| `DELETE /api/push/subscription` | JWT | Drop a subscription by `?endpoint=` |
 | `POST /api/cron/settle` | `CRON_SECRET` | Settle all users |
+| `POST /api/cron/push` | `CRON_SECRET` | Send due reminders |
 
 JWT: HS256, claim `{ accountId }`, 12h expiry. Errors: `{ error: string }`.
 
