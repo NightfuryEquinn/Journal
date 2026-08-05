@@ -1,6 +1,7 @@
 /**
  * Drop ALL collections in MONGODB_DB.
- * Usage: bun run scripts/drop-all.ts --confirm
+ * Usage: bun run db:drop-all --confirm
+ * (the package script supplies --preload, without which bson throws on Bun)
  */
 import { MongoClient } from 'mongodb';
 import { resolveMongoUri } from '../api/_lib/resolve-uri';
@@ -15,7 +16,7 @@ if (!uri) {
 
 if (!process.argv.includes('--confirm')) {
   console.error('Refusing to run without --confirm');
-  console.error('Usage: bun run scripts/drop-all.ts --confirm');
+  console.error('Usage: bun run db:drop-all --confirm');
   process.exit(1);
 }
 

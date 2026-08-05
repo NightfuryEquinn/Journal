@@ -1,6 +1,8 @@
 /**
- * Delete users inactive for more than 90 days, plus their entries and quest_progress.
- * Usage: bun run scripts/purge-stale-users.ts --confirm
+ * Delete users inactive for more than 90 days, plus their entries, quest_progress
+ * and push_subscriptions.
+ * Usage: bun run db:purge-stale --confirm
+ * (the package script supplies --preload, without which bson throws on Bun)
  */
 import { MongoClient } from 'mongodb';
 import { resolveMongoUri } from '../api/_lib/resolve-uri';
@@ -16,7 +18,7 @@ if (!uri) {
 
 if (!process.argv.includes('--confirm')) {
   console.error('Refusing to run without --confirm');
-  console.error('Usage: bun run scripts/purge-stale-users.ts --confirm');
+  console.error('Usage: bun run db:purge-stale --confirm');
   process.exit(1);
 }
 
@@ -29,6 +31,8 @@ try {
   const users = db.collection('users');
   const entries = db.collection('entries');
   const quests = db.collection('quest_progress');
+  // Orphaned push rows keep getting nudged forever — the cron only scans by endpoint.
+  const pushSubs = db.collection('push_subscriptions');
 
   const stale = await users
     .find({
@@ -44,19 +48,24 @@ try {
 
   let entriesDeleted = 0;
   let questsDeleted = 0;
+  let pushDeleted = 0;
 
   for (const u of stale) {
     const accountId = u.accountId as string;
     const e = await entries.deleteMany({ accountId });
     const q = await quests.deleteMany({ accountId });
+    const p = await pushSubs.deleteMany({ accountId });
     entriesDeleted += e.deletedCount;
     questsDeleted += q.deletedCount;
+    pushDeleted += p.deletedCount;
     await users.deleteOne({ accountId });
-    console.log(`  purged ${accountId.slice(0, 12)}… (entries=${e.deletedCount}, quests=${q.deletedCount})`);
+    console.log(
+      `  purged ${accountId.slice(0, 12)}… (entries=${e.deletedCount}, quests=${q.deletedCount}, push=${p.deletedCount})`,
+    );
   }
 
   console.log(
-    `Done. users=${stale.length} entries=${entriesDeleted} quest_progress=${questsDeleted}`,
+    `Done. users=${stale.length} entries=${entriesDeleted} quest_progress=${questsDeleted} push_subscriptions=${pushDeleted}`,
   );
 } finally {
   await client.close();
