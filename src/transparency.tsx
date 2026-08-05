@@ -12,7 +12,7 @@ const DIAGRAM = `flowchart LR
     Auth["/api/auth"]
     Entries["/api/entries"]
     Quests["/api/quests"]
-    Settle["/api/cron/settle"]
+    Settle["/api/cron"]
   end
   subgraph external [cron_job_org]
     CronJob[ScheduledHTTP]
@@ -229,7 +229,7 @@ export function TransparencyScreen({ onBack }: { onBack: () => void }) {
               JWT (<Code>{'{ accountId }'}</Code>). MongoDB Atlas holds three collections:{' '}
               <Code>users</Code> (wraps + verifier), <Code>entries</Code> (ciphertext only), and{' '}
               <Code>quest_progress</Code> (readable AURA / quest state). Settlement is triggered by
-              cron-job.org posting to <Code>/api/cron/settle</Code> with{' '}
+              cron-job.org posting to <Code>/api/cron</Code> with{' '}
               <Code>Authorization: Bearer CRON_SECRET</Code> — not Vercel Cron.
             </Body>
 

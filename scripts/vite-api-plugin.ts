@@ -9,8 +9,7 @@ import bundleHandler from '../api/auth/bundle.js';
 import entriesHandler from '../api/entries/index.js';
 import entryByIdHandler from '../api/entries/[id].js';
 import questsHandler from '../api/quests.js';
-import cronSettleHandler from '../api/cron/settle.js';
-import cronPushHandler from '../api/cron/push.js';
+import cronHandler from '../api/cron.js';
 import pushSubscriptionHandler from '../api/push/subscription.js';
 
 type Handler = (req: VercelRequest, res: VercelResponse) => void | Promise<void>;
@@ -22,8 +21,7 @@ const ROUTES: Record<string, Handler> = {
   '/api/auth/bundle': bundleHandler,
   '/api/entries': entriesHandler,
   '/api/quests': questsHandler,
-  '/api/cron/settle': cronSettleHandler,
-  '/api/cron/push': cronPushHandler,
+  '/api/cron': cronHandler,
   '/api/push/subscription': pushSubscriptionHandler,
 };
 

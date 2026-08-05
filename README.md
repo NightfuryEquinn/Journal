@@ -13,7 +13,7 @@ React 19 + TypeScript + Vite SPA, Vercel serverless API, MongoDB Atlas. Auth is 
 | Shared | Zod schemas + quest logic (`shared/`) |
 | Database | MongoDB Atlas (`users`, `entries`, `quest_progress`, `push_subscriptions`) |
 | Auth | BIP39 mnemonic + passphrase → DEK wraps + JWT |
-| Scheduler | [cron-job.org](https://cron-job.org) → `/api/cron/settle`, `/api/cron/push` (not Vercel Cron) |
+| Scheduler | [cron-job.org](https://cron-job.org) → `/api/cron` (not Vercel Cron) |
 | Reminders | W3C Push API (VAPID + `web-push`), `public/sw.js`, installable via `public/manifest.webmanifest` |
 | Audio | Howler.js + WAVs in `audio/` |
 
@@ -26,8 +26,7 @@ React 19 + TypeScript + Vite SPA, Vercel serverless API, MongoDB Atlas. Auth is 
 │   ├── entries/           # ciphertext CRUD
 │   ├── quests.ts          # AURA / quest progress
 │   ├── push/              # push subscription register / drop
-│   ├── cron/settle.ts     # period settlement
-│   ├── cron/push.ts       # reminder fan-out
+│   ├── cron.ts            # period settlement + reminder fan-out
 │   └── _lib/              # db, schemas, http, Atlas URI helpers
 ├── shared/                # types, Zod schemas, quest defs / settle / claim, reminder slots
 ├── src/                   # SPA screens, crypto, identity, HUD, tours, push
@@ -83,7 +82,7 @@ Deployed builds call same-origin `/api/*` on Vercel.
 | `MONGODB_URI` | server / scripts | Atlas connection string |
 | `MONGODB_DB` | server / scripts | Database name (default `journs`) |
 | `JWT_SECRET` | server | Session signing (≥16 chars) |
-| `CRON_SECRET` | server | Bearer token for settle + push cron (≥16 chars) |
+| `CRON_SECRET` | server | Bearer token for `/api/cron` (≥16 chars) |
 | `VAPID_PUBLIC_KEY` | server | Web Push application server key |
 | `VAPID_PRIVATE_KEY` | server | Web Push signing key |
 | `VAPID_SUBJECT` | server | `mailto:` or `https://` contact for push services |
@@ -156,27 +155,37 @@ Howler-backed SFX in `SoundManager` (`src/hud.tsx`), gated by the topbar toggle 
 
 Dropdowns and range sliders do not play click/type cues.
 
-## Quest settlement (cron-job.org)
+## Scheduled work (cron-job.org)
 
-Vercel only exposes the handler. Configure the schedule externally:
+One job drives everything: quest settlement and reminder fan-out. Vercel only
+exposes the handler — configure the schedule externally:
 
-- **URL:** `POST https://<your-deploy>/api/cron/settle`
+- **URL:** `POST https://<your-deploy>/api/cron`
 - **Header:** `Authorization: Bearer <CRON_SECRET>`
-- **Schedule:** e.g. hourly, or `0 0 * * *` UTC
+- **Schedule:** **every 15 minutes**
 
-Do **not** enable Vercel Cron / `vercel.json` `crons`.
+The cadence is set by push, not settlement — it must be at least as frequent as
+`WINDOW_MINUTES` (15) or reminder slots are skipped. Settlement is idempotent and
+only writes on a day/week rollover, so running it every 15 minutes is a no-op scan
+the rest of the time.
+
+The two halves run independently (`Promise.allSettled`): a Mongo failure during
+settlement cannot swallow reminders. The response reports each side:
+
+```json
+{ "ok": true, "settle": { "ok": true, "scanned": 3, "updated": 1 },
+  "push": { "ok": true, "scanned": 5, "sent": 2, "pruned": 0, "failed": 0 },
+  "at": "..." }
+```
+
+`ok: false` (HTTP 500) means at least one half failed; the other half's result is
+still reported. Do **not** enable Vercel Cron / `vercel.json` `crons`.
 
 ## Reminders (W3C Push API)
 
 Three nudges per day on the subscriber's **local** clock — 09:00, 17:00, 22:00 — defined in `shared/push.ts`. Opt in from **Profile → NOTIFICATIONS**; the button click is the user gesture `Notification.requestPermission()` requires.
 
-Second cron-job.org job:
-
-- **URL:** `POST https://<your-deploy>/api/cron/push`
-- **Header:** `Authorization: Bearer <CRON_SECRET>`
-- **Schedule:** **every 15 minutes**
-
-The cadence must be at least as frequent as `WINDOW_MINUTES` (15) or slots are skipped. The 15-minute window is also what makes `:30` and `:45` offset zones (Asia/Kolkata, Asia/Kathmandu, Pacific/Chatham) fire on the hour locally instead of half an hour late.
+Delivery rides the single `/api/cron` job above, every 15 minutes. The 15-minute window is what makes `:30` and `:45` offset zones (Asia/Kolkata, Asia/Kathmandu, Pacific/Chatham) fire on the hour locally instead of half an hour late.
 
 Notes:
 
@@ -184,7 +193,7 @@ Notes:
 - `push_subscriptions` is keyed on `endpoint`, so one account can have several devices and re-subscribing is idempotent. `syncPush` re-registers on every authed boot, which is how endpoint rotation and travel (timezone change) are picked up — the service worker has no session token of its own.
 - Dedup is claim-before-send on `lastSentKey` (`${localDay}:${hour}`): at-most-once, so a retried cron run cannot double-push.
 - `404`/`410` from a push service prunes the row.
-- `?hour=9|17|22` on the cron URL forces a slot for testing. Dedup still applies, so a forced re-run is a no-op.
+- `?hour=9|17|22` on `/api/cron` forces a slot for testing. Dedup still applies, so a forced re-run is a no-op.
 - iOS Safari only delivers push to a Home-Screen-installed PWA — hence `public/manifest.webmanifest`.
 - `public/sw.js` has **no** `fetch` handler. No journal data is stored locally, so there is nothing to cache.
 
@@ -205,8 +214,7 @@ bun run check:push   # reminder scheduling + service worker logic
 | `GET/PUT /api/quests` | JWT | Fetch / save quest progress |
 | `POST /api/push/subscription` | JWT | Register a push subscription + timezone |
 | `DELETE /api/push/subscription` | JWT | Drop a subscription by `?endpoint=` |
-| `POST /api/cron/settle` | `CRON_SECRET` | Settle all users |
-| `POST /api/cron/push` | `CRON_SECRET` | Send due reminders |
+| `POST /api/cron` | `CRON_SECRET` | Settle all users + send due reminders |
 
 JWT: HS256, claim `{ accountId }`, 12h expiry. Errors: `{ error: string }`.
 
