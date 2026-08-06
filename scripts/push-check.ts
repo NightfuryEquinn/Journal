@@ -31,10 +31,12 @@ assert.equal(WINDOW_MINUTES, 15);
 // Right hour, wrong hour-of-day.
 assert.equal(dueSlot(at('2026-08-05T00:05:00Z'), 'Asia/Kuala_Lumpur'), null);
 
-// All three slots resolve.
+// All five slots resolve.
 assert.equal(dueSlot(at('2026-08-05T09:00:00Z'), 'UTC')?.slot.hour, 9);
+assert.equal(dueSlot(at('2026-08-05T12:00:00Z'), 'UTC')?.slot.hour, 12);
 assert.equal(dueSlot(at('2026-08-05T17:00:00Z'), 'UTC')?.slot.hour, 17);
-assert.equal(dueSlot(at('2026-08-05T22:00:00Z'), 'UTC')?.slot.hour, 22);
+assert.equal(dueSlot(at('2026-08-05T20:00:00Z'), 'UTC')?.slot.hour, 20);
+assert.equal(dueSlot(at('2026-08-05T23:00:00Z'), 'UTC')?.slot.hour, 23);
 
 // DST: 09:05 New York is 14:05 UTC in January but 13:05 UTC in July.
 assert.equal(dueSlot(at('2026-01-15T14:05:00Z'), 'America/New_York')?.slot.hour, 9);
@@ -42,12 +44,12 @@ assert.equal(dueSlot(at('2026-01-15T13:05:00Z'), 'America/New_York'), null);
 assert.equal(dueSlot(at('2026-07-15T13:05:00Z'), 'America/New_York')?.slot.hour, 9);
 assert.equal(dueSlot(at('2026-07-15T14:05:00Z'), 'America/New_York'), null);
 
-// Local day key follows the local date, not UTC: 22:05 in Auckland (UTC+12)
-// on the 5th is 10:05 UTC on the 5th... but on the 6th local for a UTC
+// Local day key follows the local date, not UTC: 23:05 in Auckland (UTC+12)
+// on the 5th is 11:05 UTC on the 5th... but on the 6th local for a UTC
 // evening. Pin the rollover explicitly.
-const nz = dueSlot(at('2026-08-05T10:05:00Z'), 'Pacific/Auckland');
-assert.equal(nz?.slot.hour, 22);
-assert.equal(nz?.sentKey, '2026-08-05:22');
+const nz = dueSlot(at('2026-08-05T11:05:00Z'), 'Pacific/Auckland');
+assert.equal(nz?.slot.hour, 23);
+assert.equal(nz?.sentKey, '2026-08-05:23');
 
 // Garbage zone must be skipped, not thrown.
 assert.equal(dueSlot(at('2026-08-05T09:05:00Z'), 'Not/AZone'), null);
@@ -55,7 +57,7 @@ assert.equal(dueSlot(at('2026-08-05T09:05:00Z'), ''), null);
 
 // sentKeyFor (the forced-slot path in the cron) must agree with dueSlot.
 assert.equal(sentKeyFor(at('2026-08-05T01:05:00Z'), 'Asia/Kuala_Lumpur', 9), kl?.sentKey);
-assert.equal(sentKeyFor(at('2026-08-05T10:05:00Z'), 'Pacific/Auckland', 22), nz?.sentKey);
+assert.equal(sentKeyFor(at('2026-08-05T11:05:00Z'), 'Pacific/Auckland', 23), nz?.sentKey);
 // ...and it must work outside the window, since that is the whole point.
 assert.equal(sentKeyFor(at('2026-08-05T20:47:00Z'), 'UTC', 17), '2026-08-05:17');
 assert.equal(sentKeyFor(at('2026-08-05T20:47:00Z'), 'Not/AZone', 17), null);
@@ -121,10 +123,10 @@ async function firePush(data: unknown) {
   return shown[0];
 }
 
-const evening = await firePush({ hour: 22, body: REMINDER_SLOTS[2]!.body });
-assert.equal(evening?.title, 'JOURNS');
-assert.equal(evening?.options.body, REMINDER_SLOTS[2]!.body);
-assert.equal(evening?.options.tag, 'journs-reminder-22');
+const evening = await firePush({ hour: 23, body: REMINDER_SLOTS[4]!.body });
+assert.equal(evening?.title, 'Adjourn to Journ');
+assert.equal(evening?.options.body, REMINDER_SLOTS[4]!.body);
+assert.equal(evening?.options.tag, 'journs-reminder-23');
 assert.deepEqual(evening?.options.data, { url: '/' });
 
 // Distinct slots must not collapse onto one another's tag.

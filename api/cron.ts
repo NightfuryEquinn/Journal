@@ -43,7 +43,7 @@ async function runSettle(now: Date) {
 /**
  * Fire journal reminders for every subscriber whose local clock just hit a slot.
  * `forcedHour` is the test hook: force a slot so the whole path can be exercised
- * outside 09/17/22 local. Dedup still applies, so a forced re-run is a no-op.
+ * outside 09/12/17/20/23 local. Dedup still applies, so a forced re-run is a no-op.
  */
 async function runPush(now: Date, forcedHour: number) {
   const subject = process.env.VAPID_SUBJECT;

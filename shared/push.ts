@@ -5,9 +5,11 @@ export interface ReminderSlot {
 }
 
 export const REMINDER_SLOTS: ReminderSlot[] = [
-  { hour: 9, body: 'Morning log. Set the day down before it starts.' },
-  { hour: 17, body: 'Evening checkpoint. What actually happened?' },
-  { hour: 22, body: 'Close the day. Log it before sleep.' },
+  { hour: 9, body: '"Either you run the day or the day runs you." — Jim Rohn' },
+  { hour: 12, body: '"An hour of planning can save you ten hours of doing." — Dale Carnegie' },
+  { hour: 17, body: '"In the middle of difficulty lies opportunity." — Albert Einstein' },
+  { hour: 20, body: '"Finish each day and be done with it." — Ralph Waldo Emerson' },
+  { hour: 23, body: '"Small disciplines repeated with consistency lead to great achievements." — John C. Maxwell' },
 ];
 
 /**

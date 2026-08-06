@@ -28,7 +28,7 @@ self.addEventListener('push', (event) => {
   }
 
   event.waitUntil(
-    self.registration.showNotification('JOURNS', {
+    self.registration.showNotification('Adjourn to Journ', {
       body,
       icon: '/logo.png',
       badge: '/logo.png',

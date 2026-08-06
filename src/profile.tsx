@@ -248,7 +248,12 @@ export function ProfileScreen({
   );
 }
 
-const SLOT_LABEL = REMINDER_SLOTS.map((s) => `${String(s.hour).padStart(2, '0')}:00`).join(' · ');
+/** Format a reminder slot hour as HH:00 for display. */
+function fmtSlotHour(hour: number) {
+  return `${String(hour).padStart(2, '0')}:00`;
+}
+
+const NOTIFICATIONS_META = `${REMINDER_SLOTS.length} × LOCAL`;
 
 /** Enable / disable local-time journal reminders on this device. */
 function NotificationsPanel({ token }: { token: string | null }) {
@@ -330,8 +335,13 @@ function NotificationsPanel({ token }: { token: string | null }) {
 
   return (
     <Bracket>
-      <Panel title="NOTIFICATIONS" meta={SLOT_LABEL}>
+      <Panel title="NOTIFICATIONS" meta={NOTIFICATIONS_META}>
         <div className="flex flex-col gap-2.5">
+          <div className="flex flex-wrap gap-x-3 gap-y-1 font-mono text-[10px] tracking-[0.12em] text-fg-mute">
+            {REMINDER_SLOTS.map((slot) => (
+              <span key={slot.hour}>{fmtSlotHour(slot.hour)}</span>
+            ))}
+          </div>
           {!pushConfigured() ? (
             <p className="font-mono text-[10px] leading-[1.6] tracking-[0.04em] text-fg-mute">
               // reminders unavailable · VITE_VAPID_PUBLIC_KEY not set at build time
@@ -356,8 +366,8 @@ function NotificationsPanel({ token }: { token: string | null }) {
                 </Btn>
               </div>
               <p className="font-mono text-[10px] leading-[1.6] tracking-[0.04em] text-fg-mute">
-                // a nudge to write, on this device's local clock · no entry content ever leaves
-                encrypted
+                // {REMINDER_SLOTS.length} nudges to write, on this device's local clock · no entry
+                content ever leaves encrypted
               </p>
             </>
           )}
