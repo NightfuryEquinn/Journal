@@ -1,5 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { Analytics } from '@vercel/analytics/react';
 import App from './app';
 import './styles.css';
 
@@ -9,6 +10,7 @@ if (!root) throw new Error('Root element #root not found');
 createRoot(root).render(
   <StrictMode>
     <App />
+    <Analytics />
   </StrictMode>,
 );
 

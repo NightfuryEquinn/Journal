@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@scure/bip39": "^2.2.0",
+    "@vercel/analytics": "^2.0.1",
     "howler": "^2.2.4",
     "jose": "^6.2.4",
     "mermaid": "^11.16.0",
