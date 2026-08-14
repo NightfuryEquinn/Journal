@@ -119,13 +119,19 @@ In-app detail: **Profile → TRANSPARENCY** (Mermaid diagram + every schema).
 
 ## Quests & AURA
 
+Catalog lives in `shared/quests.ts`. Profile and Transparency render those arrays; do not duplicate ids elsewhere.
+
 | Kind | Ids | Reward |
 |------|-----|--------|
-| Daily | `daily-write`, `daily-tag` | +10 / +5 AURA |
-| Weekly | `weekly-three`, `weekly-mood` | +25 / +15 AURA |
-| Milestone | `ms-pioneer`, `ms-chronicler`, `ms-archivist` | tags only (0 AURA) |
+| Daily | `daily-write`, `daily-tag`, `daily-tags-3`, `daily-long` | +10 / +5 / +5 / +5 AURA |
+| Weekly | `weekly-three`, `weekly-mood`, `weekly-days`, `weekly-energy` | +25 / +15 / +15 / +10 AURA |
+| Milestone | `ms-pioneer` … `ms-spectrum` (13 total) | tags only (0 AURA) |
 
-`settleAura` runs on day/week key change (client GET/PUT quests, or cron). Missed quests deduct AURA (floor 0). Period keys are **UTC** so clients and cron-job.org agree.
+`settleAura` runs on day/week key change (client GET/PUT quests, or cron). Missed **timed** quests deduct AURA (floor 0). Period keys are **UTC** so clients and cron-job.org agree. New timed quests carry `sinceDay: 2026-08-14` so a closed period **before** that date is not penalized. Milestones scan the full archive (lifetime max streak, not current streak).
+
+```bash
+bun run check:quests   # satisfaction, max streak, sinceDay settle
+```
 
 ## Import / export
 
@@ -183,7 +189,7 @@ still reported. Do **not** enable Vercel Cron / `vercel.json` `crons`.
 
 ## Reminders (W3C Push API)
 
-Three nudges per day on the subscriber's **local** clock — 09:00, 17:00, 22:00 — defined in `shared/push.ts`. Opt in from **Profile → NOTIFICATIONS**; the button click is the user gesture `Notification.requestPermission()` requires.
+Five nudges per day on the subscriber's **local** clock — 09:00, 12:00, 17:00, 20:00, 23:00 — defined in `shared/push.ts`. Opt in from **Profile → NOTIFICATIONS**; the button click is the user gesture `Notification.requestPermission()` requires.
 
 Delivery rides the single `/api/cron` job above, every 15 minutes. The 15-minute window is what makes `:30` and `:45` offset zones (Asia/Kolkata, Asia/Kathmandu, Pacific/Chatham) fire on the hour locally instead of half an hour late.
 
@@ -193,12 +199,13 @@ Notes:
 - `push_subscriptions` is keyed on `endpoint`, so one account can have several devices and re-subscribing is idempotent. `syncPush` re-registers on every authed boot, which is how endpoint rotation and travel (timezone change) are picked up — the service worker has no session token of its own.
 - Dedup is claim-before-send on `lastSentKey` (`${localDay}:${hour}`): at-most-once, so a retried cron run cannot double-push.
 - `404`/`410` from a push service prunes the row.
-- `?hour=9|17|22` on `/api/cron` forces a slot for testing. Dedup still applies, so a forced re-run is a no-op.
+- `?hour=9|12|17|20|23` on `/api/cron` forces a slot for testing. Dedup still applies, so a forced re-run is a no-op.
 - iOS Safari only delivers push to a Home-Screen-installed PWA — hence `public/manifest.webmanifest`.
 - `public/sw.js` has **no** `fetch` handler. No journal data is stored locally, so there is nothing to cache.
 
 ```bash
 bun run check:push   # reminder scheduling + service worker logic
+bun run check:quests # quest satisfaction + settleAura
 ```
 
 ## API surface
@@ -239,5 +246,7 @@ Scripts preload a Bun v8 polyfill so the MongoDB `bson` package can load. Inacti
 | `bun run dev` | Vite SPA + in-process `/api` |
 | `bun run build` | Typecheck + production build |
 | `bun run preview` | Preview production build |
+| `bun run check:push` | Reminder scheduling + service worker logic |
+| `bun run check:quests` | Quest satisfaction, max streak, sinceDay settle |
 | `bun run db:drop-all` | Drop all collections |
 | `bun run db:purge-stale` | Purge inactive users |

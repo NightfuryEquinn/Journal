@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { Bracket, Panel, Btn, DecodeText } from './hud';
+import { DAILY_QUESTS, WEEKLY_QUESTS, MILESTONE_QUESTS, type QuestDef } from './quests';
 
 const DIAGRAM = `flowchart LR
   subgraph device [Device]
@@ -61,6 +62,28 @@ function Code({ children }: { children: ReactNode }) {
   return <span className="tracking-[0.02em] text-accent">{children}</span>;
 }
 
+/** One catalog row: id, reward, and detail from shared/quests.ts. */
+function QuestCatalogItem({ quest }: { quest: QuestDef }) {
+  const reward = quest.tag ? `→ #${quest.tag}` : `+${quest.aura}`;
+
+  return (
+    <li className="mb-1.5 last:mb-0">
+      <Code>{quest.id}</Code> {reward} — {quest.detail}
+    </li>
+  );
+}
+
+/** List of daily, weekly, or milestone defs from the shared catalog. */
+function QuestCatalogList({ quests }: { quests: QuestDef[] }) {
+  return (
+    <ul className="mb-3 font-mono text-[12px] leading-[1.7] text-fg-dim">
+      {quests.map((q) => (
+        <QuestCatalogItem key={q.id} quest={q} />
+      ))}
+    </ul>
+  );
+}
+
 /** Schema field table for a document or payload shape. */
 function SchemaTable({
   title,
@@ -109,7 +132,7 @@ const JOURNAL_ENTRY_FIELDS: SchemaField[] = [
   { name: 'mood', type: '1–5 int', note: 'Self-report mood. LOW → HIGH in the composer.' },
   { name: 'energy', type: '1–5 int', note: 'Self-report energy. DRAINED → PEAKED.' },
   { name: 'weather', type: 'string', note: 'CLEAR, OVERCAST, WINDY, LIGHT/HEAVY RAIN, FOG, or SNOW.' },
-  { name: 'tags', type: 'string[]', note: 'Free tags plus milestone tags (pioneer, chronicler, archivist).' },
+  { name: 'tags', type: 'string[]', note: 'Free tags; claimed milestone tags live on quest progress, not on the entry.' },
   { name: 'body', type: 'string', note: 'Full journal text. Encrypted before leaving the device.' },
 ];
 
@@ -135,7 +158,7 @@ const USER_DOC_FIELDS: SchemaField[] = [
 const QUEST_PROGRESS_FIELDS: SchemaField[] = [
   { name: 'accountId', type: 'string', note: 'Owner account (Mongo quest_progress).' },
   { name: 'aura', type: 'int ≥ 0', note: 'Temporary score. Accrues on claim; deducts when periods roll with misses.' },
-  { name: 'claimedTags', type: 'string[]', note: 'Milestone tags already claimed: pioneer, chronicler, archivist.' },
+  { name: 'claimedTags', type: 'string[]', note: 'Milestone tags claimed (see QUEST DEFINITIONS).' },
   { name: 'period.dayKey', type: 'YYYY-MM-DD', note: 'UTC day window for daily quests.' },
   { name: 'period.weekKey', type: 'YYYY-Www', note: 'UTC ISO week window for weekly quests.' },
   { name: 'period.dailyDone', type: 'string[]', note: 'Quest ids claimed today (e.g. daily-write).' },
@@ -275,21 +298,22 @@ export function TransparencyScreen({ onBack }: { onBack: () => void }) {
         <Bracket>
           <Panel title="QUEST DEFINITIONS" meta="shared/quests.ts">
             <Heading>Daily</Heading>
+            <QuestCatalogList quests={DAILY_QUESTS} />
             <Body>
-              <Code>daily-write</Code> (+10) — write ≥1 entry today. <Code>daily-tag</Code> (+5) —
-              use ≥1 tag on an entry today. Tracked in <Code>period.dailyDone</Code>.
+              Tracked in <Code>period.dailyDone</Code>. New timed quests with{' '}
+              <Code>sinceDay</Code> are not deducted for closed days before they shipped.
             </Body>
             <Heading>Weekly</Heading>
+            <QuestCatalogList quests={WEEKLY_QUESTS} />
             <Body>
-              <Code>weekly-three</Code> (+25) — ≥3 entries this UTC week.{' '}
-              <Code>weekly-mood</Code> (+15) — log mood ≥4 once. Tracked in{' '}
-              <Code>period.weeklyDone</Code>.
+              Tracked in <Code>period.weeklyDone</Code>. Same <Code>sinceDay</Code> rule on week
+              rollover.
             </Body>
             <Heading>Milestones</Heading>
+            <QuestCatalogList quests={MILESTONE_QUESTS} />
             <Body>
-              <Code>ms-pioneer</Code> → tag pioneer (first entry). <Code>ms-chronicler</Code> →
-              chronicler (7 entries). <Code>ms-archivist</Code> → archivist (30 entries). Zero AURA;
-              stored in <Code>claimedTags</Code>.
+              Zero AURA; stored in <Code>claimedTags</Code>. Conditions scan the full archive, so
+              existing logs count.
             </Body>
           </Panel>
         </Bracket>

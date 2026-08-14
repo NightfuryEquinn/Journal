@@ -424,6 +424,18 @@
   }
 }
 
+/*
+ * iOS Safari zooms the viewport when a focused text field is under 16px.
+ * `-webkit-overflow-scrolling` matches iPhone/iPad (incl. Chrome-on-iOS),
+ * not desktop Safari, so HUD density stays small on mouse/trackpad.
+ */
+@supports (-webkit-overflow-scrolling: touch) {
+  input:not([type='range']):not([type='checkbox']):not([type='radio']),
+  textarea {
+    font-size: 16px;
+  }
+}
+
 @media (max-width: 560px) {
   :root {
     --pad: 11px;

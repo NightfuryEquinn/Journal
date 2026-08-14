@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "check:push": "bun ./scripts/push-check.ts",
+    "check:quests": "bun ./scripts/quest-check.ts",
     "db:drop-all": "bun --preload ./scripts/bun-v8-patch.ts ./scripts/drop-all.ts",
     "db:purge-stale": "bun --preload ./scripts/bun-v8-patch.ts ./scripts/purge-stale-users.ts"
   },
