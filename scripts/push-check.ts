@@ -5,7 +5,16 @@
  */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { dueSlot, REMINDER_SLOTS, sentKeyFor, WINDOW_MINUTES } from '../shared/push.js';
+import {
+  dueSlot,
+  formatQuote,
+  pickQuote,
+  QUOTES,
+  reminderBody,
+  REMINDER_HOURS,
+  sentKeyFor,
+  WINDOW_MINUTES,
+} from '../shared/push.js';
 
 const at = (iso: string) => new Date(iso);
 
@@ -32,6 +41,7 @@ assert.equal(WINDOW_MINUTES, 15);
 assert.equal(dueSlot(at('2026-08-05T00:05:00Z'), 'Asia/Kuala_Lumpur'), null);
 
 // All five slots resolve.
+assert.deepEqual(REMINDER_HOURS, [9, 12, 17, 20, 23]);
 assert.equal(dueSlot(at('2026-08-05T09:00:00Z'), 'UTC')?.slot.hour, 9);
 assert.equal(dueSlot(at('2026-08-05T12:00:00Z'), 'UTC')?.slot.hour, 12);
 assert.equal(dueSlot(at('2026-08-05T17:00:00Z'), 'UTC')?.slot.hour, 17);
@@ -61,6 +71,34 @@ assert.equal(sentKeyFor(at('2026-08-05T11:05:00Z'), 'Pacific/Auckland', 23), nz?
 // ...and it must work outside the window, since that is the whole point.
 assert.equal(sentKeyFor(at('2026-08-05T20:47:00Z'), 'UTC', 17), '2026-08-05:17');
 assert.equal(sentKeyFor(at('2026-08-05T20:47:00Z'), 'Not/AZone', 17), null);
+
+// Quote copy is always `"text" — author`, never bound to a clock hour.
+assert.equal(
+  formatQuote({ text: 'Finish each day and be done with it.', author: 'Ralph Waldo Emerson' }),
+  '"Finish each day and be done with it." — Ralph Waldo Emerson',
+);
+assert.equal(QUOTES.length > REMINDER_HOURS.length, true, 'quote pool must outgrow the slot list');
+
+for (const quote of QUOTES) {
+  assert.match(formatQuote(quote), /^".+" — .+$/);
+}
+
+assert.equal(pickQuote('2026-08-05:9'), pickQuote('2026-08-05:9'));
+assert.equal(reminderBody('2026-08-05:9'), formatQuote(pickQuote('2026-08-05:9')));
+
+// A due slot's body is whatever the seed picks that day, not a hardcoded hour line.
+const morning = dueSlot(at('2026-08-05T09:00:00Z'), 'UTC');
+assert.equal(morning?.slot.body, reminderBody(morning!.sentKey));
+assert.match(morning!.slot.body, /^".+" — .+$/);
+
+const nextMorning = dueSlot(at('2026-08-06T09:00:00Z'), 'UTC');
+assert.equal(nextMorning?.slot.hour, 9);
+assert.equal(nextMorning?.slot.body, reminderBody(nextMorning!.sentKey));
+
+const distinctBodies = new Set(
+  ['2026-08-05:9', '2026-08-06:9', '2026-08-07:9', '2026-08-08:9', '2026-08-09:9'].map(reminderBody),
+);
+assert.equal(distinctBodies.size > 1, true, 'quote pool must rotate across days');
 
 // --- public/sw.js -------------------------------------------------------
 // Loaded into a stub `self` so the push and click handlers can be fired
@@ -123,9 +161,10 @@ async function firePush(data: unknown) {
   return shown[0];
 }
 
-const evening = await firePush({ hour: 23, body: REMINDER_SLOTS[4]!.body });
+const eveningBody = reminderBody('2026-08-05:23');
+const evening = await firePush({ hour: 23, body: eveningBody });
 assert.equal(evening?.title, 'Adjourn to Journ');
-assert.equal(evening?.options.body, REMINDER_SLOTS[4]!.body);
+assert.equal(evening?.options.body, eveningBody);
 assert.equal(evening?.options.tag, 'journs-reminder-23');
 assert.deepEqual(evening?.options.data, { url: '/' });
 

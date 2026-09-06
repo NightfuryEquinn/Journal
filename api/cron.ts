@@ -1,6 +1,6 @@
 import webpush from 'web-push';
 import type { VercelRequest, VercelResponse } from './_lib/vercel.js';
-import { dueSlot, REMINDER_SLOTS, sentKeyFor } from '../shared/push.js';
+import { dueSlot, REMINDER_HOURS, reminderSlot, sentKeyFor } from '../shared/push.js';
 import { settleAura } from '../shared/quests.js';
 import { pushSubsCol, questProgressCol } from './_lib/db.js';
 import { applyCors, bearerToken, handleOptions, safeEqual, sendError, sendJson } from './_lib/http.js';
@@ -56,7 +56,7 @@ async function runPush(now: Date, forcedHour: number) {
 
   webpush.setVapidDetails(subject, publicKey, privateKey);
 
-  const forced = REMINDER_SLOTS.find((s) => s.hour === forcedHour) ?? null;
+  const forced = REMINDER_HOURS.some((hour) => hour === forcedHour);
   const col = await pushSubsCol();
   const cursor = col.find({});
   let scanned = 0;
@@ -69,8 +69,8 @@ async function runPush(now: Date, forcedHour: number) {
     let due = dueSlot(now, doc.timeZone);
 
     if (forced) {
-      const sentKey = sentKeyFor(now, doc.timeZone, forced.hour);
-      due = sentKey ? { slot: forced, sentKey } : null;
+      const sentKey = sentKeyFor(now, doc.timeZone, forcedHour);
+      due = sentKey ? { slot: reminderSlot(forcedHour, sentKey), sentKey } : null;
     }
 
     if (!due || doc.lastSentKey === due.sentKey) {

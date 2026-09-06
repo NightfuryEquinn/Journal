@@ -4,12 +4,31 @@ export interface ReminderSlot {
   body: string;
 }
 
-export const REMINDER_SLOTS: ReminderSlot[] = [
-  { hour: 9, body: '"Either you run the day or the day runs you." — Jim Rohn' },
-  { hour: 12, body: '"An hour of planning can save you ten hours of doing." — Dale Carnegie' },
-  { hour: 17, body: '"In the middle of difficulty lies opportunity." — Albert Einstein' },
-  { hour: 20, body: '"Finish each day and be done with it." — Ralph Waldo Emerson' },
-  { hour: 23, body: '"Small disciplines repeated with consistency lead to great achievements." — John C. Maxwell' },
+/** A notification line in `"quote" — author` form. */
+export interface Quote {
+  text: string;
+  author: string;
+}
+
+export const REMINDER_HOURS = [9, 12, 17, 20, 23];
+
+export const QUOTES: Quote[] = [
+  { text: 'Either you run the day or the day runs you.', author: 'Jim Rohn' },
+  { text: 'An hour of planning can save you ten hours of doing.', author: 'Dale Carnegie' },
+  { text: 'In the middle of difficulty lies opportunity.', author: 'Albert Einstein' },
+  { text: 'Finish each day and be done with it.', author: 'Ralph Waldo Emerson' },
+  { text: 'Small disciplines repeated with consistency lead to great achievements.', author: 'John C. Maxwell' },
+  { text: 'Write it on your heart that every day is the best day in the year.', author: 'Ralph Waldo Emerson' },
+  { text: 'The secret of getting ahead is getting started.', author: 'Mark Twain' },
+  { text: 'Do what you can, with what you have, where you are.', author: 'Theodore Roosevelt' },
+  { text: 'The journey of a thousand miles begins with a single step.', author: 'Lao Tzu' },
+  { text: 'Well begun is half done.', author: 'Aristotle' },
+  { text: 'The best way out is always through.', author: 'Robert Frost' },
+  { text: 'A year from now you may wish you had started today.', author: 'Karen Lamb' },
+  { text: 'You will never change your life until you change something you do daily.', author: 'John C. Maxwell' },
+  { text: "Don't watch the clock; do what it does. Keep going.", author: 'Sam Levenson' },
+  { text: 'Action is the foundational key to all success.', author: 'Pablo Picasso' },
+  { text: 'Begin, be bold, and venture to be wise.', author: 'Horace' },
 ];
 
 /**
@@ -19,6 +38,38 @@ export const REMINDER_SLOTS: ReminderSlot[] = [
  * Asia/Kathmandu, Pacific/Chatham — fire at :00 local rather than :30 off.
  */
 export const WINDOW_MINUTES = 15;
+
+/** Format a quote as `"text" — author`. */
+export function formatQuote(quote: Quote): string {
+  return `"${quote.text}" — ${quote.author}`;
+}
+
+/** Stable 32-bit FNV-1a hash so the same seed always maps to the same quote. */
+function hashSeed(seed: string): number {
+  let hash = 2166136261;
+
+  for (let i = 0; i < seed.length; i++) {
+    hash ^= seed.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return hash >>> 0;
+}
+
+/** Pick a quote from the pool using a stable seed (typically the sentKey). */
+export function pickQuote(seed: string): Quote {
+  return QUOTES[hashSeed(seed) % QUOTES.length]!;
+}
+
+/** Notification body for a given dedup key. */
+export function reminderBody(sentKey: string): string {
+  return formatQuote(pickQuote(sentKey));
+}
+
+/** Hour plus the quote body seeded by the dedup key. */
+export function reminderSlot(hour: number, sentKey: string): ReminderSlot {
+  return { hour, body: reminderBody(sentKey) };
+}
 
 /** Local wall-clock parts for an IANA zone. Intl handles DST for us. */
 function localParts(now: Date, timeZone: string): { day: string; hour: number; minute: number } {
@@ -73,7 +124,13 @@ export function dueSlot(
     return null;
   }
 
-  const slot = REMINDER_SLOTS.find((s) => s.hour === local.hour);
+  const hour = REMINDER_HOURS.find((slotHour) => slotHour === local.hour);
 
-  return slot ? { slot, sentKey: `${local.day}:${slot.hour}` } : null;
+  if (hour === undefined) {
+    return null;
+  }
+
+  const sentKey = `${local.day}:${hour}`;
+
+  return { slot: reminderSlot(hour, sentKey), sentKey };
 }
