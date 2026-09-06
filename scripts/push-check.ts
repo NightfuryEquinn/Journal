@@ -78,10 +78,18 @@ assert.equal(
   '"Finish each day and be done with it." — Ralph Waldo Emerson',
 );
 assert.equal(QUOTES.length > REMINDER_HOURS.length, true, 'quote pool must outgrow the slot list');
+assert.equal(QUOTES.length, 46);
 
 for (const quote of QUOTES) {
+  assert.equal(quote.text.includes('"'), false, `quote text must not contain quotes: ${quote.text}`);
   assert.match(formatQuote(quote), /^".+" — .+$/);
 }
+
+assert.equal(
+  new Set(QUOTES.map((quote) => `${quote.text}\0${quote.author}`)).size,
+  QUOTES.length,
+  'quote pool must not contain duplicates',
+);
 
 assert.equal(pickQuote('2026-08-05:9'), pickQuote('2026-08-05:9'));
 assert.equal(reminderBody('2026-08-05:9'), formatQuote(pickQuote('2026-08-05:9')));
