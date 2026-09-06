@@ -13,7 +13,7 @@ import {
   type QuestDef,
 } from './quests';
 import { journalEntrySchema } from '../shared/schemas';
-import { REMINDER_SLOTS } from '../shared/push';
+import { REMINDER_HOURS } from '../shared/push';
 import {
   currentSubscription,
   disablePush,
@@ -253,7 +253,7 @@ function fmtSlotHour(hour: number) {
   return `${String(hour).padStart(2, '0')}:00`;
 }
 
-const NOTIFICATIONS_META = `${REMINDER_SLOTS.length} × LOCAL`;
+const NOTIFICATIONS_META = `${REMINDER_HOURS.length} × LOCAL`;
 
 /** Enable / disable local-time journal reminders on this device. */
 function NotificationsPanel({ token }: { token: string | null }) {
@@ -338,8 +338,8 @@ function NotificationsPanel({ token }: { token: string | null }) {
       <Panel title="NOTIFICATIONS" meta={NOTIFICATIONS_META}>
         <div className="flex flex-col gap-2.5">
           <div className="flex flex-wrap gap-x-3 gap-y-1 font-mono text-[10px] tracking-[0.12em] text-fg-mute">
-            {REMINDER_SLOTS.map((slot) => (
-              <span key={slot.hour}>{fmtSlotHour(slot.hour)}</span>
+            {REMINDER_HOURS.map((hour) => (
+              <span key={hour}>{fmtSlotHour(hour)}</span>
             ))}
           </div>
           {!pushConfigured() ? (
@@ -366,7 +366,7 @@ function NotificationsPanel({ token }: { token: string | null }) {
                 </Btn>
               </div>
               <p className="font-mono text-[10px] leading-[1.6] tracking-[0.04em] text-fg-mute">
-                // {REMINDER_SLOTS.length} nudges to write, on this device's local clock · no entry
+                // {REMINDER_HOURS.length} nudges to write, on this device's local clock · no entry
                 content ever leaves encrypted
               </p>
             </>

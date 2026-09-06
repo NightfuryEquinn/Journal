@@ -189,7 +189,7 @@ still reported. Do **not** enable Vercel Cron / `vercel.json` `crons`.
 
 ## Reminders (W3C Push API)
 
-Five nudges per day on the subscriber's **local** clock — 09:00, 12:00, 17:00, 20:00, 23:00 — defined in `shared/push.ts`. Opt in from **Profile → NOTIFICATIONS**; the button click is the user gesture `Notification.requestPermission()` requires.
+Five nudges per day on the subscriber's **local** clock — 09:00, 12:00, 17:00, 20:00, 23:00 — defined in `shared/push.ts`. Each notification body is a `"quote" — author` line picked from a rotating pool (seeded by local day + hour, so the same slot is stable for everyone that day). Opt in from **Profile → NOTIFICATIONS**; the button click is the user gesture `Notification.requestPermission()` requires.
 
 Delivery rides the single `/api/cron` job above, every 15 minutes. The 15-minute window is what makes `:30` and `:45` offset zones (Asia/Kolkata, Asia/Kathmandu, Pacific/Chatham) fire on the hour locally instead of half an hour late.
 
