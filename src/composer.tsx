@@ -1,17 +1,9 @@
 // composer.tsx — console-style writer
 import { useEffect, useRef, useState } from 'react';
 import type { JournalEntry } from './types';
-import {
-  SoundManager,
-  DecodeText,
-  Panel,
-  Btn,
-  Caret,
-  HudSelect,
-  fmtDate,
-  fmtTime,
-  pad,
-} from './hud';
+import { DecodeText, Panel, Btn, Caret, HudSelect } from './hud';
+import { SoundManager } from './sound';
+import { fmtDate, fmtTime, pad } from './format';
 
 const MOOD_OPTS = ['LOW', 'DIM', 'STEADY', 'GOOD', 'HIGH'];
 const ENERGY_OPTS = ['DRAINED', 'LOW', 'STEADY', 'CHARGED', 'PEAKED'];

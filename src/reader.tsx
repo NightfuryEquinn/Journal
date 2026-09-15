@@ -1,6 +1,7 @@
 // reader.tsx — read a single entry
 import type { JournalEntry } from './types';
-import { DecodeText, Panel, Btn, fmtDate, fmtTime, fmtJDay, pad } from './hud';
+import { DecodeText, Panel, Btn } from './hud';
+import { fmtDate, fmtTime, fmtJDay, pad } from './format';
 import { MoodBars } from './list';
 
 interface ReaderScreenProps {

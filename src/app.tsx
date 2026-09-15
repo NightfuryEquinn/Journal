@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { AppView, DeviceIdentity, JournalEntry, ListLayout, QuestProgress } from './types';
-import { SoundManager, DecodeText, Bracket, Panel, Btn, TopBar, Backdrop } from './hud';
+import { DecodeText, Bracket, Panel, Btn, TopBar, Backdrop } from './hud';
+import { SoundManager } from './sound';
 import {
   clearLegacyLocalData,
   loadIdentity,

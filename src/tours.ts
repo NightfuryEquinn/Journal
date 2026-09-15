@@ -1,6 +1,6 @@
 import Shepherd from 'shepherd.js';
 import 'shepherd.js/dist/css/shepherd.css';
-import { SoundManager } from './hud';
+import { SoundManager } from './sound';
 
 export const TOUR_KEY = 'journs.tour.v1';
 

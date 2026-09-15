@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent, type RefObject } from 'react';
-import { SoundManager, DecodeText, Bracket, Panel, Btn, Caret } from './hud';
+import { DecodeText, Bracket, Panel, Btn, Caret } from './hud';
+import { SoundManager } from './sound';
 import {
   generateRecoveryPhrase,
   loadIdentity,

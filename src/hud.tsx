@@ -8,86 +8,8 @@ import {
   type MouseEvent,
   type ReactNode,
 } from 'react';
-import { Howl, Howler } from 'howler';
-import onclickSrc from '../audio/onclick.wav?url';
-import ondeleteSrc from '../audio/ondelete.wav?url';
-import onhoverSrc from '../audio/onhover.wav?url';
-import onpageloadSrc from '../audio/onpageload.wav?url';
-import onshepherdSrc from '../audio/onshepherd.wav?url';
-import ontypeSrc from '../audio/ontype.wav?url';
-
-/** Howler-backed UI sound effects gated by the topbar audio toggle. */
-export const SoundManager = (() => {
-  let enabled = false;
-
-  Howler.mute(true);
-
-  /** Create a preloaded Howl for a WAV asset. */
-  const make = (src: string, volume = 0.55) =>
-    new Howl({
-      src: [src],
-      volume,
-      preload: true,
-    });
-
-  const clickSound = make(onclickSrc, 0.5);
-  const deleteSound = make(ondeleteSrc, 0.55);
-  const hoverSound = make(onhoverSrc, 0.3);
-  const pageLoadSound = make(onpageloadSrc, 0.6);
-  const shepherdSound = make(onshepherdSrc, 0.55);
-  const typeSound = make(ontypeSrc, 0.35);
-
-  /** Play a Howl when audio is enabled. */
-  const play = (sound: Howl) => {
-    if (!enabled) {
-      return;
-    }
-
-    sound.play();
-  };
-
-  return {
-    /** Enable or disable sound output. */
-    setEnabled(v: boolean) {
-      enabled = !!v;
-      Howler.mute(!enabled);
-    },
-    /** Whether sound is currently enabled. */
-    isEnabled: () => enabled,
-    /** Button / interactive hover. */
-    hover() {
-      play(hoverSound);
-    },
-    /** CTA / button click. */
-    click() {
-      play(clickSound);
-    },
-    /** Keyboard typing keydown. */
-    type() {
-      play(typeSound);
-    },
-    /** No-op confirm (no dedicated asset). */
-    confirm() {},
-    /** No-op deny (no dedicated asset). */
-    deny() {},
-    /** Screen / page transition stinger. */
-    pageLoad() {
-      play(pageLoadSound);
-    },
-    /** Alias for page-load stinger (login boot sequence). */
-    boot() {
-      play(pageLoadSound);
-    },
-    /** Delete-confirmation modal open. */
-    delete() {
-      play(deleteSound);
-    },
-    /** Shepherd tour modal open. */
-    shepherd() {
-      play(shepherdSound);
-    },
-  };
-})();
+import { SoundManager } from './sound';
+import { fmtStamp } from './format';
 
 /** Glitch-cycle text to a final string. */
 export function DecodeText({
@@ -276,37 +198,6 @@ function useClock() {
   }, []);
 
   return now;
-}
-
-/** Zero-pad a number to two digits. */
-export const pad = (n: number) => String(n).padStart(2, '0');
-
-/** Format time as HH:MM:SS. */
-export function fmtTime(d: Date) {
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-}
-
-/** Format date as DD MON YYYY. */
-export function fmtDate(d: Date) {
-  const m = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-  return `${pad(d.getDate())} ${m[d.getMonth()]} ${d.getFullYear()}`;
-}
-
-/** Format julian day of year. */
-export function fmtJDay(d: Date) {
-  const start = new Date(d.getFullYear(), 0, 0);
-  const diff = d.getTime() - start.getTime();
-  return String(Math.floor(diff / 86400000)).padStart(3, '0');
-}
-
-/** Format a log sequence number as a zero-padded 4-digit string. */
-export function fmtSeq(n: number) {
-  return String(n).padStart(4, '0');
-}
-
-/** Format as DDMMYYYY.HHmmss (24h). */
-export function fmtStamp(d: Date) {
-  return `${pad(d.getDate())}${pad(d.getMonth() + 1)}${d.getFullYear()}.${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
 }
 
 /** Music-note audio icon; draws a slash when muted. */

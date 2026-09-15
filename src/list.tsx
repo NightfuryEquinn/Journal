@@ -1,17 +1,9 @@
 // list.tsx — entry list with timeline / stack layouts
 import { useMemo, useState } from 'react';
 import type { JournalEntry, ListLayout } from './types';
-import {
-  SoundManager,
-  DecodeText,
-  Bracket,
-  Panel,
-  Btn,
-  fmtDate,
-  fmtTime,
-  fmtSeq,
-  pad,
-} from './hud';
+import { DecodeText, Bracket, Panel, Btn } from './hud';
+import { SoundManager } from './sound';
+import { fmtDate, fmtTime, fmtSeq, pad } from './format';
 import { maybeStartTour, resetTour } from './tours';
 
 interface MoodBarsProps {
