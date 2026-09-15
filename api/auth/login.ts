@@ -10,7 +10,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (req.method !== 'POST') {
-    sendError(res, 405, 'Method not allowed');
+    sendError(req, res, 405, 'Method not allowed');
 
     return;
   }
@@ -18,7 +18,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const parsed = loginBodySchema.safeParse(req.body);
 
   if (!parsed.success) {
-    sendError(res, 400, 'Invalid login body');
+    sendError(req, res, 400, 'Invalid login body');
 
     return;
   }
@@ -27,7 +27,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const user = await (await usersCol()).findOne({ accountId });
 
   if (!user || !safeEqual(user.authVerifier, authVerifier)) {
-    sendError(res, 401, 'Invalid credentials');
+    sendError(req, res, 401, 'Invalid credentials');
 
     return;
   }
@@ -35,12 +35,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   await touchActive(accountId);
   const token = await signSession(accountId);
 
-  sendJson(res, 200, {
+  sendJson(req, res, 200, {
     token,
     accountId: user.accountId,
     salt: user.salt,
     wrappedDekPass: user.wrappedDekPass,
     wrappedDekRecovery: user.wrappedDekRecovery,
     createdAt: user.createdAt.toISOString(),
+    // Tells the client to backfill dekVerifier via POST /api/auth/verifier —
+    // legacy accounts predate the recovery-takeover fix and lack one.
+    needsDekVerifier: !user.dekVerifier,
   });
 }

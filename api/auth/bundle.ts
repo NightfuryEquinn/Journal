@@ -13,7 +13,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (req.method !== 'GET') {
-    sendError(res, 405, 'Method not allowed');
+    sendError(req, res, 405, 'Method not allowed');
 
     return;
   }
@@ -22,7 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const parsed = hexString.safeParse(accountId);
 
   if (!parsed.success) {
-    sendError(res, 400, 'Invalid accountId');
+    sendError(req, res, 400, 'Invalid accountId');
 
     return;
   }
@@ -30,12 +30,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const user = await (await usersCol()).findOne({ accountId: parsed.data });
 
   if (!user) {
-    sendError(res, 404, 'Account not found');
+    sendError(req, res, 404, 'Account not found');
 
     return;
   }
 
-  sendJson(res, 200, {
+  sendJson(req, res, 200, {
     accountId: user.accountId,
     salt: user.salt,
     wrappedDekRecovery: user.wrappedDekRecovery,

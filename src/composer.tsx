@@ -44,9 +44,17 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
   const [savingState, setSavingState] = useState<SavingState>('idle');
   const titleRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
+  const saveTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
     titleRef.current?.focus();
+
+    // Cancel the pending save-animation chain if the composer unmounts (nav,
+    // delete, sign-out) before it finishes — otherwise onSave still fires on
+    // a dead screen and setSavingState warns/no-ops into the void.
+    return () => {
+      saveTimers.current.forEach(clearTimeout);
+    };
   }, []);
 
   const wc = body.trim() ? body.trim().split(/\s+/).length : 0;
@@ -81,13 +89,17 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
         .filter(Boolean),
     };
 
-    setTimeout(() => {
-      setSavingState('saved');
-      SoundManager.confirm();
+    saveTimers.current.push(
       setTimeout(() => {
-        void onSave(entry);
-      }, 400);
-    }, 700);
+        setSavingState('saved');
+        SoundManager.confirm();
+        saveTimers.current.push(
+          setTimeout(() => {
+            void onSave(entry);
+          }, 400),
+        );
+      }, 700),
+    );
   };
 
   return (

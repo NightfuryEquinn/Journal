@@ -3,7 +3,7 @@ import type { VercelRequest, VercelResponse } from './_lib/vercel.js';
 import { dueSlot, REMINDER_HOURS, reminderSlot, sentKeyFor } from '../shared/push.js';
 import { settleAura } from '../shared/quests.js';
 import { pushSubsCol, questProgressCol } from './_lib/db.js';
-import { applyCors, bearerToken, handleOptions, safeEqual, sendError, sendJson } from './_lib/http.js';
+import { bearerToken, handleOptions, safeEqual, sendError, sendJson } from './_lib/http.js';
 
 /** Settle daily/weekly quests for all users. */
 async function runSettle(now: Date) {
@@ -136,7 +136,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (req.method !== 'POST') {
-    sendError(res, 405, 'Method not allowed');
+    sendError(req, res, 405, 'Method not allowed');
 
     return;
   }
@@ -144,13 +144,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const secret = process.env.CRON_SECRET;
 
   if (!secret || secret.length < 16) {
-    sendError(res, 500, 'CRON_SECRET not configured');
+    sendError(req, res, 500, 'CRON_SECRET not configured');
 
     return;
   }
 
   if (!safeEqual(bearerToken(req), secret)) {
-    sendError(res, 401, 'Unauthorized');
+    sendError(req, res, 401, 'Unauthorized');
 
     return;
   }
@@ -163,8 +163,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const [settle, push] = await Promise.allSettled([runSettle(now), runPush(now, forcedHour)]);
   const body = { settle: outcome(settle), push: outcome(push) };
 
-  applyCors(res);
-  sendJson(res, body.settle.ok && body.push.ok ? 200 : 500, {
+  sendJson(req, res, body.settle.ok && body.push.ok ? 200 : 500, {
     ok: body.settle.ok && body.push.ok,
     ...body,
     at: now.toISOString(),

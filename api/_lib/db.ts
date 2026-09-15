@@ -16,6 +16,8 @@ export interface UserDoc {
   wrappedDekPass: string;
   wrappedDekRecovery: string;
   authVerifier: string;
+  /** Proof of DEK possession; absent on accounts created before this check existed. */
+  dekVerifier?: string;
   lastActiveAt: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -80,6 +82,7 @@ export async function getDb(): Promise<Db> {
   });
   await client.connect();
   const db = client.db(name);
+  await db.collection('push_subscriptions').createIndex({ endpoint: 1 }, { unique: true });
   globalThis._journsMongo = { client, db };
 
   return db;
@@ -100,8 +103,15 @@ export async function questProgressCol(): Promise<Collection<QuestProgressDoc>> 
   return (await getDb()).collection<QuestProgressDoc>('quest_progress');
 }
 
-/** push_subscriptions collection. */
-// ponytail: no unique index on endpoint — add one if subscription count grows.
+/**
+ * push_subscriptions collection. Keyed by `endpoint`, not `accountId`: the
+ * same browser install has one endpoint no matter which account is signed
+ * in, so scoping subscribe by accountId would strand a stale row and
+ * double-push whoever logs in next. Reassignment on re-subscribe is the
+ * accepted trade-off — payloads are generic quotes with no user content, so
+ * the ceiling is "another user's login silences my reminders," not a data
+ * leak. See api/push/subscription.ts.
+ */
 export async function pushSubsCol(): Promise<Collection<PushSubscriptionDoc>> {
   return (await getDb()).collection<PushSubscriptionDoc>('push_subscriptions');
 }

@@ -84,7 +84,8 @@ export default function App() {
     }
 
     pendingTour.current = false;
-    maybeStartTour({ force: true });
+
+    return maybeStartTour({ force: true });
   }, [view, loadingArchive]);
 
   /** After auth: pull ciphertext from Atlas, decrypt, load quests. */
@@ -280,7 +281,7 @@ export default function App() {
   const authed = Boolean(session);
 
   return (
-    <div className="fixed inset-0 grid grid-rows-[minmax(56px,auto)_1fr] bg-bg">
+    <div className="fixed inset-0 grid grid-rows-[minmax(56px,auto)_1fr] bg-bg pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)]">
       <Backdrop depth={THEME.depth} />
 
       <TopBar
@@ -350,7 +351,10 @@ export default function App() {
           className="fixed inset-0 z-1000 grid animate-fade place-items-center bg-black/70 backdrop-blur-xs"
           onClick={() => setConfirmDel(null)}
         >
-          <div className="w-[min(440px,90vw)]" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="max-h-[90dvh] w-[min(440px,90vw)] overflow-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <Bracket>
               <Panel title="CONFIRM PURGE" meta="DESTRUCTIVE OPERATION">
                 <div className="mb-3.5 text-[13px] leading-[1.6]">

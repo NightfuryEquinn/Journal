@@ -9,7 +9,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (req.method !== 'DELETE') {
-    sendError(res, 405, 'Method not allowed');
+    sendError(req, res, 405, 'Method not allowed');
 
     return;
   }
@@ -17,7 +17,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const accountId = await verifySession(req);
 
   if (!accountId) {
-    sendError(res, 401, 'Unauthorized');
+    sendError(req, res, 401, 'Unauthorized');
 
     return;
   }
@@ -25,7 +25,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const id = typeof req.query.id === 'string' ? req.query.id : '';
 
   if (!id) {
-    sendError(res, 400, 'Missing entry id');
+    sendError(req, res, 400, 'Missing entry id');
 
     return;
   }
@@ -33,11 +33,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const result = await (await entriesCol()).deleteOne({ accountId, entryId: id });
 
   if (result.deletedCount === 0) {
-    sendError(res, 404, 'Entry not found');
+    sendError(req, res, 404, 'Entry not found');
 
     return;
   }
 
   await touchActive(accountId);
-  sendJson(res, 200, { ok: true });
+  sendJson(req, res, 200, { ok: true });
 }

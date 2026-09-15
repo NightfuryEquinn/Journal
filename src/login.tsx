@@ -62,12 +62,14 @@ async function writeClipboard(text: string): Promise<boolean> {
 /**
  * Fingerprint of the stored identity. Register and recover both persist before
  * the archive sync runs, so comparing this across a failed submit tells us the
- * account exists on this device now — retrying create would only 409.
+ * account exists on this device now — retrying create would only 409. Salt is
+ * rotated fresh on every register/recover, so it's as good a fingerprint as
+ * the authVerifier this used to be (which is no longer cached client-side).
  */
 function identityStamp(): string | null {
   const id = loadIdentity();
 
-  return id ? `${id.accountId}:${id.authVerifier}` : null;
+  return id ? `${id.accountId}:${id.salt}` : null;
 }
 
 /** Pick `count` distinct word indices (1-based display uses +1) from a 12-word phrase. */
@@ -275,8 +277,8 @@ export function LoginScreen({
       return;
     }
 
-    if (pwd.trim().length < 4) {
-      deny('// passphrase must be ≥ 4 chars');
+    if (pwd.trim().length < 8) {
+      deny('// passphrase must be ≥ 8 chars');
 
       return;
     }
@@ -351,8 +353,8 @@ export function LoginScreen({
       return;
     }
 
-    if (pwd.trim().length < 4) {
-      deny('// passphrase must be ≥ 4 chars');
+    if (pwd.trim().length < 8) {
+      deny('// passphrase must be ≥ 8 chars');
 
       return;
     }
@@ -722,7 +724,7 @@ export function LoginScreen({
                         </span>
                         <input
                           type="text"
-                          className="min-w-0 flex-1 bg-transparent font-mono text-[12px] text-accent max-tablet:min-h-9"
+                          className="min-w-0 flex-1 bg-transparent font-mono text-[12px] text-accent max-tablet:min-h-11"
                           value={w}
                           onChange={(e) => {
                             const next = [...recoverWords];

@@ -11,7 +11,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (req.method !== 'POST') {
-    sendError(res, 405, 'Method not allowed');
+    sendError(req, res, 405, 'Method not allowed');
 
     return;
   }
@@ -19,7 +19,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const parsed = registerBodySchema.safeParse(req.body);
 
   if (!parsed.success) {
-    sendError(res, 400, 'Invalid register body');
+    sendError(req, res, 400, 'Invalid register body');
 
     return;
   }
@@ -29,7 +29,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const existing = await users.findOne({ accountId: body.accountId });
 
   if (existing) {
-    sendError(res, 409, 'Account already exists');
+    sendError(req, res, 409, 'Account already exists');
 
     return;
   }
@@ -42,6 +42,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     wrappedDekPass: body.wrappedDekPass,
     wrappedDekRecovery: body.wrappedDekRecovery,
     authVerifier: body.authVerifier,
+    dekVerifier: body.dekVerifier,
     lastActiveAt: now,
     createdAt: now,
     updatedAt: now,
@@ -56,7 +57,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const token = await signSession(body.accountId);
 
-  sendJson(res, 201, {
+  sendJson(req, res, 201, {
     token,
     accountId: body.accountId,
     salt: body.salt,

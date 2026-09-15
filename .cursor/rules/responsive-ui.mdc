@@ -19,7 +19,7 @@ Before finishing UI work, verify (or adjust CSS for) roughly:
 | Tablet / large phone | ≤860px | Sidebar → stacked panels; tap targets ≥44px |
 | Phone | ≤560px | Single column; readable type; no horizontal scroll |
 
-Match existing breakpoints in `src/styles.css` (`980px`, `860px`, `560px`) unless a new query is clearly needed.
+Prefer the `@theme` breakpoint variants over new `@media` queries: `phone:`/`max-phone:` (560px), `tablet:`/`max-tablet:` (860px), `laptop:`/`max-laptop:` (980px), `desktop:`/`max-desktop:` (1200px) — declared in `src/styles.css` and used throughout `src/*.tsx`. These are Tailwind min-width breakpoints, not max-width media queries; use the `max-*` prefix for a max-width match. Two hand-written `@media (max-width: …)` blocks also exist in `styles.css` (860px, 560px) for density-token step-down — extend those only for tokens, not component layout.
 
 ## Patterns
 

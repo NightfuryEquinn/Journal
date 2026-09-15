@@ -188,7 +188,7 @@ export function ListScreen({
       >
         <aside className="min-w-0">
           <Panel title="ARCHIVE" meta={loading ? 'syncing…' : `${entries.length} entries`}>
-            <div className="grid grid-cols-2 gap-row">
+            <div className="grid grid-cols-1 gap-row phone:grid-cols-2">
               {(
                 [
                   ['TOTAL', entries.length.toString().padStart(4, '0'), false],
@@ -219,7 +219,7 @@ export function ListScreen({
                 >
                   <span className="font-mono text-[9px] tracking-[0.18em] text-fg-mute">{lbl}</span>
                   <span
-                    className={`font-mono text-lg tracking-[0.02em] ${accent ? 'text-accent' : ''}`}
+                    className={`truncate font-mono text-sm tracking-[0.02em] phone:text-lg ${accent ? 'text-accent' : ''}`}
                   >
                     {val}
                   </span>

@@ -19,6 +19,8 @@ export interface AuthResponse {
   wrappedDekPass: string;
   wrappedDekRecovery: string;
   createdAt?: string;
+  /** Login only: true if this account predates dekVerifier and should backfill it. */
+  needsDekVerifier?: boolean;
 }
 
 /** Recovery bundle (no auth) for mnemonic unlock. */
@@ -73,6 +75,7 @@ export function apiRegister(body: {
   wrappedDekPass: string;
   wrappedDekRecovery: string;
   authVerifier: string;
+  dekVerifier: string;
 }): Promise<AuthResponse> {
   return apiFetch<AuthResponse>('/api/auth/register', {
     method: 'POST',
@@ -98,10 +101,20 @@ export function apiRecover(body: {
   wrappedDekPass: string;
   wrappedDekRecovery: string;
   authVerifier: string;
+  dekVerifier: string;
 }): Promise<AuthResponse> {
   return apiFetch<AuthResponse>('/api/auth/recover', {
     method: 'POST',
     body: JSON.stringify(body),
+  });
+}
+
+/** Backfill dekVerifier on a legacy account (JWT-authed, no-op if already set). */
+export function apiSetDekVerifier(token: string, dekVerifier: string): Promise<{ ok: boolean }> {
+  return apiFetch('/api/auth/verifier', {
+    method: 'POST',
+    token,
+    body: JSON.stringify({ dekVerifier }),
   });
 }
 

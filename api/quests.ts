@@ -13,7 +13,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const accountId = await verifySession(req);
 
   if (!accountId) {
-    sendError(res, 401, 'Unauthorized');
+    sendError(req, res, 401, 'Unauthorized');
 
     return;
   }
@@ -24,7 +24,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const doc = await col.findOne({ accountId });
 
     if (!doc) {
-      sendError(res, 404, 'Progress not found');
+      sendError(req, res, 404, 'Progress not found');
 
       return;
     }
@@ -50,7 +50,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     await touchActive(accountId);
-    sendJson(res, 200, { progress: settled });
+    sendJson(req, res, 200, { progress: settled });
 
     return;
   }
@@ -59,7 +59,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const parsed = questProgressSchema.safeParse(req.body?.progress ?? req.body);
 
     if (!parsed.success) {
-      sendError(res, 400, 'Invalid progress body');
+      sendError(req, res, 400, 'Invalid progress body');
 
       return;
     }
@@ -80,10 +80,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     );
 
     await touchActive(accountId);
-    sendJson(res, 200, { progress });
+    sendJson(req, res, 200, { progress });
 
     return;
   }
 
-  sendError(res, 405, 'Method not allowed');
+  sendError(req, res, 405, 'Method not allowed');
 }

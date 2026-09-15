@@ -3,6 +3,7 @@ import {
   createAccountSecrets,
   deriveAccountId,
   deriveAuthVerifier,
+  deriveDekVerifier,
   derivePassKek,
   deriveRecoveryKek,
   mnemonicSeed,
@@ -18,6 +19,7 @@ import {
   apiLogin,
   apiRecover,
   apiRegister,
+  apiSetDekVerifier,
   type AuthResponse,
 } from './api';
 
@@ -85,18 +87,13 @@ export async function requestPersistentStorage(): Promise<boolean> {
   }
 }
 
-/** Build DeviceIdentity from auth response + local verifier cache. */
-function identityFromAuth(
-  auth: AuthResponse,
-  authVerifier: string,
-  createdAt?: string,
-): DeviceIdentity {
+/** Build DeviceIdentity from an auth response. */
+function identityFromAuth(auth: AuthResponse, createdAt?: string): DeviceIdentity {
   return {
     accountId: auth.accountId,
     operatorId: operatorCallsign(auth.accountId),
     salt: auth.salt,
     wrappedDekPass: auth.wrappedDekPass,
-    authVerifier,
     createdAt: createdAt ?? auth.createdAt ?? new Date().toISOString(),
   };
 }
@@ -119,8 +116,9 @@ export async function registerAccount(
     wrappedDekPass: secrets.wrappedDekPass,
     wrappedDekRecovery: secrets.wrappedDekRecovery,
     authVerifier: secrets.authVerifier,
+    dekVerifier: secrets.dekVerifier,
   });
-  const identity = identityFromAuth(auth, secrets.authVerifier);
+  const identity = identityFromAuth(auth);
   saveIdentity(identity);
 
   return { token: auth.token, dek: secrets.dek, identity };
@@ -140,12 +138,6 @@ async function unlockWithSalt(
 ): Promise<AuthSession> {
   const passKek = await derivePassKek(passphrase, salt);
   const authVerifier = await deriveAuthVerifier(passKek);
-
-  // Cheap local reject for a typo, but only against the verifier this salt
-  // produced — a cached verifier means nothing once the salt has rotated.
-  if (salt === identity.salt && identity.authVerifier && authVerifier !== identity.authVerifier) {
-    throw new SaltMismatchError();
-  }
 
   let auth: AuthResponse;
 
@@ -167,7 +159,18 @@ async function unlockWithSalt(
     throw new SaltMismatchError();
   }
 
-  const next = identityFromAuth(auth, authVerifier, identity.createdAt);
+  if (auth.needsDekVerifier) {
+    // Legacy account predating the recovery-takeover fix — backfill now that
+    // a passphrase login just proved DEK possession. Best-effort: a failure
+    // here just means recover.ts asks again next time, not a broken login.
+    try {
+      await apiSetDekVerifier(auth.token, await deriveDekVerifier(dek));
+    } catch {
+      // Ignored — see comment above.
+    }
+  }
+
+  const next = identityFromAuth(auth, identity.createdAt);
   saveIdentity(next);
 
   return { token: auth.token, dek, identity: next };
@@ -240,8 +243,9 @@ export async function recoverAccount(
     wrappedDekPass: secrets.wrappedDekPass,
     wrappedDekRecovery: secrets.wrappedDekRecovery,
     authVerifier: secrets.authVerifier,
+    dekVerifier: secrets.dekVerifier,
   });
-  const identity = identityFromAuth(auth, secrets.authVerifier, bundle.createdAt);
+  const identity = identityFromAuth(auth, bundle.createdAt);
   saveIdentity(identity);
 
   return { token: auth.token, dek: secrets.dek, identity };

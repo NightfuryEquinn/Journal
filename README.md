@@ -16,13 +16,14 @@ React 19 + TypeScript + Vite SPA, Vercel serverless API, MongoDB Atlas. Auth is 
 | Scheduler | [cron-job.org](https://cron-job.org) → `/api/cron` (not Vercel Cron) |
 | Reminders | W3C Push API (VAPID + `web-push`), `public/sw.js`, installable via `public/manifest.webmanifest` |
 | Audio | Howler.js + WAVs in `audio/` |
+| Analytics | [`@vercel/analytics`](https://vercel.com/docs/analytics) (page views only — mounted in `src/main.tsx`, no journal content ever reaches it) |
 
 ## Repository map
 
 ```
 ├── audio/                 # UI SFX (click, hover, type, page load, delete, shepherd)
 ├── api/
-│   ├── auth/              # register, login, bundle, recover
+│   ├── auth/              # register, login, bundle, recover, verifier
 │   ├── entries/           # ciphertext CRUD
 │   ├── quests.ts          # AURA / quest progress
 │   ├── push/              # push subscription register / drop
@@ -46,7 +47,7 @@ React 19 + TypeScript + Vite SPA, Vercel serverless API, MongoDB Atlas. Auth is 
 | Profile | `profile.tsx` | Operator, AURA, quests, import/export, transparency link |
 | Transparency | `transparency.tsx` | Data-flow diagram + schema documentation |
 
-Supporting modules: `app.tsx` (session + routing), `crypto.ts` / `identity.ts`, `api.ts`, `hud.tsx` (SoundManager, TopBar, Panel/Btn), `tours.ts` (Shepherd).
+Supporting modules: `app.tsx` (session + routing), `crypto.ts` / `identity.ts`, `api.ts`, `hud.tsx` (SoundManager, TopBar, Panel/Btn), `tours.ts` (Shepherd), `push.ts` (Web Push subscribe/sync), `quests.ts` (re-exports `shared/quests.ts` for the UI).
 
 ## Setup
 
@@ -83,6 +84,7 @@ Deployed builds call same-origin `/api/*` on Vercel.
 | `MONGODB_DB` | server / scripts | Database name (default `journs`) |
 | `JWT_SECRET` | server | Session signing (≥16 chars) |
 | `CRON_SECRET` | server | Bearer token for `/api/cron` (≥16 chars) |
+| `ALLOWED_ORIGINS` | server (optional) | Comma-separated origins echoed in CORS; empty = `http://localhost:5173` only |
 | `VAPID_PUBLIC_KEY` | server | Web Push application server key |
 | `VAPID_PRIVATE_KEY` | server | Web Push signing key |
 | `VAPID_SUBJECT` | server | `mailto:` or `https://` contact for push services |
@@ -91,12 +93,12 @@ Deployed builds call same-origin `/api/*` on Vercel.
 
 ## Auth & E2EE
 
-1. **Create** — 12-word recovery phrase (shown once) + passphrase
-2. **Derive** — `accountId` from mnemonic seed; random **DEK**; wrap DEK under passphrase KEK (PBKDF2) and recovery KEK (HKDF)
-3. **Register** — upload `accountId`, `salt`, both wraps, `authVerifier` (never the DEK, mnemonic, or passphrase)
+1. **Create** — 12-word recovery phrase (shown once) + passphrase (≥8 chars)
+2. **Derive** — `accountId` from mnemonic seed; random **DEK**; wrap DEK under passphrase KEK (PBKDF2) and recovery KEK (HKDF); `dekVerifier` = SHA-256(HKDF(DEK)) proves DEK possession without exposing it
+3. **Register** — upload `accountId`, `salt`, both wraps, `authVerifier`, `dekVerifier` (never the DEK, mnemonic, or passphrase)
 4. **Journal** — AES-GCM encrypt `JournalEntry` JSON on-device; Mongo stores `ciphertext` + `nonce` only
-5. **Unlock** — passphrase → verifier → JWT + unwrap DEK into session memory
-6. **Recover** — mnemonic unwraps DEK via `GET /api/auth/bundle`, then `POST /api/auth/recover` rotates passphrase wraps
+5. **Unlock** — passphrase → verifier → JWT + unwrap DEK into session memory. If the account predates `dekVerifier`, the client backfills it via `POST /api/auth/verifier` (JWT-authed, no-op once set)
+6. **Recover** — mnemonic unwraps DEK via `GET /api/auth/bundle`, then `POST /api/auth/recover` proves possession with `dekVerifier` before rotating passphrase wraps — without this check, anyone who learned an `accountId` could overwrite a stranger's wraps and lock them out for good
 
 Quest / AURA progress is **plaintext on the server** so day/week rollover can run without the DEK.
 
@@ -108,10 +110,10 @@ In-app detail: **Profile → TRANSPARENCY** (Mermaid diagram + every schema).
 |--------|----------|------------|
 | `JournalEntry` | `shared/schemas.ts` | Client memory + local export only |
 | Encrypted entry | `api/_lib/schemas.ts` | Wire + Mongo `entries` |
-| `UserDoc` | `api/_lib/db.ts` | Mongo `users` (wraps + verifier) |
+| `UserDoc` | `api/_lib/db.ts` | Mongo `users` (wraps + `authVerifier` + `dekVerifier`) |
 | `QuestProgress` | `shared/schemas.ts` | Wire + Mongo `quest_progress` |
 | Register / login / recover bodies | `api/_lib/schemas.ts` | Auth HTTP |
-| Device identity | `src/identity.ts` | `localStorage` `journs.identity.v1` (no DEK) |
+| Device identity | `src/identity.ts` | `localStorage` `journs.identity.v1` (no DEK, passphrase, or verifier) |
 
 **`JournalEntry` fields:** `id`, `date`, `title`, `mood` (1–5), `energy` (1–5), `weather`, `tags[]`, `body`.
 
@@ -215,7 +217,8 @@ bun run check:quests # quest satisfaction + settleAura
 | `POST /api/auth/register` | — | Create account + empty quest progress |
 | `POST /api/auth/login` | — | Verifier → JWT + wrapped DEKs |
 | `GET /api/auth/bundle` | — | Recovery wrap by `accountId` |
-| `POST /api/auth/recover` | — | Rotate passphrase wraps |
+| `POST /api/auth/recover` | `dekVerifier` | Rotate passphrase wraps — 401 on mismatch, 409 if the account predates `dekVerifier` |
+| `POST /api/auth/verifier` | JWT | Backfill `dekVerifier` on a legacy account (no-op if already set) |
 | `GET/PUT /api/entries` | JWT | List / upsert ciphertext |
 | `DELETE /api/entries/:id` | JWT | Delete one entry |
 | `GET/PUT /api/quests` | JWT | Fetch / save quest progress |
@@ -224,6 +227,8 @@ bun run check:quests # quest satisfaction + settleAura
 | `POST /api/cron` | `CRON_SECRET` | Settle all users + send due reminders |
 
 JWT: HS256, claim `{ accountId }`, 12h expiry. Errors: `{ error: string }`.
+
+CORS is origin-allowlisted (`ALLOWED_ORIGINS`), not wildcard — see Environment above.
 
 ## Mongo maintenance
 
@@ -248,5 +253,10 @@ Scripts preload a Bun v8 polyfill so the MongoDB `bson` package can load. Inacti
 | `bun run preview` | Preview production build |
 | `bun run check:push` | Reminder scheduling + service worker logic |
 | `bun run check:quests` | Quest satisfaction, max streak, sinceDay settle |
+| `bun run check:auth` | `dekVerifier` derivation + recover-auth branching, CORS allowlist |
 | `bun run db:drop-all` | Drop all collections |
 | `bun run db:purge-stale` | Purge inactive users |
+
+## License
+
+[Business Source License 1.1](LICENSE) — source-available, not open source. Converts to Apache 2.0 on the Change Date (2029-07-20). See the file for the non-compete terms of the Additional Use Grant.

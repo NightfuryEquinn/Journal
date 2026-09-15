@@ -1,7 +1,7 @@
 {
   "name": "journs",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "check:push": "bun ./scripts/push-check.ts",
     "check:quests": "bun ./scripts/quest-check.ts",
+    "check:auth": "bun ./scripts/auth-check.ts",
     "db:drop-all": "bun --preload ./scripts/bun-v8-patch.ts ./scripts/drop-all.ts",
     "db:purge-stale": "bun --preload ./scripts/bun-v8-patch.ts ./scripts/purge-stale-users.ts"
   },

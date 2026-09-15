@@ -12,6 +12,7 @@ export const registerBodySchema = z.object({
   wrappedDekPass: hexString,
   wrappedDekRecovery: hexString,
   authVerifier: hexString,
+  dekVerifier: hexString,
 });
 
 export const loginBodySchema = z.object({
@@ -25,6 +26,11 @@ export const recoverBodySchema = z.object({
   wrappedDekPass: hexString,
   wrappedDekRecovery: hexString,
   authVerifier: hexString,
+  dekVerifier: hexString,
+});
+
+export const setDekVerifierBodySchema = z.object({
+  dekVerifier: hexString,
 });
 
 export const encryptedEntrySchema = z.object({

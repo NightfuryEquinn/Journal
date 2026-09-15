@@ -51,16 +51,32 @@ export async function verifySession(req: VercelRequest): Promise<string | null> 
   }
 }
 
-/** Apply CORS headers for browser clients. */
-export function applyCors(res: VercelResponse): void {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+/** Origins allowed to call the API cross-site; defaults to local dev only. */
+function allowedOrigins(): string[] {
+  const raw = process.env.ALLOWED_ORIGINS;
+
+  return raw
+    ? raw.split(',').map((o) => o.trim()).filter(Boolean)
+    : ['http://localhost:5173'];
+}
+
+/** Apply CORS headers, echoing the request Origin only when allowlisted. */
+export function applyCors(req: VercelRequest, res: VercelResponse): void {
+  const raw = req.headers.origin;
+  const origin = Array.isArray(raw) ? raw[0] : raw;
+
+  if (origin && allowedOrigins().includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+  }
+
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 }
 
 /** Handle OPTIONS preflight; returns true if handled. */
 export function handleOptions(req: VercelRequest, res: VercelResponse): boolean {
-  applyCors(res);
+  applyCors(req, res);
 
   if (req.method === 'OPTIONS') {
     res.status(204).end();
@@ -72,14 +88,14 @@ export function handleOptions(req: VercelRequest, res: VercelResponse): boolean 
 }
 
 /** JSON error helper. */
-export function sendError(res: VercelResponse, status: number, message: string): void {
-  applyCors(res);
+export function sendError(req: VercelRequest, res: VercelResponse, status: number, message: string): void {
+  applyCors(req, res);
   res.status(status).json({ error: message });
 }
 
 /** JSON success helper. */
-export function sendJson(res: VercelResponse, status: number, body: unknown): void {
-  applyCors(res);
+export function sendJson(req: VercelRequest, res: VercelResponse, status: number, body: unknown): void {
+  applyCors(req, res);
   res.status(status).json(body);
 }
 
@@ -96,4 +112,22 @@ export function safeEqual(a: string, b: string): boolean {
   }
 
   return out === 0;
+}
+
+export type RecoverAuthResult = 'ok' | 'legacy' | 'mismatch';
+
+/**
+ * Decide whether a recover request may proceed. Pulled out of api/auth/recover.ts
+ * so this security-critical branch is unit-testable without a live Mongo — see
+ * scripts/auth-check.ts.
+ */
+export function checkRecoverAuth(
+  storedDekVerifier: string | undefined,
+  providedDekVerifier: string,
+): RecoverAuthResult {
+  if (!storedDekVerifier) {
+    return 'legacy';
+  }
+
+  return safeEqual(storedDekVerifier, providedDekVerifier) ? 'ok' : 'mismatch';
 }

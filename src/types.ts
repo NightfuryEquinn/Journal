@@ -11,12 +11,11 @@ export type AppView =
   | { name: 'profile' }
   | { name: 'transparency' };
 
-/** Persisted device identity (localStorage; no DEK / passphrase). */
+/** Persisted device identity (localStorage; no DEK, passphrase, or authVerifier). */
 export interface DeviceIdentity {
   accountId: string;
   operatorId: string;
   salt: string;
   wrappedDekPass: string;
-  authVerifier: string;
   createdAt: string;
 }

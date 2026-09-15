@@ -150,6 +150,7 @@ const USER_DOC_FIELDS: SchemaField[] = [
   { name: 'wrappedDekPass', type: 'hex', note: 'nonce||cipher DEK under passphrase KEK.' },
   { name: 'wrappedDekRecovery', type: 'hex', note: 'nonce||cipher DEK under recovery KEK (from mnemonic).' },
   { name: 'authVerifier', type: 'hex', note: 'SHA-256(HKDF(passKek, journs-auth)). Login proof without sending the passphrase.' },
+  { name: 'dekVerifier', type: 'hex, optional', note: 'SHA-256(HKDF(DEK, journs-dek-auth)). Recover checks this before rotating wraps; absent on accounts predating the check.' },
   { name: 'lastActiveAt', type: 'Date', note: 'Updated on login and authenticated writes. Used by purge-stale.' },
   { name: 'createdAt', type: 'Date', note: 'Account creation time.' },
   { name: 'updatedAt', type: 'Date', note: 'Last user-doc mutation.' },
@@ -222,7 +223,7 @@ export function TransparencyScreen({ onBack }: { onBack: () => void }) {
             <div
               ref={hostRef}
               data-tour="tour-diagram"
-              className="overflow-x-auto border border-line bg-black/30 p-3 font-mono text-[11px] [&_svg]:mx-auto [&_svg]:max-w-full"
+              className="overflow-x-auto border border-line bg-black/30 p-3 font-mono text-[11px] [&_svg]:mx-auto [&_svg]:max-w-full max-tablet:[&_svg]:max-w-none"
             />
           </Panel>
         </Bracket>
@@ -250,17 +251,29 @@ export function TransparencyScreen({ onBack }: { onBack: () => void }) {
             <Body>
               Vercel serverless routes under <Code>/api/*</Code> authenticate with a 12-hour HS256
               JWT (<Code>{'{ accountId }'}</Code>). MongoDB Atlas holds three collections:{' '}
-              <Code>users</Code> (wraps + verifier), <Code>entries</Code> (ciphertext only), and{' '}
+              <Code>users</Code> (wraps + verifiers), <Code>entries</Code> (ciphertext only), and{' '}
               <Code>quest_progress</Code> (readable AURA / quest state). Settlement is triggered by
               cron-job.org posting to <Code>/api/cron</Code> with{' '}
-              <Code>Authorization: Bearer CRON_SECRET</Code> — not Vercel Cron.
+              <Code>Authorization: Bearer CRON_SECRET</Code> — not Vercel Cron. CORS is
+              origin-allowlisted, not wildcard.
+            </Body>
+
+            <Heading>Recovery is not free</Heading>
+            <Body>
+              <Code>POST /api/auth/recover</Code> requires <Code>dekVerifier</Code> — proof the
+              caller already unwrapped this account's DEK via passphrase or mnemonic — before it
+              will rotate any wraps. Without that check, anyone who learned an{' '}
+              <Code>accountId</Code> could overwrite a stranger's wraps and lock them out
+              permanently. Accounts created before this check existed backfill{' '}
+              <Code>dekVerifier</Code> automatically on their next passphrase unlock.
             </Body>
 
             <Heading>Local-only surfaces</Heading>
             <Body>
               Profile export writes decrypted JSON on your machine. Import merges by entry{' '}
               <Code>id</Code>, re-encrypts, and syncs. Device identity is cached in{' '}
-              <Code>localStorage</Code> key <Code>journs.identity.v1</Code> without the DEK.
+              <Code>localStorage</Code> key <Code>journs.identity.v1</Code> — no DEK, passphrase,
+              or verifier, so reading it alone grants nothing.
               Audio preference uses <Code>journs.sound</Code>; the Shepherd tour flag is{' '}
               <Code>journs.tour.v1</Code>.
             </Body>

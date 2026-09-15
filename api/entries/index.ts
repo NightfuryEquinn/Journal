@@ -12,7 +12,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const accountId = await verifySession(req);
 
   if (!accountId) {
-    sendError(res, 401, 'Unauthorized');
+    sendError(req, res, 401, 'Unauthorized');
 
     return;
   }
@@ -25,7 +25,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     await touchActive(accountId);
 
-    sendJson(res, 200, {
+    sendJson(req, res, 200, {
       entries: docs.map((d) => ({
         entryId: d.entryId,
         ciphertext: d.ciphertext,
@@ -42,7 +42,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const parsed = putEntriesBodySchema.safeParse(req.body);
 
     if (!parsed.success) {
-      sendError(res, 400, 'Invalid entries body');
+      sendError(req, res, 400, 'Invalid entries body');
 
       return;
     }
@@ -71,10 +71,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     await touchActive(accountId);
-    sendJson(res, 200, { ok: true, count: ops.length });
+    sendJson(req, res, 200, { ok: true, count: ops.length });
 
     return;
   }
 
-  sendError(res, 405, 'Method not allowed');
+  sendError(req, res, 405, 'Method not allowed');
 }

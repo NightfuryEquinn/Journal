@@ -12,7 +12,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const accountId = await verifySession(req);
 
   if (!accountId) {
-    sendError(res, 401, 'Unauthorized');
+    sendError(req, res, 401, 'Unauthorized');
 
     return;
   }
@@ -23,7 +23,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const parsed = pushSubscribeBodySchema.safeParse(req.body);
 
     if (!parsed.success) {
-      sendError(res, 400, 'Invalid subscription body');
+      sendError(req, res, 400, 'Invalid subscription body');
 
       return;
     }
@@ -49,7 +49,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     );
 
     await touchActive(accountId);
-    sendJson(res, 200, { ok: true });
+    sendJson(req, res, 200, { ok: true });
 
     return;
   }
@@ -61,7 +61,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     if (!parsed.success) {
-      sendError(res, 400, 'Invalid endpoint');
+      sendError(req, res, 400, 'Invalid endpoint');
 
       return;
     }
@@ -72,10 +72,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       accountId,
     });
 
-    sendJson(res, 200, { ok: true, deleted: deletedCount });
+    sendJson(req, res, 200, { ok: true, deleted: deletedCount });
 
     return;
   }
 
-  sendError(res, 405, 'Method not allowed');
+  sendError(req, res, 405, 'Method not allowed');
 }

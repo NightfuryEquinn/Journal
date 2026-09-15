@@ -165,6 +165,18 @@ export async function deriveAuthVerifier(passKek: Uint8Array): Promise<string> {
 }
 
 /**
+ * Server DEK-possession verifier. Both login (passphrase → unwrap) and
+ * recovery (mnemonic → unwrap) end with the DEK in hand, so this is the
+ * proof recover checks instead of trusting an unauthenticated accountId.
+ * One-way — storing it on the server reveals nothing about the DEK.
+ */
+export async function deriveDekVerifier(dek: Uint8Array): Promise<string> {
+  const authKey = await hkdf(dek, 'journs-dek-auth');
+
+  return sha256Hex(authKey);
+}
+
+/**
  * AES-GCM wrap: returns hex(nonce || ciphertext||tag).
  * Stored as wrappedDek* fields (nonce prepended, 12 bytes).
  */
@@ -241,6 +253,7 @@ export interface AccountSecrets {
   wrappedDekPass: string;
   wrappedDekRecovery: string;
   authVerifier: string;
+  dekVerifier: string;
 }
 
 /** Build secrets for a new account from mnemonic + passphrase. */
@@ -248,8 +261,8 @@ export async function createAccountSecrets(
   words: string[],
   passphrase: string,
 ): Promise<AccountSecrets> {
-  if (passphrase.trim().length < 4) {
-    throw new Error('Passphrase must be at least 4 characters.');
+  if (passphrase.trim().length < 8) {
+    throw new Error('Passphrase must be at least 8 characters.');
   }
 
   const seed = await mnemonicSeed(words);
@@ -261,6 +274,7 @@ export async function createAccountSecrets(
   const wrappedDekPass = await wrapKey(passKek, dek);
   const wrappedDekRecovery = await wrapKey(recoveryKek, dek);
   const authVerifier = await deriveAuthVerifier(passKek);
+  const dekVerifier = await deriveDekVerifier(dek);
 
   return {
     accountId,
@@ -271,6 +285,7 @@ export async function createAccountSecrets(
     wrappedDekPass,
     wrappedDekRecovery,
     authVerifier,
+    dekVerifier,
   };
 }
 
@@ -280,8 +295,8 @@ export async function rotatePassphraseSecrets(
   passphrase: string,
   dek: Uint8Array,
 ): Promise<AccountSecrets> {
-  if (passphrase.trim().length < 4) {
-    throw new Error('Passphrase must be at least 4 characters.');
+  if (passphrase.trim().length < 8) {
+    throw new Error('Passphrase must be at least 8 characters.');
   }
 
   const seed = await mnemonicSeed(words);
@@ -292,6 +307,7 @@ export async function rotatePassphraseSecrets(
   const wrappedDekPass = await wrapKey(passKek, dek);
   const wrappedDekRecovery = await wrapKey(recoveryKek, dek);
   const authVerifier = await deriveAuthVerifier(passKek);
+  const dekVerifier = await deriveDekVerifier(dek);
 
   return {
     accountId,
@@ -302,5 +318,6 @@ export async function rotatePassphraseSecrets(
     wrappedDekPass,
     wrappedDekRecovery,
     authVerifier,
+    dekVerifier,
   };
 }

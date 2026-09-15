@@ -14,14 +14,14 @@ export function resetTour(): void {
   localStorage.removeItem(TOUR_KEY);
 }
 
-/** Start the Shepherd tour when DOM anchors exist (retries briefly). */
-export function maybeStartTour(options?: { force?: boolean }): void {
+/** Start the Shepherd tour when DOM anchors exist (retries briefly). Returns a cancel function. */
+export function maybeStartTour(options?: { force?: boolean }): () => void {
   if (options?.force) {
     resetTour();
   }
 
   if (localStorage.getItem(TOUR_KEY) === '1') {
-    return;
+    return () => {};
   }
 
   const tour = new Shepherd.Tour({
@@ -78,8 +78,15 @@ export function maybeStartTour(options?: { force?: boolean }): void {
   tour.on('complete', () => markTourDone());
   tour.on('show', () => SoundManager.shepherd());
 
+  let cancelled = false;
+  let pending: ReturnType<typeof setTimeout> | null = null;
+
   /** Wait for archive anchors after signup → list transition. */
   const startWhenReady = (attempt = 0) => {
+    if (cancelled) {
+      return;
+    }
+
     const hasAnchor = document.querySelector('[data-tour="tour-archive"]');
 
     if (hasAnchor) {
@@ -89,9 +96,17 @@ export function maybeStartTour(options?: { force?: boolean }): void {
     }
 
     if (attempt < 30) {
-      setTimeout(() => startWhenReady(attempt + 1), 100);
+      pending = setTimeout(() => startWhenReady(attempt + 1), 100);
     }
   };
 
-  setTimeout(() => startWhenReady(), 200);
+  pending = setTimeout(() => startWhenReady(), 200);
+
+  return () => {
+    cancelled = true;
+
+    if (pending) {
+      clearTimeout(pending);
+    }
+  };
 }
