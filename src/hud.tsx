@@ -394,7 +394,7 @@ export function TopBar({
       <div className="flex shrink-0 flex-col items-center gap-1 px-1 leading-none max-tablet:col-start-1 max-tablet:justify-self-start">
         <span className="font-display text-sm font-semibold tracking-[0.32em] text-fg">JOURNS</span>
         <span className="text-[9px] tracking-[0.22em] text-fg-mute max-tablet:hidden">
-          // FIELD JOURNAL · v.2026.5
+          // FIELD JOURNAL · v.1.0.1
         </span>
       </div>
       <div className="flex min-w-0 items-center justify-end gap-5 overflow-hidden text-fg-dim desktop:gap-8">
