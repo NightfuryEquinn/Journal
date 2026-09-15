@@ -1,6 +1,6 @@
 /* JOURNS // FIELD JOURNAL — Tailwind + theme tokens */
 
-@import "tailwindcss";
+@import 'tailwindcss';
 
 :root {
   --bg: #0a0c0e;
@@ -26,14 +26,14 @@
   --pad-lg: 22px;
   --row-gap: 10px;
 
-  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  --sans: "Barlow Condensed", "Oswald", "Helvetica Neue", system-ui, sans-serif;
-  --serif: "Cormorant Garamond", "Times New Roman", serif;
+  --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --sans: 'Barlow Condensed', 'Oswald', 'Helvetica Neue', system-ui, sans-serif;
+  --serif: 'Cormorant Garamond', 'Times New Roman', serif;
   --display: var(--sans);
   --copy: var(--mono);
 }
 
-[data-palette="tactical"] {
+[data-palette='tactical'] {
   --bg: #0a0c0e;
   --bg-1: #0f1316;
   --bg-2: #161b1f;
@@ -46,7 +46,7 @@
   --accent-soft: rgba(255, 138, 61, 0.14);
 }
 
-[data-palette="oceanic"] {
+[data-palette='oceanic'] {
   --bg: #060c12;
   --bg-1: #0a1420;
   --bg-2: #0f1c2e;
@@ -59,7 +59,7 @@
   --accent-soft: rgba(61, 209, 224, 0.14);
 }
 
-[data-palette="phosphor"] {
+[data-palette='phosphor'] {
   --bg: #07090a;
   --bg-1: #0c1110;
   --bg-2: #121915;
@@ -72,7 +72,7 @@
   --accent-soft: rgba(181, 255, 90, 0.14);
 }
 
-[data-palette="bone"] {
+[data-palette='bone'] {
   --bg: #0d0e10;
   --bg-1: #131418;
   --bg-2: #1a1c20;
@@ -85,34 +85,34 @@
   --accent-soft: rgba(241, 237, 228, 0.1);
 }
 
-[data-type="mono-condensed"] {
+[data-type='mono-condensed'] {
   --display: var(--sans);
   --copy: var(--mono);
 }
 
-[data-type="all-mono"] {
+[data-type='all-mono'] {
   --display: var(--mono);
   --copy: var(--mono);
 }
 
-[data-type="literary"] {
+[data-type='literary'] {
   --display: var(--sans);
   --copy: var(--serif);
 }
 
-[data-density="compact"] {
+[data-density='compact'] {
   --pad: 10px;
   --pad-lg: 16px;
   --row-gap: 7px;
 }
 
-[data-density="regular"] {
+[data-density='regular'] {
   --pad: 14px;
   --pad-lg: 22px;
   --row-gap: 10px;
 }
 
-[data-density="spacious"] {
+[data-density='spacious'] {
   --pad: 20px;
   --pad-lg: 32px;
   --row-gap: 14px;
@@ -283,7 +283,7 @@
 
 .bracket::before,
 .bracket::after {
-  content: "";
+  content: '';
   position: absolute;
   width: 14px;
   height: 14px;
@@ -329,7 +329,7 @@
 }
 
 /* Scanlines + beam (toggle via data-scan) */
-[data-scan="0"] .bg-scan {
+[data-scan='0'] .bg-scan {
   display: none;
 }
 
@@ -345,7 +345,7 @@
   animation: scan-jitter 6s steps(60) infinite;
 }
 
-[data-scan="0"] .bg-beam {
+[data-scan='0'] .bg-beam {
   display: none;
 }
 
@@ -369,7 +369,7 @@
 }
 
 .connector::before {
-  content: "";
+  content: '';
   position: absolute;
   left: 0;
   top: -3px;

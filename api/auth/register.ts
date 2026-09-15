@@ -49,7 +49,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   });
 
   const progress = emptyProgress(now);
-  await (await questProgressCol()).insertOne({
+  await (
+    await questProgressCol()
+  ).insertOne({
     accountId: body.accountId,
     ...progress,
     updatedAt: now,

@@ -194,16 +194,10 @@ export function ListScreen({
                   ['TOTAL', entries.length.toString().padStart(4, '0'), false],
                   [
                     'FIRST',
-                    entries.length
-                      ? fmtDate(new Date(entries[entries.length - 1]!.date))
-                      : '—',
+                    entries.length ? fmtDate(new Date(entries[entries.length - 1]!.date)) : '—',
                     false,
                   ],
-                  [
-                    'LAST',
-                    entries.length ? fmtDate(new Date(entries[0]!.date)) : '—',
-                    false,
-                  ],
+                  ['LAST', entries.length ? fmtDate(new Date(entries[0]!.date)) : '—', false],
                   [
                     'AVG MOOD',
                     entries.length
@@ -290,12 +284,7 @@ export function ListScreen({
             />
           )}
           {!loading && layout === 'stack' && (
-            <StackLayout
-              entries={filtered}
-              seqById={seqById}
-              onOpen={onOpen}
-              onDelete={onDelete}
-            />
+            <StackLayout entries={filtered} seqById={seqById} onOpen={onOpen} onDelete={onDelete} />
           )}
           {!loading && filtered.length === 0 && (
             <div className="py-15 text-center font-mono tracking-[0.02em] text-fg-dim max-phone:py-8">
@@ -336,9 +325,22 @@ function TimelineLayout({ entries, seqById, onOpen, onDelete }: EntryLayoutProps
             <div className="flex items-baseline gap-2 pt-0 text-left leading-[1.1] tablet:-ml-20 tablet:block tablet:pr-3.5 tablet:pt-4.5 tablet:text-right">
               <div className="font-mono text-[22px] tracking-[0.02em]">{pad(d.getDate())}</div>
               <div className="font-mono text-[11px] tracking-[0.16em] text-fg-dim">
-                {['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][
-                  d.getMonth()
-                ]}
+                {
+                  [
+                    'JAN',
+                    'FEB',
+                    'MAR',
+                    'APR',
+                    'MAY',
+                    'JUN',
+                    'JUL',
+                    'AUG',
+                    'SEP',
+                    'OCT',
+                    'NOV',
+                    'DEC',
+                  ][d.getMonth()]
+                }
               </div>
               <div className="font-mono text-[9px] tracking-[0.16em] text-fg-mute">
                 {d.getFullYear()}

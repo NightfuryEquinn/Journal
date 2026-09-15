@@ -6,16 +6,16 @@ React 19 + TypeScript + Vite SPA, Vercel serverless API, MongoDB Atlas. Auth is 
 
 ## Stack
 
-| Layer | Tech |
-|-------|------|
-| Frontend | Vite + React 19 SPA (`src/`) |
-| API | Vercel serverless under `api/` |
-| Shared | Zod schemas + quest logic (`shared/`) |
-| Database | MongoDB Atlas (`users`, `entries`, `quest_progress`, `push_subscriptions`) |
-| Auth | BIP39 mnemonic + passphrase → DEK wraps + JWT |
-| Scheduler | [cron-job.org](https://cron-job.org) → `/api/cron` (not Vercel Cron) |
-| Reminders | W3C Push API (VAPID + `web-push`), `public/sw.js`, installable via `public/manifest.webmanifest` |
-| Audio | Howler.js + WAVs in `audio/` |
+| Layer     | Tech                                                                                                                                       |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Frontend  | Vite + React 19 SPA (`src/`)                                                                                                               |
+| API       | Vercel serverless under `api/`                                                                                                             |
+| Shared    | Zod schemas + quest logic (`shared/`)                                                                                                      |
+| Database  | MongoDB Atlas (`users`, `entries`, `quest_progress`, `push_subscriptions`)                                                                 |
+| Auth      | BIP39 mnemonic + passphrase → DEK wraps + JWT                                                                                              |
+| Scheduler | [cron-job.org](https://cron-job.org) → `/api/cron` (not Vercel Cron)                                                                       |
+| Reminders | W3C Push API (VAPID + `web-push`), `public/sw.js`, installable via `public/manifest.webmanifest`                                           |
+| Audio     | Howler.js + WAVs in `audio/`                                                                                                               |
 | Analytics | [`@vercel/analytics`](https://vercel.com/docs/analytics) (page views only — mounted in `src/main.tsx`, no journal content ever reaches it) |
 
 ## Repository map
@@ -38,14 +38,14 @@ React 19 + TypeScript + Vite SPA, Vercel serverless API, MongoDB Atlas. Auth is 
 
 ### Frontend views
 
-| View | Module | Role |
-|------|--------|------|
-| Login | `login.tsx` | Boot, unlock, create (phrase → verify → passphrase), recover |
-| Archive | `list.tsx` | Timeline / stack layouts, search, tags, replay tour |
-| Reader | `reader.tsx` | Read a decrypted entry |
-| Composer | `composer.tsx` | Create / edit entry (mood, energy, weather, tags) |
-| Profile | `profile.tsx` | Operator, AURA, quests, import/export, transparency link |
-| Transparency | `transparency.tsx` | Data-flow diagram + schema documentation |
+| View         | Module             | Role                                                         |
+| ------------ | ------------------ | ------------------------------------------------------------ |
+| Login        | `login.tsx`        | Boot, unlock, create (phrase → verify → passphrase), recover |
+| Archive      | `list.tsx`         | Timeline / stack layouts, search, tags, replay tour          |
+| Reader       | `reader.tsx`       | Read a decrypted entry                                       |
+| Composer     | `composer.tsx`     | Create / edit entry (mood, energy, weather, tags)            |
+| Profile      | `profile.tsx`      | Operator, AURA, quests, import/export, transparency link     |
+| Transparency | `transparency.tsx` | Data-flow diagram + schema documentation                     |
 
 Supporting modules: `app.tsx` (session + routing), `crypto.ts` / `identity.ts`, `api.ts`, `hud.tsx` (SoundManager, TopBar, Panel/Btn), `tours.ts` (Shepherd), `push.ts` (Web Push subscribe/sync), `quests.ts` (re-exports `shared/quests.ts` for the UI).
 
@@ -78,18 +78,18 @@ Deployed builds call same-origin `/api/*` on Vercel.
 
 ## Environment
 
-| Variable | Where | Purpose |
-|----------|--------|---------|
-| `MONGODB_URI` | server / scripts | Atlas connection string |
-| `MONGODB_DB` | server / scripts | Database name (default `journs`) |
-| `JWT_SECRET` | server | Session signing (≥16 chars) |
-| `CRON_SECRET` | server | Bearer token for `/api/cron` (≥16 chars) |
-| `ALLOWED_ORIGINS` | server (optional) | Comma-separated origins echoed in CORS; empty = `http://localhost:5173` only |
-| `VAPID_PUBLIC_KEY` | server | Web Push application server key |
-| `VAPID_PRIVATE_KEY` | server | Web Push signing key |
-| `VAPID_SUBJECT` | server | `mailto:` or `https://` contact for push services |
-| `VITE_VAPID_PUBLIC_KEY` | frontend | Same value as `VAPID_PUBLIC_KEY`; baked in at build time |
-| `VITE_API_BASE` | frontend (optional) | Absolute API origin; empty = same-origin `/api` |
+| Variable                | Where               | Purpose                                                                      |
+| ----------------------- | ------------------- | ---------------------------------------------------------------------------- |
+| `MONGODB_URI`           | server / scripts    | Atlas connection string                                                      |
+| `MONGODB_DB`            | server / scripts    | Database name (default `journs`)                                             |
+| `JWT_SECRET`            | server              | Session signing (≥16 chars)                                                  |
+| `CRON_SECRET`           | server              | Bearer token for `/api/cron` (≥16 chars)                                     |
+| `ALLOWED_ORIGINS`       | server (optional)   | Comma-separated origins echoed in CORS; empty = `http://localhost:5173` only |
+| `VAPID_PUBLIC_KEY`      | server              | Web Push application server key                                              |
+| `VAPID_PRIVATE_KEY`     | server              | Web Push signing key                                                         |
+| `VAPID_SUBJECT`         | server              | `mailto:` or `https://` contact for push services                            |
+| `VITE_VAPID_PUBLIC_KEY` | frontend            | Same value as `VAPID_PUBLIC_KEY`; baked in at build time                     |
+| `VITE_API_BASE`         | frontend (optional) | Absolute API origin; empty = same-origin `/api`                              |
 
 ## Auth & E2EE
 
@@ -106,14 +106,14 @@ In-app detail: **Profile → TRANSPARENCY** (Mermaid diagram + every schema).
 
 ## Data schemas (summary)
 
-| Schema | Location | Visibility |
-|--------|----------|------------|
-| `JournalEntry` | `shared/schemas.ts` | Client memory + local export only |
-| Encrypted entry | `api/_lib/schemas.ts` | Wire + Mongo `entries` |
-| `UserDoc` | `api/_lib/db.ts` | Mongo `users` (wraps + `authVerifier` + `dekVerifier`) |
-| `QuestProgress` | `shared/schemas.ts` | Wire + Mongo `quest_progress` |
-| Register / login / recover bodies | `api/_lib/schemas.ts` | Auth HTTP |
-| Device identity | `src/identity.ts` | `localStorage` `journs.identity.v1` (no DEK, passphrase, or verifier) |
+| Schema                            | Location              | Visibility                                                            |
+| --------------------------------- | --------------------- | --------------------------------------------------------------------- |
+| `JournalEntry`                    | `shared/schemas.ts`   | Client memory + local export only                                     |
+| Encrypted entry                   | `api/_lib/schemas.ts` | Wire + Mongo `entries`                                                |
+| `UserDoc`                         | `api/_lib/db.ts`      | Mongo `users` (wraps + `authVerifier` + `dekVerifier`)                |
+| `QuestProgress`                   | `shared/schemas.ts`   | Wire + Mongo `quest_progress`                                         |
+| Register / login / recover bodies | `api/_lib/schemas.ts` | Auth HTTP                                                             |
+| Device identity                   | `src/identity.ts`     | `localStorage` `journs.identity.v1` (no DEK, passphrase, or verifier) |
 
 **`JournalEntry` fields:** `id`, `date`, `title`, `mood` (1–5), `energy` (1–5), `weather`, `tags[]`, `body`.
 
@@ -123,11 +123,11 @@ In-app detail: **Profile → TRANSPARENCY** (Mermaid diagram + every schema).
 
 Catalog lives in `shared/quests.ts`. Profile and Transparency render those arrays; do not duplicate ids elsewhere.
 
-| Kind | Ids | Reward |
-|------|-----|--------|
-| Daily | `daily-write`, `daily-tag`, `daily-tags-3`, `daily-long` | +10 / +5 / +5 / +5 AURA |
-| Weekly | `weekly-three`, `weekly-mood`, `weekly-days`, `weekly-energy` | +25 / +15 / +15 / +10 AURA |
-| Milestone | `ms-pioneer` … `ms-spectrum` (13 total) | tags only (0 AURA) |
+| Kind      | Ids                                                           | Reward                     |
+| --------- | ------------------------------------------------------------- | -------------------------- |
+| Daily     | `daily-write`, `daily-tag`, `daily-tags-3`, `daily-long`      | +10 / +5 / +5 / +5 AURA    |
+| Weekly    | `weekly-three`, `weekly-mood`, `weekly-days`, `weekly-energy` | +25 / +15 / +15 / +10 AURA |
+| Milestone | `ms-pioneer` … `ms-spectrum` (13 total)                       | tags only (0 AURA)         |
 
 `settleAura` runs on day/week key change (client GET/PUT quests, or cron). Missed **timed** quests deduct AURA (floor 0). Period keys are **UTC** so clients and cron-job.org agree. New timed quests carry `sinceDay: 2026-08-14` so a closed period **before** that date is not penalized. Milestones scan the full archive (lifetime max streak, not current streak).
 
@@ -152,14 +152,14 @@ From **Profile → DATA**:
 
 Howler-backed SFX in `SoundManager` (`src/hud.tsx`), gated by the topbar toggle (`localStorage` `journs.sound`):
 
-| File | Trigger |
-|------|---------|
+| File             | Trigger                                      |
+| ---------------- | -------------------------------------------- |
 | `onpageload.wav` | App load (once per session when sound is on) |
-| `onclick.wav` | CTA buttons |
-| `onhover.wav` | Button hover |
-| `ontype.wav` | Typing keydown |
-| `ondelete.wav` | Delete confirmation modal open |
-| `onshepherd.wav` | Each Shepherd step |
+| `onclick.wav`    | CTA buttons                                  |
+| `onhover.wav`    | Button hover                                 |
+| `ontype.wav`     | Typing keydown                               |
+| `ondelete.wav`   | Delete confirmation modal open               |
+| `onshepherd.wav` | Each Shepherd step                           |
 
 Dropdowns and range sliders do not play click/type cues.
 
@@ -181,9 +181,12 @@ The two halves run independently (`Promise.allSettled`): a Mongo failure during
 settlement cannot swallow reminders. The response reports each side:
 
 ```json
-{ "ok": true, "settle": { "ok": true, "scanned": 3, "updated": 1 },
+{
+  "ok": true,
+  "settle": { "ok": true, "scanned": 3, "updated": 1 },
   "push": { "ok": true, "scanned": 5, "sent": 2, "pruned": 0, "failed": 0 },
-  "at": "..." }
+  "at": "..."
+}
 ```
 
 `ok: false` (HTTP 500) means at least one half failed; the other half's result is
@@ -212,19 +215,19 @@ bun run check:quests # quest satisfaction + settleAura
 
 ## API surface
 
-| Route | Auth | Role |
-|-------|------|------|
-| `POST /api/auth/register` | — | Create account + empty quest progress |
-| `POST /api/auth/login` | — | Verifier → JWT + wrapped DEKs |
-| `GET /api/auth/bundle` | — | Recovery wrap by `accountId` |
-| `POST /api/auth/recover` | `dekVerifier` | Rotate passphrase wraps — 401 on mismatch, 409 if the account predates `dekVerifier` |
-| `POST /api/auth/verifier` | JWT | Backfill `dekVerifier` on a legacy account (no-op if already set) |
-| `GET/PUT /api/entries` | JWT | List / upsert ciphertext |
-| `DELETE /api/entries/:id` | JWT | Delete one entry |
-| `GET/PUT /api/quests` | JWT | Fetch / save quest progress |
-| `POST /api/push/subscription` | JWT | Register a push subscription + timezone |
-| `DELETE /api/push/subscription` | JWT | Drop a subscription by `?endpoint=` |
-| `POST /api/cron` | `CRON_SECRET` | Settle all users + send due reminders |
+| Route                           | Auth          | Role                                                                                 |
+| ------------------------------- | ------------- | ------------------------------------------------------------------------------------ |
+| `POST /api/auth/register`       | —             | Create account + empty quest progress                                                |
+| `POST /api/auth/login`          | —             | Verifier → JWT + wrapped DEKs                                                        |
+| `GET /api/auth/bundle`          | —             | Recovery wrap by `accountId`                                                         |
+| `POST /api/auth/recover`        | `dekVerifier` | Rotate passphrase wraps — 401 on mismatch, 409 if the account predates `dekVerifier` |
+| `POST /api/auth/verifier`       | JWT           | Backfill `dekVerifier` on a legacy account (no-op if already set)                    |
+| `GET/PUT /api/entries`          | JWT           | List / upsert ciphertext                                                             |
+| `DELETE /api/entries/:id`       | JWT           | Delete one entry                                                                     |
+| `GET/PUT /api/quests`           | JWT           | Fetch / save quest progress                                                          |
+| `POST /api/push/subscription`   | JWT           | Register a push subscription + timezone                                              |
+| `DELETE /api/push/subscription` | JWT           | Drop a subscription by `?endpoint=`                                                  |
+| `POST /api/cron`                | `CRON_SECRET` | Settle all users + send due reminders                                                |
 
 JWT: HS256, claim `{ accountId }`, 12h expiry. Errors: `{ error: string }`.
 
@@ -246,16 +249,31 @@ Scripts preload a Bun v8 polyfill so the MongoDB `bson` package can load. Inacti
 
 ## Scripts
 
-| Command | Purpose |
-|---------|---------|
-| `bun run dev` | Vite SPA + in-process `/api` |
-| `bun run build` | Typecheck + production build |
-| `bun run preview` | Preview production build |
-| `bun run check:push` | Reminder scheduling + service worker logic |
-| `bun run check:quests` | Quest satisfaction, max streak, sinceDay settle |
-| `bun run check:auth` | `dekVerifier` derivation + recover-auth branching, CORS allowlist |
-| `bun run db:drop-all` | Drop all collections |
-| `bun run db:purge-stale` | Purge inactive users |
+| Command                  | Purpose                                                           |
+| ------------------------ | ----------------------------------------------------------------- |
+| `bun run dev`            | Vite SPA + in-process `/api`                                      |
+| `bun run build`          | Typecheck + production build                                      |
+| `bun run preview`        | Preview production build                                          |
+| `bun run check:push`     | Reminder scheduling + service worker logic                        |
+| `bun run check:quests`   | Quest satisfaction, max streak, sinceDay settle                   |
+| `bun run check:auth`     | `dekVerifier` derivation + recover-auth branching, CORS allowlist |
+| `bun run db:drop-all`    | Drop all collections                                              |
+| `bun run db:purge-stale` | Purge inactive users                                              |
+| `bun run lint`           | ESLint over the whole repo                                        |
+| `bun run lint:fix`       | ESLint with autofix                                               |
+| `bun run format`         | Prettier, write mode                                              |
+| `bun run format:check`   | Prettier, check mode (no writes)                                  |
+| `bun run typecheck`      | `tsc -b` only, no bundling                                        |
+| `bun run check:knip`     | Unused files, exports, and dependencies                           |
+
+## Tooling
+
+`bun install` runs `prepare` (Husky v9), which wires up two git hooks — no manual step needed on a fresh clone (if it doesn't fire, `bunx husky` once covers it):
+
+- **pre-commit** — `lint-staged` runs ESLint (`--fix`) and Prettier on staged `*.{ts,tsx}` files, and Prettier alone on staged `*.{css,json,md}`. Scoped to what you're committing; never blocks on pre-existing issues elsewhere.
+- **pre-push** — the real gate, since this repo has no CI: `typecheck` → `lint` → `format:check` → `check:knip` → `check:auth` → `check:quests` → `check:push`, in order. Any failure blocks the push.
+
+Config lives in `eslint.config.js` (flat config), `.prettierrc.json` / `.prettierignore`, and `knip.config.ts`.
 
 ## License
 

@@ -1,4 +1,4 @@
-export type { JournalEntry, QuestPeriodState, QuestProgress } from '../shared/types';
+export type { JournalEntry, QuestProgress } from '../shared/types';
 import type { JournalEntry } from '../shared/types';
 
 export type ListLayout = 'timeline' | 'stack';

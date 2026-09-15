@@ -29,10 +29,7 @@ async function runSettle(now: Date) {
       JSON.stringify(settled.period.weeklyDone) !== JSON.stringify(before.period.weeklyDone);
 
     if (changed) {
-      await col.updateOne(
-        { accountId: doc.accountId },
-        { $set: { ...settled, updatedAt: now } },
-      );
+      await col.updateOne({ accountId: doc.accountId }, { $set: { ...settled, updatedAt: now } });
       updated++;
     }
   }

@@ -1,4 +1,4 @@
-import type { JournalEntry, QuestProgress } from './types';
+import type { QuestProgress } from './types';
 
 const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined)?.replace(/\/$/, '') ?? '';
 
@@ -43,10 +43,7 @@ export class ApiError extends Error {
 }
 
 /** Low-level JSON fetch against the Journs API. */
-async function apiFetch<T>(
-  path: string,
-  init: RequestInit & { token?: string } = {},
-): Promise<T> {
+async function apiFetch<T>(path: string, init: RequestInit & { token?: string } = {}): Promise<T> {
   const headers = new Headers(init.headers);
   headers.set('Content-Type', 'application/json');
 
@@ -84,10 +81,7 @@ export function apiRegister(body: {
 }
 
 /** Login with account id + auth verifier. */
-export function apiLogin(body: {
-  accountId: string;
-  authVerifier: string;
-}): Promise<AuthResponse> {
+export function apiLogin(body: { accountId: string; authVerifier: string }): Promise<AuthResponse> {
   return apiFetch<AuthResponse>('/api/auth/login', {
     method: 'POST',
     body: JSON.stringify(body),
@@ -120,9 +114,7 @@ export function apiSetDekVerifier(token: string, dekVerifier: string): Promise<{
 
 /** Fetch recovery wrap by accountId. */
 export function apiFetchBundle(accountId: string): Promise<RecoveryBundle> {
-  return apiFetch<RecoveryBundle>(
-    `/api/auth/bundle?accountId=${encodeURIComponent(accountId)}`,
-  );
+  return apiFetch<RecoveryBundle>(`/api/auth/bundle?accountId=${encodeURIComponent(accountId)}`);
 }
 
 /** List encrypted entries. */
@@ -182,19 +174,8 @@ export function apiSubscribePush(
 
 /** Drop a Web Push subscription. */
 export function apiUnsubscribePush(token: string, endpoint: string): Promise<{ ok: boolean }> {
-  return apiFetch(
-    `/api/push/subscription?endpoint=${encodeURIComponent(endpoint)}`,
-    { method: 'DELETE', token },
-  );
+  return apiFetch(`/api/push/subscription?endpoint=${encodeURIComponent(endpoint)}`, {
+    method: 'DELETE',
+    token,
+  });
 }
-
-/** Decrypt helper type for sync layer. */
-export type DecryptFn = (
-  ciphertext: string,
-  nonce: string,
-) => Promise<JournalEntry>;
-
-/** Encrypt helper type for sync layer. */
-export type EncryptFn = (
-  entry: JournalEntry,
-) => Promise<{ ciphertext: string; nonce: string }>;

@@ -89,10 +89,7 @@ export default function App() {
   }, [view, loadingArchive]);
 
   /** After auth: pull ciphertext from Atlas, decrypt, load quests. */
-  const bootstrapSession = async (
-    next: AuthSession,
-    options?: { isNewUser?: boolean },
-  ) => {
+  const bootstrapSession = async (next: AuthSession, options?: { isNewUser?: boolean }) => {
     setSession(next);
     setIdentity(next.identity);
     setSyncError(null);
@@ -147,10 +144,7 @@ export default function App() {
   };
 
   /** Authenticate and enter the archive. */
-  const onAuth = async (
-    next: AuthSession,
-    options?: { isNewUser?: boolean },
-  ) => {
+  const onAuth = async (next: AuthSession, options?: { isNewUser?: boolean }) => {
     await bootstrapSession(next, options);
   };
 
@@ -211,9 +205,7 @@ export default function App() {
     }
 
     const { ciphertext, nonce } = await encryptEntry(session.dek, e);
-    await apiPutEntries(session.token, [
-      { entryId: e.id, ciphertext, nonce, schemaVersion: 1 },
-    ]);
+    await apiPutEntries(session.token, [{ entryId: e.id, ciphertext, nonce, schemaVersion: 1 }]);
 
     setEntries((prev) => {
       const i = prev.findIndex((x) => x.id === e.id);
@@ -358,7 +350,10 @@ export default function App() {
             <Bracket>
               <Panel title="CONFIRM PURGE" meta="DESTRUCTIVE OPERATION">
                 <div className="mb-3.5 text-[13px] leading-[1.6]">
-                  <DecodeText text="// this will erase the ciphertext blob from Atlas." speed={14} />
+                  <DecodeText
+                    text="// this will erase the ciphertext blob from Atlas."
+                    speed={14}
+                  />
                   <div className="mt-2 text-fg-mute">
                     <span className="font-mono tracking-[0.02em]">_id:</span>{' '}
                     <span className="font-mono tracking-[0.02em] text-accent">{confirmDel.id}</span>

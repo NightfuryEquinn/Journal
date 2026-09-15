@@ -92,10 +92,7 @@ export function LoginScreen({
   identity,
   syncError,
 }: {
-  onAuth: (
-    session: AuthSession,
-    options?: { isNewUser?: boolean },
-  ) => void | Promise<void>;
+  onAuth: (session: AuthSession, options?: { isNewUser?: boolean }) => void | Promise<void>;
   identity: DeviceIdentity | null;
   syncError?: string | null;
 }) {
@@ -413,8 +410,20 @@ export function LoginScreen({
                   </pattern>
                 </defs>
                 <rect width="200" height="200" fill="url(#g)" />
-                <circle cx="100" cy="78" r="28" stroke="var(--accent)" strokeWidth="1" fill="none" />
-                <path d="M40 180 Q100 120 160 180" stroke="var(--accent)" strokeWidth="1" fill="none" />
+                <circle
+                  cx="100"
+                  cy="78"
+                  r="28"
+                  stroke="var(--accent)"
+                  strokeWidth="1"
+                  fill="none"
+                />
+                <path
+                  d="M40 180 Q100 120 160 180"
+                  stroke="var(--accent)"
+                  strokeWidth="1"
+                  fill="none"
+                />
                 <g stroke="rgba(243,232,213,0.5)" strokeWidth="0.4" fill="none">
                   <line x1="12" y1="100" x2="34" y2="100" />
                   <line x1="166" y1="100" x2="188" y2="100" />
@@ -554,18 +563,27 @@ export function LoginScreen({
               {boot === 'ready' && mode === 'create-phrase' && (
                 <div className="flex flex-col gap-3.5">
                   <p className="font-mono text-[11px] tracking-[0.02em] text-fg-dim">
-                    // write down these 12 BIP39 words · they unwrap your DEK · never leave this device
+                    // write down these 12 BIP39 words · they unwrap your DEK · never leave this
+                    device
                   </p>
                   <div className="flex flex-wrap items-center justify-between gap-2.5">
                     <span className="font-mono text-[10px] tracking-[0.14em] text-fg-mute">
                       RECOVERY PHRASE · 12 WORDS
                     </span>
                     <div className="flex shrink-0 items-center gap-1.5">
-                      <Btn variant="ghost" onClick={rerollPhrase} title="Generate a different phrase">
+                      <Btn
+                        variant="ghost"
+                        onClick={rerollPhrase}
+                        title="Generate a different phrase"
+                      >
                         ⟳ REROLL
                       </Btn>
                       <Btn variant="ghost" onClick={copyPhrase}>
-                        {copied === 'ok' ? '✓ COPIED' : copied === 'fail' ? 'COPY FAILED' : 'COPY ALL'}
+                        {copied === 'ok'
+                          ? '✓ COPIED'
+                          : copied === 'fail'
+                            ? 'COPY FAILED'
+                            : 'COPY ALL'}
                       </Btn>
                     </div>
                   </div>
@@ -791,7 +809,10 @@ export function LoginScreen({
             </div>
           </Panel>
           <div className="login-connectors connector" style={{ left: -100, top: 80, width: 100 }} />
-          <div className="login-connectors connector" style={{ left: -60, bottom: 60, width: 60 }} />
+          <div
+            className="login-connectors connector"
+            style={{ left: -60, bottom: 60, width: 60 }}
+          />
         </div>
       </div>
     </div>

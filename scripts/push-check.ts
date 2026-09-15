@@ -81,7 +81,11 @@ assert.equal(QUOTES.length > REMINDER_HOURS.length, true, 'quote pool must outgr
 assert.equal(QUOTES.length, 46);
 
 for (const quote of QUOTES) {
-  assert.equal(quote.text.includes('"'), false, `quote text must not contain quotes: ${quote.text}`);
+  assert.equal(
+    quote.text.includes('"'),
+    false,
+    `quote text must not contain quotes: ${quote.text}`,
+  );
   assert.match(formatQuote(quote), /^".+" — .+$/);
 }
 
@@ -104,7 +108,9 @@ assert.equal(nextMorning?.slot.hour, 9);
 assert.equal(nextMorning?.slot.body, reminderBody(nextMorning!.sentKey));
 
 const distinctBodies = new Set(
-  ['2026-08-05:9', '2026-08-06:9', '2026-08-07:9', '2026-08-08:9', '2026-08-09:9'].map(reminderBody),
+  ['2026-08-05:9', '2026-08-06:9', '2026-08-07:9', '2026-08-08:9', '2026-08-09:9'].map(
+    reminderBody,
+  ),
 );
 assert.equal(distinctBodies.size > 1, true, 'quote pool must rotate across days');
 
@@ -116,7 +122,7 @@ type SwHandler = (event: unknown) => void;
 const handlers: Record<string, SwHandler> = {};
 const shown: { title: string; options: Record<string, unknown> }[] = [];
 let windowClients: { url: string; focus: () => Promise<void> }[] = [];
-let openedUrl: string | null = null;
+let openedUrl: string | null;
 
 const selfStub = {
   location: { origin: 'https://journs.test' },

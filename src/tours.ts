@@ -5,7 +5,7 @@ import { SoundManager } from './hud';
 export const TOUR_KEY = 'journs.tour.v1';
 
 /** Mark the product tour as completed. */
-export function markTourDone(): void {
+function markTourDone(): void {
   localStorage.setItem(TOUR_KEY, '1');
 }
 

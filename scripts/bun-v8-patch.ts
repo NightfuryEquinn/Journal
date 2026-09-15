@@ -5,8 +5,7 @@
  */
 try {
   const v8 = globalThis.process?.getBuiltinModule?.('v8') as
-    | { startupSnapshot?: { isBuildingSnapshot?: () => boolean } }
-    | undefined;
+    { startupSnapshot?: { isBuildingSnapshot?: () => boolean } } | undefined;
 
   if (v8) {
     Object.defineProperty(v8, 'startupSnapshot', {

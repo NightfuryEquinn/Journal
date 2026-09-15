@@ -56,7 +56,10 @@ function allowedOrigins(): string[] {
   const raw = process.env.ALLOWED_ORIGINS;
 
   return raw
-    ? raw.split(',').map((o) => o.trim()).filter(Boolean)
+    ? raw
+        .split(',')
+        .map((o) => o.trim())
+        .filter(Boolean)
     : ['http://localhost:5173'];
 }
 
@@ -88,13 +91,23 @@ export function handleOptions(req: VercelRequest, res: VercelResponse): boolean 
 }
 
 /** JSON error helper. */
-export function sendError(req: VercelRequest, res: VercelResponse, status: number, message: string): void {
+export function sendError(
+  req: VercelRequest,
+  res: VercelResponse,
+  status: number,
+  message: string,
+): void {
   applyCors(req, res);
   res.status(status).json({ error: message });
 }
 
 /** JSON success helper. */
-export function sendJson(req: VercelRequest, res: VercelResponse, status: number, body: unknown): void {
+export function sendJson(
+  req: VercelRequest,
+  res: VercelResponse,
+  status: number,
+  body: unknown,
+): void {
   applyCors(req, res);
   res.status(status).json(body);
 }

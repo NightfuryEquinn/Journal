@@ -11,7 +11,23 @@
     "check:quests": "bun ./scripts/quest-check.ts",
     "check:auth": "bun ./scripts/auth-check.ts",
     "db:drop-all": "bun --preload ./scripts/bun-v8-patch.ts ./scripts/drop-all.ts",
-    "db:purge-stale": "bun --preload ./scripts/bun-v8-patch.ts ./scripts/purge-stale-users.ts"
+    "db:purge-stale": "bun --preload ./scripts/bun-v8-patch.ts ./scripts/purge-stale-users.ts",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc -b",
+    "check:knip": "knip",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{css,json,md}": [
+      "prettier --write"
+    ]
   },
   "dependencies": {
     "@scure/bip39": "^2.2.0",
@@ -27,6 +43,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@tailwindcss/vite": "^4.3.3",
     "@types/howler": "^2.2.13",
     "@types/node": "^26.1.1",
@@ -34,8 +51,17 @@
     "@types/react-dom": "^19.1.6",
     "@types/web-push": "^3.6.4",
     "@vitejs/plugin-react": "^4.5.2",
+    "eslint": "^10.10.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.7",
+    "husky": "^9.1.7",
+    "knip": "^6.35.1",
+    "lint-staged": "^17.5.1",
+    "prettier": "^3.9.6",
     "tailwindcss": "^4.3.3",
     "typescript": "~5.8.3",
+    "typescript-eslint": "^8.70.0",
     "vercel": "^56.4.1",
     "vite": "^6.3.5"
   }

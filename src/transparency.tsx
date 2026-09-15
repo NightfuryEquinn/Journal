@@ -126,13 +126,29 @@ function SchemaTable({
 }
 
 const JOURNAL_ENTRY_FIELDS: SchemaField[] = [
-  { name: 'id', type: 'string', note: 'Client id, e.g. e-YYYY-MM-DD-<rand>. Never reused after purge.' },
-  { name: 'date', type: 'ISO string', note: 'Entry timestamp (ISO-8601). Sorted newest-first in the archive.' },
+  {
+    name: 'id',
+    type: 'string',
+    note: 'Client id, e.g. e-YYYY-MM-DD-<rand>. Never reused after purge.',
+  },
+  {
+    name: 'date',
+    type: 'ISO string',
+    note: 'Entry timestamp (ISO-8601). Sorted newest-first in the archive.',
+  },
   { name: 'title', type: 'string', note: 'Short label shown in list / reader.' },
   { name: 'mood', type: '1–5 int', note: 'Self-report mood. LOW → HIGH in the composer.' },
   { name: 'energy', type: '1–5 int', note: 'Self-report energy. DRAINED → PEAKED.' },
-  { name: 'weather', type: 'string', note: 'CLEAR, OVERCAST, WINDY, LIGHT/HEAVY RAIN, FOG, or SNOW.' },
-  { name: 'tags', type: 'string[]', note: 'Free tags; claimed milestone tags live on quest progress, not on the entry.' },
+  {
+    name: 'weather',
+    type: 'string',
+    note: 'CLEAR, OVERCAST, WINDY, LIGHT/HEAVY RAIN, FOG, or SNOW.',
+  },
+  {
+    name: 'tags',
+    type: 'string[]',
+    note: 'Free tags; claimed milestone tags live on quest progress, not on the entry.',
+  },
   { name: 'body', type: 'string', note: 'Full journal text. Encrypted before leaving the device.' },
 ];
 
@@ -145,25 +161,61 @@ const ENCRYPTED_ENTRY_FIELDS: SchemaField[] = [
 ];
 
 const USER_DOC_FIELDS: SchemaField[] = [
-  { name: 'accountId', type: 'hex', note: 'SHA-256(journs:v1:account: || seed). Public identifier.' },
+  {
+    name: 'accountId',
+    type: 'hex',
+    note: 'SHA-256(journs:v1:account: || seed). Public identifier.',
+  },
   { name: 'salt', type: 'hex', note: '32-byte PBKDF2 salt for the passphrase KEK.' },
   { name: 'wrappedDekPass', type: 'hex', note: 'nonce||cipher DEK under passphrase KEK.' },
-  { name: 'wrappedDekRecovery', type: 'hex', note: 'nonce||cipher DEK under recovery KEK (from mnemonic).' },
-  { name: 'authVerifier', type: 'hex', note: 'SHA-256(HKDF(passKek, journs-auth)). Login proof without sending the passphrase.' },
-  { name: 'dekVerifier', type: 'hex, optional', note: 'SHA-256(HKDF(DEK, journs-dek-auth)). Recover checks this before rotating wraps; absent on accounts predating the check.' },
-  { name: 'lastActiveAt', type: 'Date', note: 'Updated on login and authenticated writes. Used by purge-stale.' },
+  {
+    name: 'wrappedDekRecovery',
+    type: 'hex',
+    note: 'nonce||cipher DEK under recovery KEK (from mnemonic).',
+  },
+  {
+    name: 'authVerifier',
+    type: 'hex',
+    note: 'SHA-256(HKDF(passKek, journs-auth)). Login proof without sending the passphrase.',
+  },
+  {
+    name: 'dekVerifier',
+    type: 'hex, optional',
+    note: 'SHA-256(HKDF(DEK, journs-dek-auth)). Recover checks this before rotating wraps; absent on accounts predating the check.',
+  },
+  {
+    name: 'lastActiveAt',
+    type: 'Date',
+    note: 'Updated on login and authenticated writes. Used by purge-stale.',
+  },
   { name: 'createdAt', type: 'Date', note: 'Account creation time.' },
   { name: 'updatedAt', type: 'Date', note: 'Last user-doc mutation.' },
 ];
 
 const QUEST_PROGRESS_FIELDS: SchemaField[] = [
   { name: 'accountId', type: 'string', note: 'Owner account (Mongo quest_progress).' },
-  { name: 'aura', type: 'int ≥ 0', note: 'Temporary score. Accrues on claim; deducts when periods roll with misses.' },
-  { name: 'claimedTags', type: 'string[]', note: 'Milestone tags claimed (see QUEST DEFINITIONS).' },
+  {
+    name: 'aura',
+    type: 'int ≥ 0',
+    note: 'Temporary score. Accrues on claim; deducts when periods roll with misses.',
+  },
+  {
+    name: 'claimedTags',
+    type: 'string[]',
+    note: 'Milestone tags claimed (see QUEST DEFINITIONS).',
+  },
   { name: 'period.dayKey', type: 'YYYY-MM-DD', note: 'UTC day window for daily quests.' },
   { name: 'period.weekKey', type: 'YYYY-Www', note: 'UTC ISO week window for weekly quests.' },
-  { name: 'period.dailyDone', type: 'string[]', note: 'Quest ids claimed today (e.g. daily-write).' },
-  { name: 'period.weeklyDone', type: 'string[]', note: 'Quest ids claimed this week (e.g. weekly-three).' },
+  {
+    name: 'period.dailyDone',
+    type: 'string[]',
+    note: 'Quest ids claimed today (e.g. daily-write).',
+  },
+  {
+    name: 'period.weeklyDone',
+    type: 'string[]',
+    note: 'Quest ids claimed this week (e.g. weekly-three).',
+  },
   { name: 'lastSettledAt', type: 'ISO | null', note: 'Last settleAura run (client or cron).' },
   { name: 'updatedAt', type: 'Date', note: 'Server write time.' },
 ];
@@ -241,10 +293,10 @@ export function TransparencyScreen({ onBack }: { onBack: () => void }) {
             <Heading>Device</Heading>
             <Body>
               A BIP39 12-word mnemonic seeds the account. From the seed Journs derives{' '}
-              <Code>accountId</Code> and a recovery KEK. A random 32-byte DEK encrypts every
-              journal entry with AES-GCM. The passphrase derives a KEK via PBKDF2-SHA-256 (600k
-              iterations) that wraps the DEK and produces <Code>authVerifier</Code> for unlock —
-              the passphrase itself is never sent.
+              <Code>accountId</Code> and a recovery KEK. A random 32-byte DEK encrypts every journal
+              entry with AES-GCM. The passphrase derives a KEK via PBKDF2-SHA-256 (600k iterations)
+              that wraps the DEK and produces <Code>authVerifier</Code> for unlock — the passphrase
+              itself is never sent.
             </Body>
 
             <Heading>Host & database</Heading>
@@ -272,10 +324,9 @@ export function TransparencyScreen({ onBack }: { onBack: () => void }) {
             <Body>
               Profile export writes decrypted JSON on your machine. Import merges by entry{' '}
               <Code>id</Code>, re-encrypts, and syncs. Device identity is cached in{' '}
-              <Code>localStorage</Code> key <Code>journs.identity.v1</Code> — no DEK, passphrase,
-              or verifier, so reading it alone grants nothing.
-              Audio preference uses <Code>journs.sound</Code>; the Shepherd tour flag is{' '}
-              <Code>journs.tour.v1</Code>.
+              <Code>localStorage</Code> key <Code>journs.identity.v1</Code> — no DEK, passphrase, or
+              verifier, so reading it alone grants nothing. Audio preference uses{' '}
+              <Code>journs.sound</Code>; the Shepherd tour flag is <Code>journs.tour.v1</Code>.
             </Body>
           </Panel>
         </Bracket>
@@ -313,8 +364,8 @@ export function TransparencyScreen({ onBack }: { onBack: () => void }) {
             <Heading>Daily</Heading>
             <QuestCatalogList quests={DAILY_QUESTS} />
             <Body>
-              Tracked in <Code>period.dailyDone</Code>. New timed quests with{' '}
-              <Code>sinceDay</Code> are not deducted for closed days before they shipped.
+              Tracked in <Code>period.dailyDone</Code>. New timed quests with <Code>sinceDay</Code>{' '}
+              are not deducted for closed days before they shipped.
             </Body>
             <Heading>Weekly</Heading>
             <QuestCatalogList quests={WEEKLY_QUESTS} />

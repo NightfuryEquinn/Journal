@@ -6,14 +6,14 @@ const PBKDF2_ITERS = 600_000;
 const TEXT = new TextEncoder();
 
 /** Convert bytes to lowercase hex. */
-export function bytesToHex(bytes: Uint8Array): string {
+function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes)
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
 }
 
 /** Parse hex string to bytes. */
-export function hexToBytes(hex: string): Uint8Array {
+function hexToBytes(hex: string): Uint8Array {
   const clean = hex.toLowerCase();
 
   if (clean.length % 2 !== 0) {
@@ -43,12 +43,12 @@ export function generateRecoveryPhrase(): string[] {
 }
 
 /** Normalize recovery words to lowercase trimmed tokens. */
-export function normalizePhrase(words: string[]): string[] {
+function normalizePhrase(words: string[]): string[] {
   return words.map((w) => w.trim().toLowerCase()).filter(Boolean);
 }
 
 /** Join normalized words into a canonical phrase string. */
-export function phraseToString(words: string[]): string {
+function phraseToString(words: string[]): string {
   return normalizePhrase(words).join(' ');
 }
 
@@ -89,7 +89,7 @@ export function operatorCallsign(accountId: string): string {
 }
 
 /** Random salt for PBKDF2 (32 bytes → hex). */
-export function randomSalt(): string {
+function randomSalt(): string {
   const salt = new Uint8Array(32);
   crypto.getRandomValues(salt);
 
@@ -106,10 +106,7 @@ export function randomDek(): Uint8Array {
 
 /** Import raw AES key material. */
 async function importAesKey(raw: Uint8Array): Promise<CryptoKey> {
-  return crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, false, [
-    'encrypt',
-    'decrypt',
-  ]);
+  return crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
 }
 
 /** PBKDF2-SHA-256 passphrase KEK. */
@@ -180,7 +177,7 @@ export async function deriveDekVerifier(dek: Uint8Array): Promise<string> {
  * AES-GCM wrap: returns hex(nonce || ciphertext||tag).
  * Stored as wrappedDek* fields (nonce prepended, 12 bytes).
  */
-export async function wrapKey(kek: Uint8Array, dek: Uint8Array): Promise<string> {
+async function wrapKey(kek: Uint8Array, dek: Uint8Array): Promise<string> {
   const key = await importAesKey(kek);
   const nonce = new Uint8Array(12);
   crypto.getRandomValues(nonce);

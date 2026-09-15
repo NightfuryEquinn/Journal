@@ -18,7 +18,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (req.method === 'GET') {
-    const docs = await (await entriesCol())
+    const docs = await (
+      await entriesCol()
+    )
       .find({ accountId })
       .project({ _id: 0, entryId: 1, ciphertext: 1, nonce: 1, schemaVersion: 1, updatedAt: 1 })
       .toArray();

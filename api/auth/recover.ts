@@ -42,7 +42,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const authResult = checkRecoverAuth(user.dekVerifier, body.dekVerifier);
 
   if (authResult === 'legacy') {
-    sendError(req, res, 409, 'Account predates recovery verification — unlock with your passphrase once first');
+    sendError(
+      req,
+      res,
+      409,
+      'Account predates recovery verification — unlock with your passphrase once first',
+    );
 
     return;
   }

@@ -214,12 +214,9 @@ const BTN_BASE =
   'relative inline-flex items-center border border-line-strong bg-white/[0.02] px-3.5 py-2 font-display text-[11px] font-semibold tracking-[0.2em] text-fg uppercase transition-[background,color] duration-100 [clip-path:polygon(0_0,calc(100%-10px)_0,100%_10px,100%_100%,10px_100%,0_calc(100%-10px))] hover:bg-accent-soft hover:text-accent [&:active>span]:translate-y-px max-tablet:min-h-11';
 
 const BTN_VARIANTS: Record<string, string> = {
-  primary:
-    'border-accent bg-accent text-bg hover:border-fg hover:bg-fg hover:text-bg',
-  ghost:
-    'border-transparent bg-transparent text-fg-dim hover:bg-accent-soft hover:text-accent',
-  danger:
-    'border-bad text-bad hover:bg-[rgba(255,84,84,0.1)] hover:text-bad',
+  primary: 'border-accent bg-accent text-bg hover:border-fg hover:bg-fg hover:text-bg',
+  ghost: 'border-transparent bg-transparent text-fg-dim hover:bg-accent-soft hover:text-accent',
+  danger: 'border-bad text-bad hover:bg-[rgba(255,84,84,0.1)] hover:text-bad',
 };
 
 /** HUD button with sound feedback and variant styles. */
@@ -240,7 +237,10 @@ export function Btn({
   type?: ButtonHTMLAttributes<HTMLButtonElement>['type'];
   style?: CSSProperties;
   className?: string;
-} & Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'type' | 'onClick' | 'disabled' | 'style' | 'className'>) {
+} & Omit<
+  ButtonHTMLAttributes<HTMLButtonElement>,
+  'type' | 'onClick' | 'disabled' | 'style' | 'className'
+>) {
   const handler = (e: MouseEvent<HTMLButtonElement>) => {
     if (disabled) return;
     SoundManager.click();
@@ -267,7 +267,7 @@ export function Btn({
 }
 
 /** Live clock updating once per second. */
-export function useClock() {
+function useClock() {
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -313,7 +313,13 @@ export function fmtStamp(d: Date) {
 function AudioIcon({ muted }: { muted: boolean }) {
   return (
     <span className="relative inline-flex size-4 items-center justify-center" aria-hidden="true">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" className="size-4">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        className="size-4"
+      >
         <path
           fill="currentColor"
           d="m10.09 11.963l9.274-3.332v5.54a3.8 3.8 0 0 0-1.91-.501c-1.958 0-3.545 1.426-3.545 3.185s1.587 3.185 3.545 3.185c1.959 0 3.546-1.426 3.546-3.185V7.492c0-1.12 0-2.059-.088-2.807a7 7 0 0 0-.043-.31c-.084-.51-.234-.988-.522-1.386a2.2 2.2 0 0 0-.676-.617l-.009-.005c-.771-.461-1.639-.428-2.532-.224c-.864.198-1.936.6-3.25 1.095l-2.284.859c-.615.231-1.137.427-1.547.63c-.435.216-.81.471-1.092.851c-.281.38-.398.79-.452 1.234c-.05.418-.05.926-.05 1.525v7.794a3.8 3.8 0 0 0-1.91-.501C4.587 15.63 3 17.056 3 18.815S4.587 22 6.545 22c1.959 0 3.546-1.426 3.546-3.185z"
@@ -332,7 +338,13 @@ function AudioIcon({ muted }: { muted: boolean }) {
 function SignOutIcon() {
   return (
     <span className="inline-flex size-4 items-center justify-center" aria-hidden="true">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" className="size-4">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        className="size-4"
+      >
         <path
           fill="currentColor"
           d="M5 21q-.825 0-1.412-.587T3 19V5q0-.825.588-1.412T5 3h6q.425 0 .713.288T12 4t-.288.713T11 5H5v14h6q.425 0 .713.288T12 20t-.288.713T11 21zm12.175-8H10q-.425 0-.712-.288T9 12t.288-.712T10 11h7.175L15.3 9.125q-.275-.275-.275-.675t.275-.7t.7-.313t.725.288L20.3 11.3q.3.3.3.7t-.3.7l-3.575 3.575q-.3.3-.712.288t-.713-.313q-.275-.3-.262-.712t.287-.688z"

@@ -23,17 +23,12 @@ import {
   type AuthResponse,
 } from './api';
 
-export const IDENTITY_KEY = 'journs.identity.v1';
-export const LEGACY_ENTRIES_KEY = 'journs.entries.v1';
-export const LEGACY_MERIDIAN_KEY = 'meridian.entries.v1';
-export const LEGACY_PROGRESS_KEY = 'journs.progress.v1';
+const IDENTITY_KEY = 'journs.identity.v1';
+const LEGACY_ENTRIES_KEY = 'journs.entries.v1';
+const LEGACY_MERIDIAN_KEY = 'meridian.entries.v1';
+const LEGACY_PROGRESS_KEY = 'journs.progress.v1';
 
-export {
-  generateRecoveryPhrase,
-  normalizePhrase,
-  phraseToString,
-  validateRecoveryWords,
-} from './crypto';
+export { generateRecoveryPhrase } from './crypto';
 
 /** Active session: JWT + in-memory DEK (never persisted). */
 export interface AuthSession {
@@ -64,7 +59,7 @@ export function loadIdentity(): DeviceIdentity | null {
 }
 
 /** Persist device identity to localStorage (no DEK / passphrase). */
-export function saveIdentity(identity: DeviceIdentity): void {
+function saveIdentity(identity: DeviceIdentity): void {
   localStorage.setItem(IDENTITY_KEY, JSON.stringify(identity));
 }
 
@@ -99,10 +94,7 @@ function identityFromAuth(auth: AuthResponse, createdAt?: string): DeviceIdentit
 }
 
 /** Register on the server and return a live session. */
-export async function registerAccount(
-  words: string[],
-  passphrase: string,
-): Promise<AuthSession> {
+export async function registerAccount(words: string[], passphrase: string): Promise<AuthSession> {
   const err = validateRecoveryWords(words);
 
   if (err) {
@@ -206,7 +198,7 @@ export async function unlockAccount(
     return await unlockWithSalt(identity, passphrase, bundle.salt);
   } catch (err) {
     if (err instanceof SaltMismatchError) {
-      throw new Error('Bad passphrase');
+      throw new Error('Bad passphrase', { cause: err });
     }
 
     throw err;
@@ -214,10 +206,7 @@ export async function unlockAccount(
 }
 
 /** Recover with mnemonic: unwrap DEK, set new passphrase, rotate server wraps. */
-export async function recoverAccount(
-  words: string[],
-  newPassphrase: string,
-): Promise<AuthSession> {
+export async function recoverAccount(words: string[], newPassphrase: string): Promise<AuthSession> {
   const err = validateRecoveryWords(words);
 
   if (err) {

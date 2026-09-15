@@ -381,15 +381,7 @@ function NotificationsPanel({ token }: { token: string | null }) {
 }
 
 /** Label / value telemetry row. */
-function Row({
-  label,
-  value,
-  accent,
-}: {
-  label: string;
-  value: string;
-  accent?: boolean;
-}) {
+function Row({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
     <div className="flex justify-between gap-3">
       <span className="tracking-[0.16em] text-fg-mute">{label}</span>
@@ -431,10 +423,7 @@ function QuestPanel({
             const pct = Math.round((ratio.current / Math.max(1, ratio.target)) * 100);
 
             return (
-              <li
-                key={q.id}
-                className="border border-line bg-black/20 px-3 py-3 max-phone:px-2.5"
-              >
+              <li key={q.id} className="border border-line bg-black/20 px-3 py-3 max-phone:px-2.5">
                 <div className="mb-2 flex flex-col gap-2 phone:flex-row phone:items-start phone:justify-between">
                   <div className="min-w-0">
                     <div className="font-display text-[11px] font-semibold tracking-[0.18em] text-fg">

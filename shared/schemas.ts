@@ -12,7 +12,7 @@ export const journalEntrySchema = z.object({
   body: z.string(),
 });
 
-export const questPeriodSchema = z.object({
+const questPeriodSchema = z.object({
   dayKey: z.string(),
   weekKey: z.string(),
   dailyDone: z.array(z.string()),

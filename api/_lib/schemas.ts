@@ -1,10 +1,13 @@
 import { z } from 'zod';
-import { journalEntrySchema, questPeriodSchema, questProgressSchema } from '../../shared/schemas.js';
+import { questProgressSchema } from '../../shared/schemas.js';
 
-export { journalEntrySchema, questPeriodSchema, questProgressSchema };
+export { questProgressSchema };
 
 /** Hex-encoded opaque string used for salts and ciphertext fields. */
-export const hexString = z.string().min(8).regex(/^[0-9a-f]+$/i);
+export const hexString = z
+  .string()
+  .min(8)
+  .regex(/^[0-9a-f]+$/i);
 
 export const registerBodySchema = z.object({
   accountId: hexString,
@@ -33,7 +36,7 @@ export const setDekVerifierBodySchema = z.object({
   dekVerifier: hexString,
 });
 
-export const encryptedEntrySchema = z.object({
+const encryptedEntrySchema = z.object({
   entryId: z.string().min(1),
   ciphertext: hexString,
   nonce: hexString,
@@ -59,9 +62,3 @@ export const pushSubscribeBodySchema = z.object({
 export const pushUnsubscribeBodySchema = z.object({
   endpoint: z.url().max(2048),
 });
-
-export type RegisterBody = z.infer<typeof registerBodySchema>;
-export type LoginBody = z.infer<typeof loginBodySchema>;
-export type RecoverBody = z.infer<typeof recoverBodySchema>;
-export type EncryptedEntryPayload = z.infer<typeof encryptedEntrySchema>;
-export type PushSubscribeBody = z.infer<typeof pushSubscribeBodySchema>;

@@ -43,10 +43,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       settled.lastSettledAt !== doc.lastSettledAt
     ) {
       const now = new Date();
-      await col.updateOne(
-        { accountId },
-        { $set: { ...settled, updatedAt: now } },
-      );
+      await col.updateOne({ accountId }, { $set: { ...settled, updatedAt: now } });
     }
 
     await touchActive(accountId);

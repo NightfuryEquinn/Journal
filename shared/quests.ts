@@ -1,6 +1,6 @@
 import type { JournalEntry, QuestPeriodState, QuestProgress } from './types.js';
 
-export type QuestKind = 'daily' | 'weekly' | 'milestone';
+type QuestKind = 'daily' | 'weekly' | 'milestone';
 
 export interface QuestDef {
   id: string;
@@ -204,7 +204,7 @@ export const MILESTONE_QUESTS: QuestDef[] = [
 ];
 
 /** Format a Date as UTC YYYY-MM-DD. */
-export function dayKey(d: Date = new Date()): string {
+function dayKey(d: Date = new Date()): string {
   const y = d.getUTCFullYear();
   const m = String(d.getUTCMonth() + 1).padStart(2, '0');
   const day = String(d.getUTCDate()).padStart(2, '0');
@@ -213,7 +213,7 @@ export function dayKey(d: Date = new Date()): string {
 }
 
 /** ISO-week key YYYY-Www in UTC. */
-export function weekKey(d: Date = new Date()): string {
+function weekKey(d: Date = new Date()): string {
   const tmp = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
   const day = (tmp.getUTCDay() + 6) % 7;
   tmp.setUTCDate(tmp.getUTCDate() - day + 3);
@@ -270,7 +270,7 @@ function entryTagCount(entry: JournalEntry): number {
 }
 
 /** Canonical weather label from a stored string (first segment before ` · `). */
-export function weatherLabel(raw: string): string {
+function weatherLabel(raw: string): string {
   return raw.split(' · ')[0].trim().toUpperCase();
 }
 

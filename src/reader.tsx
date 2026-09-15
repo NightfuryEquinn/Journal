@@ -104,7 +104,8 @@ export function ReaderScreen({ entry, onBack, onEdit, onDelete }: ReaderScreenPr
             <div className="mt-7 flex flex-wrap justify-between gap-2 border-t border-line pt-3.5 font-mono text-[10px] tracking-[0.16em] text-fg-mute">
               <span>END OF LOG · {entry.id}</span>
               <span>
-                SHA-256 · {entry.id.toUpperCase()}-{Math.abs(hashCode(entry.body)).toString(16).padStart(8, '0')}
+                SHA-256 · {entry.id.toUpperCase()}-
+                {Math.abs(hashCode(entry.body)).toString(16).padStart(8, '0')}
               </span>
             </div>
           </Panel>
@@ -127,7 +128,9 @@ export function ReaderScreen({ entry, onBack, onEdit, onDelete }: ReaderScreenPr
                   key={lbl}
                   className="flex items-center justify-between gap-3 border-l-2 border-line-strong bg-black/20 px-2.5 py-2"
                 >
-                  <span className="font-mono text-[9.5px] tracking-[0.18em] text-fg-mute">{lbl}</span>
+                  <span className="font-mono text-[9.5px] tracking-[0.18em] text-fg-mute">
+                    {lbl}
+                  </span>
                   <span className="min-w-0 text-right text-[11.5px]">
                     {kind === 'mood' ? (
                       <MoodBars value={entry.mood} />

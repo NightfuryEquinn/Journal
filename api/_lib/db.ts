@@ -51,7 +51,6 @@ export interface PushSubscriptionDoc {
 }
 
 declare global {
-  // eslint-disable-next-line no-var
   var _journsMongo: { client: MongoClient; db: Db } | undefined;
 }
 
@@ -119,8 +118,7 @@ export async function pushSubsCol(): Promise<Collection<PushSubscriptionDoc>> {
 /** Bump lastActiveAt for an account. */
 export async function touchActive(accountId: string): Promise<void> {
   const now = new Date();
-  await (await usersCol()).updateOne(
-    { accountId },
-    { $set: { lastActiveAt: now, updatedAt: now } },
-  );
+  await (
+    await usersCol()
+  ).updateOne({ accountId }, { $set: { lastActiveAt: now, updatedAt: now } });
 }

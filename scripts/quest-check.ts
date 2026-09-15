@@ -51,7 +51,10 @@ const period = emptyProgress(new Date('2026-08-14T12:00:00Z')).period;
 
 assert.equal(wordCount('  one two  three '), 3);
 assert.equal(wordCount(''), 0);
-assert.equal(uniqueTags([entry({ date: '2026-08-14T00:00:00Z', tags: [' A ', 'a', 'B', ''] })]).length, 2);
+assert.equal(
+  uniqueTags([entry({ date: '2026-08-14T00:00:00Z', tags: [' A ', 'a', 'B', ''] })]).length,
+  2,
+);
 
 const todayTagged = [
   entry({
@@ -65,8 +68,22 @@ assert.equal(isQuestSatisfied(q('daily-write'), todayTagged, period), true);
 assert.equal(isQuestSatisfied(q('daily-tag'), todayTagged, period), true);
 assert.equal(isQuestSatisfied(q('daily-tags-3'), todayTagged, period), true);
 assert.equal(isQuestSatisfied(q('daily-long'), todayTagged, period), true);
-assert.equal(isQuestSatisfied(q('daily-tags-3'), [entry({ date: '2026-08-14T10:00:00Z', tags: ['a', 'b'] })], period), false);
-assert.equal(isQuestSatisfied(q('daily-long'), [entry({ date: '2026-08-14T10:00:00Z', body: 'short' })], period), false);
+assert.equal(
+  isQuestSatisfied(
+    q('daily-tags-3'),
+    [entry({ date: '2026-08-14T10:00:00Z', tags: ['a', 'b'] })],
+    period,
+  ),
+  false,
+);
+assert.equal(
+  isQuestSatisfied(
+    q('daily-long'),
+    [entry({ date: '2026-08-14T10:00:00Z', body: 'short' })],
+    period,
+  ),
+  false,
+);
 
 const weekEntries = [
   entry({ date: '2026-08-10T12:00:00Z', mood: 4, energy: 2 }),

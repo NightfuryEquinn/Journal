@@ -20,10 +20,9 @@ export function pushPermission(): NotificationPermission {
 
 /** base64url VAPID key → Uint8Array, the form every browser accepts. */
 function applicationServerKey(): Uint8Array {
-  const padded = VAPID_PUBLIC_KEY.replace(/-/g, '+').replace(/_/g, '/').padEnd(
-    Math.ceil(VAPID_PUBLIC_KEY.length / 4) * 4,
-    '=',
-  );
+  const padded = VAPID_PUBLIC_KEY.replace(/-/g, '+')
+    .replace(/_/g, '/')
+    .padEnd(Math.ceil(VAPID_PUBLIC_KEY.length / 4) * 4, '=');
   const raw = atob(padded);
   const bytes = new Uint8Array(raw.length);
 
