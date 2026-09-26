@@ -68,13 +68,14 @@ export function useScrubReveal(scope: RefObject<HTMLElement | null>, selector: s
       return;
     }
 
+    // Default enter/leave thresholds (element start crosses container end, and
+    // back) are what anime.js actually tests against; hand-rolled offset
+    // strings here previously left the section stuck off-screen.
     const anim = animate(targets, {
       opacity: [0.12, 1],
       autoplay: onScroll({
         container: '#app-scroller',
         sync: true,
-        enter: 'bottom-=10% top',
-        leave: 'top+=10% bottom',
       }),
     });
 
@@ -103,6 +104,7 @@ export function useEnterOnScroll(scope: RefObject<HTMLElement | null>, selector:
       return;
     }
 
+    // Default enter/leave thresholds, same reasoning as useScrubReveal above.
     const anims = Array.from(targets).map((el) =>
       animate(el, {
         opacity: [0, 1],
@@ -111,8 +113,6 @@ export function useEnterOnScroll(scope: RefObject<HTMLElement | null>, selector:
         ease: 'outQuad',
         autoplay: onScroll({
           container: '#app-scroller',
-          enter: 'bottom-=8% top',
-          leave: 'top bottom',
         }),
       }),
     );

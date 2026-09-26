@@ -386,8 +386,10 @@ function ScrubSection() {
       <div ref={ref} className="mx-auto max-w-5xl text-center">
         <p className="font-headline text-2xl leading-relaxed font-medium text-fg laptop:text-4xl">
           {text.split(' ').map((w, i) => (
-            <span key={i} className="scrub-word mr-[0.28em] inline-block">
-              {w}
+            // A real trailing space (not a margin trick) so adjacent words keep an
+            // actual line-break opportunity and the text still reads/copies correctly.
+            <span key={i} className="scrub-word">
+              {w}{' '}
             </span>
           ))}
         </p>
