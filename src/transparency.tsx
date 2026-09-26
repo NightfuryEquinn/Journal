@@ -43,8 +43,8 @@ type SchemaField = {
   note: string;
 };
 
-/** Section heading for transparency copy. */
-function Heading({ children }: { children: ReactNode }) {
+/** Section heading for transparency / legal copy. */
+export function Heading({ children }: { children: ReactNode }) {
   return (
     <h2 className="mb-2 font-headline text-ui font-semibold tracking-[0.22em] text-fg uppercase">
       {children}
@@ -52,13 +52,13 @@ function Heading({ children }: { children: ReactNode }) {
   );
 }
 
-/** Body paragraph for transparency copy. */
-function Body({ children }: { children: ReactNode }) {
+/** Body paragraph for transparency / legal copy. */
+export function Body({ children }: { children: ReactNode }) {
   return <p className="mb-3 font-mono text-body leading-[1.7] text-fg-dim last:mb-0">{children}</p>;
 }
 
 /** Muted inline code / field name. */
-function Code({ children }: { children: ReactNode }) {
+export function Code({ children }: { children: ReactNode }) {
   return <span className="tracking-[0.02em] text-accent">{children}</span>;
 }
 

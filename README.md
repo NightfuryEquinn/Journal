@@ -38,17 +38,22 @@ React 19 + TypeScript + Vite SPA, Vercel serverless API, MongoDB Atlas. Auth is 
 
 ### Frontend views
 
-| View         | Module             | Role                                                               |
-| ------------ | ------------------ | ------------------------------------------------------------------ |
-| Landing      | `landing.tsx`      | Pre-auth marketing page; lazy-loaded, skipped on returning devices |
-| Login        | `login.tsx`        | Boot, unlock, create (phrase → verify → passphrase), recover       |
-| Archive      | `list.tsx`         | Timeline / stack layouts, search, tags, replay tour                |
-| Reader       | `reader.tsx`       | Read a decrypted entry                                             |
-| Composer     | `composer.tsx`     | Create / edit entry (mood, energy, weather, tags)                  |
-| Profile      | `profile.tsx`      | Operator, AURA, quests, import/export, transparency link           |
-| Transparency | `transparency.tsx` | Data-flow diagram + schema documentation                           |
+| View         | Module             | Role                                                                                                                       |
+| ------------ | ------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| Landing      | `landing.tsx`      | Pre-auth marketing page; lazy-loaded, skipped on returning devices. Footer links to Transparency, Privacy Policy and Terms |
+| Login        | `login.tsx`        | Boot, unlock, create (phrase → verify → passphrase), recover                                                               |
+| Archive      | `list.tsx`         | Timeline / stack layouts, search, tags, replay tour                                                                        |
+| Reader       | `reader.tsx`       | Read a decrypted entry                                                                                                     |
+| Composer     | `composer.tsx`     | Create / edit entry (mood, energy, weather, tags)                                                                          |
+| Profile      | `profile.tsx`      | Operator, AURA, quests, import/export; Data panel links to Transparency, Privacy Policy and Terms                          |
+| Transparency | `transparency.tsx` | Data-flow diagram + schema documentation                                                                                   |
+| Legal        | `legal.tsx`        | Privacy Policy and Terms & Conditions (static copy, reached from Landing or Profile → Data)                                |
 
 Supporting modules: `app.tsx` (session + routing), `crypto.ts` / `identity.ts`, `api.ts`, `hud.tsx` (SoundManager, TopBar, Panel/Btn), `tours.ts` (Shepherd), `push.ts` (Web Push subscribe/sync), `quests.ts` (re-exports `shared/quests.ts` for the UI).
+
+## Legal
+
+Journs ships its own Privacy Policy and Terms & Conditions as static in-app pages (`src/legal.tsx`), reachable from the landing page footer and from Profile → Data. Both documents carry a version stamp (kept in step with `package.json`) and a last-updated date — bump both when the copy changes. © 2026 Yip Zi Xian ([NightfuryEquinn](https://github.com/NightfuryEquinn)).
 
 ## Setup
 

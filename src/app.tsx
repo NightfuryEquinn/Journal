@@ -25,6 +25,7 @@ import { ReaderScreen } from './reader';
 import { ComposerScreen } from './composer';
 import { ProfileScreen } from './profile';
 import { TransparencyScreen } from './transparency';
+import { LegalScreen } from './legal';
 import { maybeStartTour, resetTour, TOUR_KEY } from './tours';
 
 const LandingScreen = lazy(() => import('./landing').then((m) => ({ default: m.LandingScreen })));
@@ -202,6 +203,10 @@ export default function App() {
   /** Open the transparency diagram, remembering where Back should return to. */
   const openTransparency = (from: 'landing' | 'profile') => setView({ name: 'transparency', from });
 
+  /** Open a legal document, remembering where Back should return to. */
+  const openLegal = (doc: 'privacy' | 'terms', from: 'landing' | 'profile') =>
+    setView({ name: 'legal', doc, from });
+
   /** Open an entry in the reader. */
   const openEntry = (e: JournalEntry) => setView({ name: 'read', entry: e });
 
@@ -343,6 +348,7 @@ export default function App() {
                 onEnter={(intent) => setView({ name: 'login', intent })}
                 onOpenArchive={() => setView({ name: 'list' })}
                 onOpenTransparency={() => openTransparency('landing')}
+                onOpenLegal={(doc) => openLegal(doc, 'landing')}
               />
             </Suspense>
           )}
@@ -394,10 +400,20 @@ export default function App() {
               onProgressChange={onProgressChange}
               onImport={importEntries}
               onOpenTransparency={() => openTransparency('profile')}
+              onOpenLegal={(doc) => openLegal(doc, 'profile')}
             />
           )}
           {view.name === 'transparency' && (
             <TransparencyScreen
+              onBack={() =>
+                setView(view.from === 'landing' ? { name: 'landing' } : { name: 'profile' })
+              }
+              backLabel={view.from === 'landing' ? 'HOME' : 'PROFILE'}
+            />
+          )}
+          {view.name === 'legal' && (
+            <LegalScreen
+              doc={view.doc}
               onBack={() =>
                 setView(view.from === 'landing' ? { name: 'landing' } : { name: 'profile' })
               }

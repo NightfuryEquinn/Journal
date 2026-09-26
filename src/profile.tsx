@@ -5,12 +5,14 @@ import {
   CaretLeftIcon,
   DownloadSimpleIcon,
   FlameIcon,
+  GavelIcon,
+  ShieldCheckIcon,
   SparkleIcon,
   TreeStructureIcon,
   TrophyIcon,
   UploadSimpleIcon,
 } from '@phosphor-icons/react';
-import type { DeviceIdentity, JournalEntry, QuestProgress } from './types';
+import type { DeviceIdentity, JournalEntry, LegalDoc, QuestProgress } from './types';
 import { CHIP, Bracket, Panel, Btn, PAGE } from './hud';
 import { SoundManager } from './sound';
 import { fmtDate, fmtStamp } from './format';
@@ -50,6 +52,7 @@ interface ProfileScreenProps {
   onProgressChange: (progress: QuestProgress) => void | Promise<void>;
   onImport: (entries: JournalEntry[]) => void | Promise<void>;
   onOpenTransparency: () => void;
+  onOpenLegal: (doc: LegalDoc) => void;
 }
 
 /** Operator profile: AURA, quests, import/export, transparency. */
@@ -62,6 +65,7 @@ export function ProfileScreen({
   onProgressChange,
   onImport,
   onOpenTransparency,
+  onOpenLegal,
 }: ProfileScreenProps) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [ioStatus, setIoStatus] = useState<string | null>(null);
@@ -202,26 +206,32 @@ export function ProfileScreen({
         <Bracket>
           <Panel title="DATA" meta="LOCAL · CLOUD">
             <div className="flex flex-col gap-2.5">
-              <div className="flex flex-wrap gap-2">
-                <Btn variant="ghost" onClick={exportJson}>
-                  <DownloadSimpleIcon className="size-3.5" weight="bold" />
-                  EXPORT
-                </Btn>
-                <Btn variant="ghost" onClick={() => fileRef.current?.click()}>
-                  <UploadSimpleIcon className="size-3.5" weight="bold" />
-                  IMPORT
-                </Btn>
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept="application/json,.json"
-                  className="hidden"
-                  onChange={(e) => void onFile(e.target.files?.[0] ?? null)}
-                />
-              </div>
+              <Btn variant="ghost" onClick={exportJson} className="w-full">
+                <DownloadSimpleIcon className="size-3.5" weight="bold" />
+                EXPORT
+              </Btn>
+              <Btn variant="ghost" onClick={() => fileRef.current?.click()} className="w-full">
+                <UploadSimpleIcon className="size-3.5" weight="bold" />
+                IMPORT
+              </Btn>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="application/json,.json"
+                className="hidden"
+                onChange={(e) => void onFile(e.target.files?.[0] ?? null)}
+              />
               <Btn variant="ghost" onClick={onOpenTransparency} className="w-full">
                 <TreeStructureIcon className="size-3.5" weight="bold" />
                 TRANSPARENCY
+              </Btn>
+              <Btn variant="ghost" onClick={() => onOpenLegal('privacy')} className="w-full">
+                <ShieldCheckIcon className="size-3.5" weight="bold" />
+                PRIVACY POLICY
+              </Btn>
+              <Btn variant="ghost" onClick={() => onOpenLegal('terms')} className="w-full">
+                <GavelIcon className="size-3.5" weight="bold" />
+                TERMS
               </Btn>
               {ioStatus && (
                 <p className="font-mono text-micro tracking-[0.04em] text-fg-mute">{ioStatus}</p>

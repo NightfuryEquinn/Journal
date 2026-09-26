@@ -26,6 +26,7 @@ import {
 import { Bracket, Panel, Btn, DecodeText } from './hud';
 import { useEntrance, useEnterOnScroll, useScrubReveal, prefersReducedMotion } from './motion';
 import { QUOTES, REMINDER_HOURS } from '../shared/push';
+import type { LegalDoc } from './types';
 
 const SAMPLE_CIPHER = Array.from({ length: 44 }, () =>
   Math.floor(Math.random() * 16).toString(16),
@@ -42,6 +43,7 @@ interface LandingScreenProps {
   /** Return to the archive without re-authenticating; only meaningful when `authed`. */
   onOpenArchive: () => void;
   onOpenTransparency: () => void;
+  onOpenLegal: (doc: LegalDoc) => void;
 }
 
 /** Public marketing page — nav, hero, privacy bento, how-it-works, rituals, quotes, CTA. */
@@ -51,6 +53,7 @@ export function LandingScreen({
   onEnter,
   onOpenArchive,
   onOpenTransparency,
+  onOpenLegal,
 }: LandingScreenProps) {
   const scopeRef = useRef<HTMLDivElement>(null);
   useEntrance(scopeRef);
@@ -87,6 +90,7 @@ export function LandingScreen({
         onEnter={onEnter}
         onOpenArchive={onOpenArchive}
         onOpenTransparency={onOpenTransparency}
+        onOpenLegal={onOpenLegal}
       />
     </main>
   );
@@ -636,17 +640,19 @@ function ClosingSection({
   );
 }
 
-/** Wordmark, quick links, version line. */
+/** Wordmark, quick links, legal links, version/copyright line. */
 function LandingFooter({
   authed,
   onEnter,
   onOpenArchive,
   onOpenTransparency,
+  onOpenLegal,
 }: {
   authed: boolean;
   onEnter: (intent?: Intent) => void;
   onOpenArchive: () => void;
   onOpenTransparency: () => void;
+  onOpenLegal: (doc: LegalDoc) => void;
 }) {
   return (
     <footer className="border-t border-line px-4 py-10 laptop:px-[6vw]">
@@ -657,6 +663,16 @@ function LandingFooter({
         <div className="flex flex-wrap gap-x-6 gap-y-2 font-mono text-meta tracking-[0.08em] text-fg-dim">
           <button type="button" className="hover:text-accent" onClick={onOpenTransparency}>
             TRANSPARENCY
+          </button>
+          <button
+            type="button"
+            className="hover:text-accent"
+            onClick={() => onOpenLegal('privacy')}
+          >
+            PRIVACY POLICY
+          </button>
+          <button type="button" className="hover:text-accent" onClick={() => onOpenLegal('terms')}>
+            TERMS
           </button>
           {authed ? (
             <button type="button" className="hover:text-accent" onClick={onOpenArchive}>
@@ -682,7 +698,7 @@ function LandingFooter({
           )}
         </div>
         <span className="font-mono text-micro tracking-[0.08em] text-fg-mute">
-          // v.1.0.1 · ciphertext only · © {new Date().getFullYear()}
+          // v.1.1.1 · ciphertext only · © {new Date().getFullYear()} Yip Zi Xian
         </span>
       </div>
     </footer>
