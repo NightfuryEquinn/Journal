@@ -7,7 +7,7 @@ import { useEntrance } from './motion';
 import type { LegalDoc } from './types';
 
 /** Bump alongside package.json; shown in the footer of both documents. */
-const LEGAL_VERSION = '1.1.1';
+const LEGAL_VERSION = '1.1.2';
 const EFFECTIVE_DATE = '26 September 2026';
 
 interface LegalScreenProps {
@@ -69,19 +69,31 @@ function PrivacyContent() {
       <Heading>What we do store</Heading>
       <Body>
         A public account identifier derived from your recovery phrase; a random salt and wrapped
-        copies of your encryption key (still unreadable without your passphrase or phrase); the
-        encrypted (ciphertext) body of each journal entry; and plaintext quest/AURA progress
-        (streaks, claimed tags) — this isn&rsquo;t sensitive, so it stays readable, which is what
-        lets daily and weekly windows settle automatically. The exact schema is on the in-app{' '}
+        copies of your encryption key (still unreadable without your passphrase or phrase); and the
+        encrypted (ciphertext) body of each journal entry. The exact schema is on the in-app{' '}
         <Code>TRANSPARENCY</Code> page.
+      </Body>
+
+      <Heading>Quest / AURA progress</Heading>
+      <Body>
+        Quest and AURA progress (streaks, claimed tags, daily/weekly completion) is stored in
+        plaintext, because settling day/week windows automatically requires reading it without your
+        encryption key. It is derived from your journal entries, so — even though entry text itself
+        stays encrypted — it can reveal coarse signals about what you wrote: for example, that your
+        mood or energy hit a threshold in a given week, that you&rsquo;ve logged both a very low and
+        very high mood at some point, that an entry passed a word-count threshold, or which weather
+        types you&rsquo;ve logged. Claimed tags and day/week keys are not journal content, but are
+        derived from it in the same way.
       </Body>
 
       <Heading>Push notifications (optional)</Heading>
       <Body>
         If you enable reminders, we store the browser-provided push subscription endpoint, its
         encryption keys, and your device&rsquo;s time zone, so a nudge can be sent at the right
-        local hour. The nudge text is a public quote — never your journal content. Disabling
-        reminders removes this row.
+        local hour. Delivery is routed through your browser vendor&rsquo;s push service (e.g.
+        Google, Mozilla, or Apple), which sees the endpoint and delivery timing but never your
+        journal content — the nudge text itself is a public quote. Disabling reminders removes this
+        row.
       </Body>
 
       <Heading>Analytics</Heading>

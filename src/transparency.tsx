@@ -129,7 +129,7 @@ const JOURNAL_ENTRY_FIELDS: SchemaField[] = [
   {
     name: 'id',
     type: 'string',
-    note: 'Client id, e.g. e-YYYY-MM-DD-<rand>. Never reused after purge.',
+    note: 'Client id, e.g. e-<16 hex>. Opaque — carries no date or content signal. Never reused after purge.',
   },
   {
     name: 'date',
@@ -346,12 +346,26 @@ export function TransparencyScreen({
             <Heading>Host & database</Heading>
             <Body>
               Vercel serverless routes under <Code>/api/*</Code> authenticate with a 12-hour HS256
-              JWT (<Code>{'{ accountId }'}</Code>). MongoDB Atlas holds three collections:{' '}
-              <Code>users</Code> (wraps + verifiers), <Code>entries</Code> (ciphertext only), and{' '}
-              <Code>quest_progress</Code> (readable AURA / quest state). Settlement is triggered by
-              cron-job.org posting to <Code>/api/cron</Code> with{' '}
+              JWT (<Code>{'{ accountId }'}</Code>). MongoDB Atlas holds four collections:{' '}
+              <Code>users</Code> (wraps + verifiers), <Code>entries</Code> (ciphertext only),{' '}
+              <Code>quest_progress</Code> (readable AURA / quest state, derived from journal content
+              — see below), and <Code>push_subscriptions</Code> (endpoint, keys, time zone).
+              Settlement is triggered by cron-job.org posting to <Code>/api/cron</Code> with{' '}
               <Code>Authorization: Bearer CRON_SECRET</Code> — not Vercel Cron. CORS is
               origin-allowlisted, not wildcard.
+            </Body>
+
+            <Heading>What quest state reveals</Heading>
+            <Body>
+              <Code>quest_progress</Code> has to be plaintext so day/week windows can settle without
+              your DEK, but because completion is computed from journal content, it can leak coarse
+              signals even though entry text stays encrypted: a mood or energy threshold hit in a
+              given week (<Code>weekly-mood</Code>, <Code>weekly-energy</Code>
+              ), a very low and very high mood both logged at some point (<Code>#spectrum</Code>),
+              an entry passing a word-count threshold (<Code>daily-long</Code>,{' '}
+              <Code>#treatise</Code>), or which weather types you&rsquo;ve logged (
+              <Code>#weathered</Code>). Claimed tags and the day/week keys themselves are not
+              journal content, but are derived from it the same way.
             </Body>
 
             <Heading>Recovery is not free</Heading>

@@ -148,6 +148,7 @@ export function ListScreen({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={() => SoundManager.type()}
+              spellCheck={false}
             />
             {search && (
               <button

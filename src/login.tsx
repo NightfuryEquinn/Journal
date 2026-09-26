@@ -132,6 +132,7 @@ export function LoginScreen({
   const [verifySlots, setVerifySlots] = useState<number[]>([]);
   const [verifyAnswers, setVerifyAnswers] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+  const clipboardClearRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (boot !== 'boot') {
@@ -221,10 +222,35 @@ export function LoginScreen({
     };
   }, [copied]);
 
-  /** Copy the mnemonic as plain space-separated words, importable elsewhere. */
+  /**
+   * Copy the mnemonic as plain space-separated words, importable elsewhere.
+   * Clears the clipboard 60s later so the phrase doesn't sit there
+   * indefinitely — readable by any app with clipboard access.
+   * ponytail: best-effort only, can't reach OS clipboard history or
+   * cross-device clipboard sync; a real fix needs OS-level cooperation.
+   */
   const copyPhrase = async () => {
-    setCopied((await writeClipboard(phrase.join(' '))) ? 'ok' : 'fail');
+    const ok = await writeClipboard(phrase.join(' '));
+    setCopied(ok ? 'ok' : 'fail');
+
+    if (clipboardClearRef.current) {
+      clearTimeout(clipboardClearRef.current);
+    }
+
+    if (ok) {
+      clipboardClearRef.current = setTimeout(() => {
+        void navigator.clipboard?.writeText('').catch(() => {});
+      }, 60_000);
+    }
   };
+
+  useEffect(() => {
+    return () => {
+      if (clipboardClearRef.current) {
+        clearTimeout(clipboardClearRef.current);
+      }
+    };
+  }, []);
 
   /** Roll a fresh mnemonic · the old one is discarded and never persisted. */
   const rerollPhrase = () => {
@@ -688,6 +714,7 @@ export function LoginScreen({
                           spellCheck={false}
                           autoComplete="off"
                           autoCapitalize="off"
+                          autoCorrect="off"
                           onChange={(e) => {
                             const next = [...verifyAnswers];
                             next[i] = e.target.value.toLowerCase().replace(/\s+/g, '');
@@ -775,6 +802,8 @@ export function LoginScreen({
                     }}
                     spellCheck={false}
                     autoComplete="off"
+                    autoCapitalize="off"
+                    autoCorrect="off"
                   />
                   <div className="grid grid-cols-2 gap-2 phone:grid-cols-3">
                     {recoverWords.map((w, i) => (
@@ -797,6 +826,8 @@ export function LoginScreen({
                           onKeyDown={() => SoundManager.type()}
                           spellCheck={false}
                           autoComplete="off"
+                          autoCapitalize="off"
+                          autoCorrect="off"
                         />
                       </div>
                     ))}

@@ -79,8 +79,12 @@ export function useScrubReveal(scope: RefObject<HTMLElement | null>, selector: s
       }),
     });
 
+    // revert(), not pause(): pause() only flips a flag — the linked
+    // ScrollObserver stays registered on the scroll container and keeps
+    // listening after unmount. revert() detaches it (see animejs
+    // timer.js revert() / scroll.js ScrollObserver.revert()).
     return () => {
-      anim.pause();
+      anim.revert();
     };
   }, [scope, selector]);
 }
@@ -117,8 +121,9 @@ export function useEnterOnScroll(scope: RefObject<HTMLElement | null>, selector:
       }),
     );
 
+    // revert(), not pause() — see useScrubReveal above.
     return () => {
-      anims.forEach((a) => a.pause());
+      anims.forEach((a) => a.revert());
     };
   }, [scope, selector]);
 }

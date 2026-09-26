@@ -12,6 +12,7 @@ import { CHIP, DecodeText, Panel, Btn, Caret, HudSelect, PAGE } from './hud';
 import { SoundManager } from './sound';
 import { fmtDate, fmtTime, pad } from './format';
 import { useEntrance } from './motion';
+import { randomEntryId } from './crypto';
 
 const MOOD_OPTS = ['LOW', 'DIM', 'STEADY', 'GOOD', 'HIGH'];
 const ENERGY_OPTS = ['DRAINED', 'LOW', 'STEADY', 'CHARGED', 'PEAKED'];
@@ -116,9 +117,7 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
     SoundManager.click();
 
     const entry: JournalEntry = {
-      id:
-        existing?.id ||
-        `e-${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${Math.random().toString(36).slice(2, 6)}`,
+      id: existing?.id || randomEntryId(),
       date: existing?.date || now.toISOString(),
       title: title.trim(),
       body: body.trim(),
@@ -366,6 +365,7 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
                   onChange={(e) => setTagsStr(e.target.value)}
                   onKeyDown={handleType}
                   placeholder="recon, self, …"
+                  spellCheck={false}
                 />
                 <div className="mt-1 flex flex-wrap gap-1">
                   {tagsStr

@@ -104,6 +104,18 @@ export function randomDek(): Uint8Array {
   return dek;
 }
 
+/**
+ * Random opaque entry id. Not derived from the entry date — entryId is the
+ * one field the server sees in plaintext, and a date-shaped id would leak
+ * each entry's creation date even though its content stays encrypted.
+ */
+export function randomEntryId(): string {
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
+
+  return `e-${bytesToHex(bytes)}`;
+}
+
 /** Import raw AES key material. */
 async function importAesKey(raw: Uint8Array): Promise<CryptoKey> {
   return crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);

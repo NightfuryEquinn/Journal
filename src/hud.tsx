@@ -282,7 +282,7 @@ export function TopBar({
           JOURNS
         </span>
         <span className="text-micro tracking-[0.22em] text-fg-mute max-tablet:hidden">
-          // FIELD JOURNAL · v.1.1.1
+          // FIELD JOURNAL · v.1.1.2
         </span>
       </CenterTag>
 
