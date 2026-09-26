@@ -254,20 +254,21 @@ export function ProfileScreen({
           doneIds={progress.period.weeklyDone}
           onClaim={onClaimTimed}
         />
-      </div>
-
-      <div data-reveal className="mt-5">
-        <QuestPanel
-          title="MILESTONES"
-          icon={<FlameIcon className="size-3.5 text-accent" weight="fill" />}
-          meta="SPECIAL TAGS"
-          quests={MILESTONE_QUESTS}
-          entries={entries}
-          progress={progress}
-          doneIds={progress.claimedTags}
-          onClaim={onClaimTag}
-          milestone
-        />
+        {/* Spans both columns so it lands on its own full-width row instead of
+            leaving a dead cell beside it. */}
+        <div className="laptop:col-span-2">
+          <QuestPanel
+            title="MILESTONES"
+            icon={<FlameIcon className="size-3.5 text-accent" weight="fill" />}
+            meta="SPECIAL TAGS"
+            quests={MILESTONE_QUESTS}
+            entries={entries}
+            progress={progress}
+            doneIds={progress.claimedTags}
+            onClaim={onClaimTag}
+            milestone
+          />
+        </div>
       </div>
     </div>
   );
