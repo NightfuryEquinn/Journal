@@ -233,7 +233,7 @@ export function ProfileScreen({
         <NotificationsPanel token={token} />
       </div>
 
-      <div data-reveal className="grid grid-cols-1 items-start gap-5 laptop:grid-cols-2">
+      <div data-reveal className="flex flex-col gap-5">
         <QuestPanel
           title="DAILY QUESTS"
           icon={<SparkleIcon className="size-3.5 text-accent" weight="fill" />}
@@ -254,21 +254,17 @@ export function ProfileScreen({
           doneIds={progress.period.weeklyDone}
           onClaim={onClaimTimed}
         />
-        {/* Spans both columns so it lands on its own full-width row instead of
-            leaving a dead cell beside it. */}
-        <div className="laptop:col-span-2">
-          <QuestPanel
-            title="MILESTONES"
-            icon={<FlameIcon className="size-3.5 text-accent" weight="fill" />}
-            meta="SPECIAL TAGS"
-            quests={MILESTONE_QUESTS}
-            entries={entries}
-            progress={progress}
-            doneIds={progress.claimedTags}
-            onClaim={onClaimTag}
-            milestone
-          />
-        </div>
+        <QuestPanel
+          title="MILESTONES"
+          icon={<FlameIcon className="size-3.5 text-accent" weight="fill" />}
+          meta="SPECIAL TAGS"
+          quests={MILESTONE_QUESTS}
+          entries={entries}
+          progress={progress}
+          doneIds={progress.claimedTags}
+          onClaim={onClaimTag}
+          milestone
+        />
       </div>
     </div>
   );
@@ -454,7 +450,7 @@ function QuestPanel({
         }
         meta={meta}
       >
-        <ul className="flex flex-col gap-3">
+        <ul className="grid grid-cols-1 items-start gap-3 tablet:grid-cols-2">
           {quests.map((q) => {
             const satisfied = isQuestSatisfied(q, entries, progress.period);
             const claimed = milestone
