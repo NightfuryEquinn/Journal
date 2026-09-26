@@ -310,6 +310,7 @@ export default function App() {
           soundOn={soundOn}
           onToggleSound={() => setSoundOn((s) => !s)}
           onOpenProfile={authed ? openProfile : null}
+          onOpenLanding={() => setView({ name: 'landing' })}
           journaledDays={authed ? countJournaledDays(entries) : null}
         />
       )}
@@ -338,7 +339,9 @@ export default function App() {
             <Suspense fallback={<div className="h-full bg-bg" />}>
               <LandingScreen
                 hasIdentity={Boolean(identity)}
+                authed={authed}
                 onEnter={(intent) => setView({ name: 'login', intent })}
+                onOpenArchive={() => setView({ name: 'list' })}
                 onOpenTransparency={() => openTransparency('landing')}
               />
             </Suspense>

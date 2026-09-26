@@ -36,12 +36,22 @@ type Intent = 'create' | 'recover' | undefined;
 
 interface LandingScreenProps {
   hasIdentity: boolean;
+  /** An active, signed-in session — distinct from `hasIdentity`, which only means a device is bound. */
+  authed: boolean;
   onEnter: (intent?: Intent) => void;
+  /** Return to the archive without re-authenticating; only meaningful when `authed`. */
+  onOpenArchive: () => void;
   onOpenTransparency: () => void;
 }
 
 /** Public marketing page — nav, hero, privacy bento, how-it-works, rituals, quotes, CTA. */
-export function LandingScreen({ hasIdentity, onEnter, onOpenTransparency }: LandingScreenProps) {
+export function LandingScreen({
+  hasIdentity,
+  authed,
+  onEnter,
+  onOpenArchive,
+  onOpenTransparency,
+}: LandingScreenProps) {
   const scopeRef = useRef<HTMLDivElement>(null);
   useEntrance(scopeRef);
 
@@ -49,17 +59,35 @@ export function LandingScreen({ hasIdentity, onEnter, onOpenTransparency }: Land
     <main ref={scopeRef} className="relative w-full max-w-full overflow-x-hidden">
       <LandingNav
         hasIdentity={hasIdentity}
+        authed={authed}
         onEnter={onEnter}
+        onOpenArchive={onOpenArchive}
         onOpenTransparency={onOpenTransparency}
       />
-      <Hero hasIdentity={hasIdentity} onEnter={onEnter} />
+      <Hero
+        hasIdentity={hasIdentity}
+        authed={authed}
+        onEnter={onEnter}
+        onOpenArchive={onOpenArchive}
+      />
       <BentoSection />
       <ScrubSection />
       <HowSection />
       <RitualsSection />
       <QuoteCarousel />
-      <ClosingSection onEnter={onEnter} onOpenTransparency={onOpenTransparency} />
-      <LandingFooter onEnter={onEnter} onOpenTransparency={onOpenTransparency} />
+      <ClosingSection
+        hasIdentity={hasIdentity}
+        authed={authed}
+        onEnter={onEnter}
+        onOpenArchive={onOpenArchive}
+        onOpenTransparency={onOpenTransparency}
+      />
+      <LandingFooter
+        authed={authed}
+        onEnter={onEnter}
+        onOpenArchive={onOpenArchive}
+        onOpenTransparency={onOpenTransparency}
+      />
     </main>
   );
 }
@@ -67,11 +95,15 @@ export function LandingScreen({ hasIdentity, onEnter, onOpenTransparency }: Land
 /** Floating glass nav bar with anchor links and entry CTAs. */
 function LandingNav({
   hasIdentity,
+  authed,
   onEnter,
+  onOpenArchive,
   onOpenTransparency,
 }: {
   hasIdentity: boolean;
+  authed: boolean;
   onEnter: (intent?: Intent) => void;
+  onOpenArchive: () => void;
   onOpenTransparency: () => void;
 }) {
   return (
@@ -98,7 +130,7 @@ function LandingNav({
           </button>
         </div>
         <div className="flex items-center gap-2">
-          {!hasIdentity && (
+          {!authed && !hasIdentity && (
             <Btn
               variant="ghost"
               onClick={() => onEnter('recover')}
@@ -107,8 +139,11 @@ function LandingNav({
               RECOVER
             </Btn>
           )}
-          <Btn variant="primary" onClick={() => onEnter(hasIdentity ? undefined : 'create')}>
-            {hasIdentity ? 'UNLOCK' : 'START WRITING'}
+          <Btn
+            variant="primary"
+            onClick={authed ? onOpenArchive : () => onEnter(hasIdentity ? undefined : 'create')}
+          >
+            {authed ? 'OPEN ARCHIVE' : hasIdentity ? 'UNLOCK' : 'START WRITING'}
           </Btn>
         </div>
       </div>
@@ -144,10 +179,14 @@ function CipherPreview() {
 /** Editorial-split hero: wide two-to-three-line H1, dual CTAs, live cipher panel. */
 function Hero({
   hasIdentity,
+  authed,
   onEnter,
+  onOpenArchive,
 }: {
   hasIdentity: boolean;
+  authed: boolean;
   onEnter: (intent?: Intent) => void;
+  onOpenArchive: () => void;
 }) {
   const wordsRef = useRef<HTMLHeadingElement>(null);
   const ctaRef = useRef<HTMLDivElement>(null);
@@ -198,11 +237,14 @@ function Hero({
             device — Journs and its servers never see the plaintext.
           </p>
           <div ref={ctaRef} className="mt-9 flex flex-wrap gap-3">
-            <Btn variant="primary" onClick={() => onEnter(hasIdentity ? undefined : 'create')}>
+            <Btn
+              variant="primary"
+              onClick={authed ? onOpenArchive : () => onEnter(hasIdentity ? undefined : 'create')}
+            >
               <CaretRightIcon className="size-3.5" weight="bold" />
-              {hasIdentity ? 'UNLOCK THIS DEVICE' : 'START WRITING'}
+              {authed ? 'OPEN ARCHIVE' : hasIdentity ? 'UNLOCK THIS DEVICE' : 'START WRITING'}
             </Btn>
-            {!hasIdentity && (
+            {!authed && !hasIdentity && (
               <Btn variant="ghost" onClick={() => onEnter('recover')}>
                 RECOVER WITH 12 WORDS
               </Btn>
@@ -556,10 +598,16 @@ function QuoteCarousel() {
 
 /** Final massive CTA over a mesh glow. */
 function ClosingSection({
+  hasIdentity,
+  authed,
   onEnter,
+  onOpenArchive,
   onOpenTransparency,
 }: {
+  hasIdentity: boolean;
+  authed: boolean;
   onEnter: (intent?: Intent) => void;
+  onOpenArchive: () => void;
   onOpenTransparency: () => void;
 }) {
   return (
@@ -570,9 +618,12 @@ function ClosingSection({
           Open your first log.
         </h2>
         <div className="flex flex-wrap justify-center gap-3">
-          <Btn variant="primary" onClick={() => onEnter('create')}>
+          <Btn
+            variant="primary"
+            onClick={authed ? onOpenArchive : () => onEnter(hasIdentity ? undefined : 'create')}
+          >
             <CaretRightIcon className="size-3.5" weight="bold" />
-            START WRITING
+            {authed ? 'OPEN ARCHIVE' : hasIdentity ? 'UNLOCK THIS DEVICE' : 'START WRITING'}
           </Btn>
           <Btn variant="ghost" onClick={onOpenTransparency}>
             READ THE DATA PATH
@@ -585,10 +636,14 @@ function ClosingSection({
 
 /** Wordmark, quick links, version line. */
 function LandingFooter({
+  authed,
   onEnter,
+  onOpenArchive,
   onOpenTransparency,
 }: {
+  authed: boolean;
   onEnter: (intent?: Intent) => void;
+  onOpenArchive: () => void;
   onOpenTransparency: () => void;
 }) {
   return (
@@ -601,12 +656,28 @@ function LandingFooter({
           <button type="button" className="hover:text-accent" onClick={onOpenTransparency}>
             TRANSPARENCY
           </button>
-          <button type="button" className="hover:text-accent" onClick={() => onEnter(undefined)}>
-            UNLOCK
-          </button>
-          <button type="button" className="hover:text-accent" onClick={() => onEnter('recover')}>
-            RECOVER
-          </button>
+          {authed ? (
+            <button type="button" className="hover:text-accent" onClick={onOpenArchive}>
+              OPEN ARCHIVE
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="hover:text-accent"
+                onClick={() => onEnter(undefined)}
+              >
+                UNLOCK
+              </button>
+              <button
+                type="button"
+                className="hover:text-accent"
+                onClick={() => onEnter('recover')}
+              >
+                RECOVER
+              </button>
+            </>
+          )}
         </div>
         <span className="font-mono text-micro tracking-[0.08em] text-fg-mute">
           // v.1.0.1 · ciphertext only · © {new Date().getFullYear()}

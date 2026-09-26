@@ -238,6 +238,7 @@ export function TopBar({
   soundOn,
   onToggleSound,
   onOpenProfile,
+  onOpenLanding,
   journaledDays,
 }: {
   user: string;
@@ -245,10 +246,13 @@ export function TopBar({
   soundOn: boolean;
   onToggleSound: () => void;
   onOpenProfile?: (() => void) | null;
+  /** Navigate to the marketing landing page — the wordmark doubles as a home link. */
+  onOpenLanding?: () => void;
   /** Count of distinct days with a journal entry; null when signed out. */
   journaledDays: number | null;
 }) {
   const now = useClock();
+  const CenterTag = onOpenLanding ? 'button' : 'div';
 
   return (
     <div className="relative z-10 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-line bg-bg/70 px-3 py-2 font-mono text-meta backdrop-blur-md max-tablet:grid-cols-[1fr_auto] max-tablet:gap-2 max-tablet:px-2.5 desktop:gap-4 desktop:px-5.5">
@@ -259,14 +263,28 @@ export function TopBar({
         </span>
       </div>
 
-      <div className="flex shrink-0 flex-col items-center gap-1 px-1 leading-none max-tablet:col-start-1 max-tablet:justify-self-start">
+      <CenterTag
+        type={onOpenLanding ? 'button' : undefined}
+        className={`flex shrink-0 flex-col items-center gap-1 px-1 leading-none max-tablet:col-start-1 max-tablet:justify-self-start ${onOpenLanding ? 'tap-target transition-colors duration-100 hover:text-accent' : ''}`}
+        onClick={
+          onOpenLanding
+            ? () => {
+                SoundManager.click();
+                onOpenLanding();
+              }
+            : undefined
+        }
+        onMouseEnter={onOpenLanding ? () => SoundManager.hover() : undefined}
+        title={onOpenLanding ? 'About Journs' : undefined}
+        aria-label={onOpenLanding ? 'About Journs' : undefined}
+      >
         <span className="font-headline text-body font-semibold tracking-[0.32em] text-fg">
           JOURNS
         </span>
         <span className="text-micro tracking-[0.22em] text-fg-mute max-tablet:hidden">
           // FIELD JOURNAL · v.1.0.1
         </span>
-      </div>
+      </CenterTag>
 
       <div className="flex min-w-0 items-center justify-end gap-3 overflow-hidden text-fg-dim desktop:gap-5">
         {onOpenProfile && (

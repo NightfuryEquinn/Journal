@@ -233,7 +233,7 @@ export function ProfileScreen({
         <NotificationsPanel token={token} />
       </div>
 
-      <div data-reveal className="grid grid-cols-1 items-start gap-5 laptop:grid-cols-3">
+      <div data-reveal className="grid grid-cols-1 items-start gap-5 laptop:grid-cols-2">
         <QuestPanel
           title="DAILY QUESTS"
           icon={<SparkleIcon className="size-3.5 text-accent" weight="fill" />}
@@ -254,6 +254,9 @@ export function ProfileScreen({
           doneIds={progress.period.weeklyDone}
           onClaim={onClaimTimed}
         />
+      </div>
+
+      <div data-reveal className="mt-5">
         <QuestPanel
           title="MILESTONES"
           icon={<FlameIcon className="size-3.5 text-accent" weight="fill" />}
