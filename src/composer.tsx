@@ -1,9 +1,17 @@
 // composer.tsx — console-style writer
 import { useEffect, useRef, useState } from 'react';
+import {
+  ArrowsClockwiseIcon,
+  CaretLeftIcon,
+  CaretRightIcon,
+  CircleNotchIcon,
+  TrashIcon,
+} from '@phosphor-icons/react';
 import type { JournalEntry } from './types';
-import { DecodeText, Panel, Btn, Caret, HudSelect } from './hud';
+import { CHIP, DecodeText, Panel, Btn, Caret, HudSelect, PAGE } from './hud';
 import { SoundManager } from './sound';
 import { fmtDate, fmtTime, pad } from './format';
+import { useEntrance } from './motion';
 
 const MOOD_OPTS = ['LOW', 'DIM', 'STEADY', 'GOOD', 'HIGH'];
 const ENERGY_OPTS = ['DRAINED', 'LOW', 'STEADY', 'CHARGED', 'PEAKED'];
@@ -24,7 +32,7 @@ function resolveWeather(raw?: string): string {
   return WEATHER_OPTS.includes(label as (typeof WEATHER_OPTS)[number]) ? label : WEATHER_OPTS[0];
 }
 
-type SavingState = 'idle' | 'saving' | 'saved';
+type SavingState = 'idle' | 'saving';
 
 interface ComposerScreenProps {
   existing: JournalEntry | null;
@@ -33,11 +41,8 @@ interface ComposerScreenProps {
   onDelete: (entry: JournalEntry) => void;
 }
 
-const CHIP =
-  'border px-[7px] py-0.5 font-mono text-[9.5px] tracking-[0.1em] text-accent bg-accent-soft border-[color-mix(in_oklab,var(--accent)_35%,transparent)]';
-
 const HUD_FIELD =
-  'w-full border border-line-strong bg-black/40 px-2.5 py-2 font-mono text-[11px] tracking-[0.08em] text-fg';
+  'w-full border border-line-strong bg-black/40 px-2.5 py-2 font-mono text-meta tracking-[0.08em] text-fg';
 
 /** Console-style composer for creating or editing journal entries. */
 export function ComposerScreen({ existing, onSave, onCancel, onDelete }: ComposerScreenProps) {
@@ -50,23 +55,24 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
   const [weather, setWeather] = useState(() => resolveWeather(existing?.weather));
   const [tagsStr, setTagsStr] = useState((existing?.tags || []).join(', '));
   const [savingState, setSavingState] = useState<SavingState>('idle');
+  const [saveError, setSaveError] = useState<string | null>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
-  const saveTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const scopeRef = useRef<HTMLDivElement>(null);
+  useEntrance(scopeRef);
+  // Snapshot at mount — compared against current field values to warn before
+  // discarding a partially-written or partially-edited entry.
+  const initial = useRef({
+    title: existing?.title || '',
+    body: existing?.body || '',
+    mood: existing?.mood ?? 4,
+    energy: existing?.energy ?? 3,
+    weather: resolveWeather(existing?.weather),
+    tagsStr: (existing?.tags || []).join(', '),
+  });
 
   useEffect(() => {
     titleRef.current?.focus();
-
-    // Cancel the pending save-animation chain if the composer unmounts (nav,
-    // delete, sign-out) before it finishes — otherwise onSave still fires on
-    // a dead screen and setSavingState warns/no-ops into the void. Read the
-    // ref now so cleanup clears the timers scheduled during this mount, not
-    // whatever the ref happens to hold by the time it runs.
-    const timers = saveTimers.current;
-
-    return () => {
-      timers.forEach(clearTimeout);
-    };
   }, []);
 
   const wc = body.trim() ? body.trim().split(/\s+/).length : 0;
@@ -75,16 +81,40 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
   /** Play type sound on keystroke. */
   const handleType = () => SoundManager.type();
 
-  /** Validate and commit the entry with a short write animation. */
-  const save = () => {
+  /** True when any field has changed from its mount-time snapshot. */
+  const isDirty = () => {
+    const i = initial.current;
+    return (
+      title !== i.title ||
+      body !== i.body ||
+      mood !== i.mood ||
+      energy !== i.energy ||
+      weather !== i.weather ||
+      tagsStr !== i.tagsStr
+    );
+  };
+
+  /** Confirm before discarding unsaved changes. */
+  const handleCancel = () => {
+    if (isDirty() && !window.confirm('Discard unsaved changes?')) {
+      return;
+    }
+
+    onCancel();
+  };
+
+  /** Validate and commit the entry. Stays on-screen with an error if the sync fails. */
+  const save = async () => {
     if (!title.trim() || !body.trim()) {
       SoundManager.deny();
 
       return;
     }
 
+    setSaveError(null);
     setSavingState('saving');
     SoundManager.click();
+
     const entry: JournalEntry = {
       id:
         existing?.id ||
@@ -101,64 +131,81 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
         .filter(Boolean),
     };
 
-    saveTimers.current.push(
-      setTimeout(() => {
-        setSavingState('saved');
-        SoundManager.confirm();
-        saveTimers.current.push(
-          setTimeout(() => {
-            void onSave(entry);
-          }, 400),
-        );
-      }, 700),
-    );
+    try {
+      await onSave(entry);
+      SoundManager.confirm();
+    } catch (err) {
+      setSavingState('idle');
+      setSaveError(err instanceof Error ? err.message : 'commit failed');
+      SoundManager.deny();
+    }
   };
 
   return (
-    <div className="mx-auto max-w-350 px-4 pt-4 pb-6 max-phone:px-3 laptop:px-7 laptop:pt-5 laptop:pb-7">
-      <div className="mb-5.5 grid grid-cols-1 items-center gap-3 tablet:grid-cols-[auto_1fr_auto] tablet:gap-4.5">
-        <Btn variant="ghost" onClick={onCancel}>
-          ◂ DISCARD
+    <div ref={scopeRef} className={PAGE}>
+      <div
+        data-reveal
+        className="mb-5.5 grid grid-cols-1 items-center gap-3 tablet:grid-cols-[auto_1fr_auto] tablet:gap-4.5"
+      >
+        <Btn variant="ghost" onClick={handleCancel}>
+          <CaretLeftIcon className="size-3.5" weight="bold" />
+          DISCARD
         </Btn>
-        <div className="min-w-0 truncate text-center font-mono text-[10px] tracking-[0.18em] text-fg-mute max-tablet:order-first max-tablet:text-left">
+        <div className="min-w-0 truncate text-center font-mono text-micro tracking-[0.18em] text-fg-mute max-tablet:order-first max-tablet:text-left">
           {isEdit ? 'ARCHIVE / EDIT' : 'ARCHIVE / NEW LOG'} · OPERATOR-01
         </div>
         <div className="flex flex-wrap gap-2">
           {isEdit && existing && (
             <Btn variant="danger" onClick={() => onDelete(existing)}>
-              ✕ DELETE
+              <TrashIcon className="size-3.5" weight="bold" />
+              DELETE
             </Btn>
           )}
           <Btn
             variant="primary"
-            onClick={save}
+            onClick={() => void save()}
             disabled={savingState !== 'idle' || !title.trim() || !body.trim()}
           >
-            {savingState === 'idle' && (isEdit ? '↻ UPDATE LOG' : '▸ COMMIT LOG')}
-            {savingState === 'saving' && '… WRITING'}
-            {savingState === 'saved' && '✓ COMMITTED'}
+            {savingState === 'idle' ? (
+              <>
+                {isEdit ? (
+                  <ArrowsClockwiseIcon className="size-3.5" weight="bold" />
+                ) : (
+                  <CaretRightIcon className="size-3.5" weight="bold" />
+                )}
+                {isEdit ? 'UPDATE LOG' : 'COMMIT LOG'}
+              </>
+            ) : (
+              <>
+                <CircleNotchIcon className="size-3.5 animate-spin" weight="bold" />
+                WRITING
+              </>
+            )}
           </Btn>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 items-start gap-5 tablet:grid-cols-[minmax(0,1fr)_minmax(0,320px)] tablet:gap-5.5">
+      <div
+        data-reveal
+        className="grid grid-cols-1 items-start gap-5 tablet:grid-cols-[minmax(0,1fr)_minmax(0,320px)] tablet:gap-5.5"
+      >
         <main className="min-w-0">
           <Panel
             title={<DecodeText text="CONSOLE · COMPOSE" />}
             meta={`${isEdit ? 'PATCH' : 'INSERT'} · e2ee`}
             headerRight={
-              <span className="font-mono text-[10px] tracking-[0.02em] text-fg-dim max-phone:hidden">
+              <span className="font-mono text-micro tracking-[0.02em] max-phone:hidden">
                 {savingState === 'saving' ? (
                   <span className="text-accent">// encrypting · PUT /api/entries …</span>
-                ) : savingState === 'saved' ? (
-                  <span className="text-good">// ack · atlas durable</span>
+                ) : saveError ? (
+                  <span className="text-bad">// commit failed · {saveError}</span>
                 ) : (
-                  '// awaiting input'
+                  <span className="text-fg-dim">// awaiting input</span>
                 )}
               </span>
             }
           >
-            <div className="font-mono text-[13px] leading-[1.7]">
+            <div className="font-mono text-body leading-[1.7]">
               <div className="py-1 text-fg-dim">
                 <span className="font-mono tracking-[0.02em] text-fg-dim">$</span>
                 <span className="font-mono tracking-[0.02em] text-accent"> operator@journs:</span>
@@ -170,7 +217,7 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
                 </span>
               </div>
               <div className="mb-2.5 flex items-center border-b border-dashed border-line py-2.5">
-                <label className="mr-2.5 font-mono text-xs tracking-[0.02em] text-fg-dim">
+                <label className="mr-2.5 font-mono text-ui tracking-[0.02em] text-fg-dim">
                   title:
                 </label>
                 <input
@@ -189,7 +236,7 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
               </div>
               <div className="relative mt-1.5 grid grid-cols-[36px_1fr] border border-line-strong bg-black/40 max-phone:grid-cols-1">
                 <div
-                  className="select-none border-r border-line bg-black/40 py-3 pr-2 text-right font-mono text-[10.5px] leading-[1.7] text-fg-mute max-phone:hidden"
+                  className="select-none border-r border-line bg-black/40 py-3 pr-2 text-right font-mono text-meta leading-[1.7] text-fg-mute max-phone:hidden"
                   aria-hidden="true"
                 >
                   {Array.from({ length: Math.max(12, body.split('\n').length) }, (_, i) => (
@@ -198,7 +245,7 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
                 </div>
                 <textarea
                   ref={bodyRef}
-                  className="min-h-90 w-full resize-y px-3.5 py-3 font-mono text-[13px] leading-[1.7] text-fg placeholder:text-fg-mute max-phone:min-h-70"
+                  className="min-h-90 w-full resize-y px-3.5 py-3 font-mono text-body leading-[1.7] text-fg placeholder:text-fg-mute max-phone:min-h-70"
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
                   placeholder={`> type your log entry …\n> markdown shorthand is fine — this is a personal feed.\n> press ⌘+enter to commit when ready.`}
@@ -208,12 +255,12 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
 
                     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
                       e.preventDefault();
-                      save();
+                      void save();
                     }
                   }}
                 />
               </div>
-              <div className="mt-2.5 flex flex-wrap items-center gap-4 font-mono text-[10px] tracking-[0.14em] text-fg-mute">
+              <div className="mt-2.5 flex flex-wrap items-center gap-4 font-mono text-micro tracking-[0.14em] text-fg-mute">
                 <span>
                   WC <span className="text-accent">{wc}</span>
                 </span>
@@ -234,19 +281,19 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
           <Panel title="METADATA" meta="REQUIRED">
             <div className="flex flex-col gap-4.5">
               <div className="flex flex-col gap-1.5">
-                <label className="font-mono text-[9.5px] tracking-[0.2em] text-fg-mute">
+                <label className="font-mono text-micro tracking-[0.2em] text-fg-mute">
                   DATE / TIME
                 </label>
-                <div className="font-mono text-xs tracking-[0.02em] text-accent">
+                <div className="font-mono text-ui tracking-[0.02em] text-accent">
                   {fmtDate(now)} · {fmtTime(now)}
                 </div>
-                <span className="font-mono text-[9.5px] tracking-[0.02em] text-fg-mute">
+                <span className="font-mono text-micro tracking-[0.02em] text-fg-mute">
                   // auto-captured
                 </span>
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="font-mono text-[9.5px] tracking-[0.2em] text-fg-mute">
+                <label className="font-mono text-micro tracking-[0.2em] text-fg-mute">
                   MOOD{' '}
                   <span className="tracking-[0.06em] text-fg-mute">
                     {mood}/5 · {MOOD_OPTS[mood - 1]}
@@ -262,7 +309,7 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
                   }}
                   className="hud-range"
                 />
-                <div className="grid grid-cols-5 text-center font-mono text-[8.5px] tracking-[0.14em] text-fg-mute">
+                <div className="grid grid-cols-5 text-center font-mono text-micro tracking-[0.14em] text-fg-mute">
                   <span className="text-left">LOW</span>
                   <span>·</span>
                   <span>·</span>
@@ -272,7 +319,7 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="font-mono text-[9.5px] tracking-[0.2em] text-fg-mute">
+                <label className="font-mono text-micro tracking-[0.2em] text-fg-mute">
                   ENERGY{' '}
                   <span className="tracking-[0.06em] text-fg-mute">
                     {energy}/5 · {ENERGY_OPTS[energy - 1]}
@@ -288,7 +335,7 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
                   }}
                   className="hud-range"
                 />
-                <div className="grid grid-cols-5 text-center font-mono text-[8.5px] tracking-[0.14em] text-fg-mute">
+                <div className="grid grid-cols-5 text-center font-mono text-micro tracking-[0.14em] text-fg-mute">
                   <span className="text-left">DRAINED</span>
                   <span>·</span>
                   <span>·</span>
@@ -298,7 +345,7 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="font-mono text-[9.5px] tracking-[0.2em] text-fg-mute">
+                <label className="font-mono text-micro tracking-[0.2em] text-fg-mute">
                   WEATHER
                 </label>
                 <HudSelect
@@ -310,7 +357,7 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="font-mono text-[9.5px] tracking-[0.2em] text-fg-mute">
+                <label className="font-mono text-micro tracking-[0.2em] text-fg-mute">
                   TAGS <span className="tracking-[0.06em] text-fg-mute">comma-separated</span>
                 </label>
                 <input
@@ -337,7 +384,7 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
 
           <div className="h-3.5" />
           <Panel title="DB · WRITE PATH">
-            <div className="flex flex-col gap-1 font-mono text-[10.5px]">
+            <div className="flex flex-col gap-1 font-mono text-meta">
               {(
                 [
                   ['→', 'ENCRYPT', 'aes-gcm · local dek', false],
@@ -352,11 +399,11 @@ export function ComposerScreen({ existing, onSave, onCancel, onDelete }: Compose
                 >
                   <span>{time}</span>
                   <span
-                    className={`text-[9.5px] tracking-[0.14em] ${good ? 'text-good' : 'text-fg'}`}
+                    className={`text-micro tracking-[0.14em] ${good ? 'text-good' : 'text-fg'}`}
                   >
                     {tag}
                   </span>
-                  <span className="overflow-hidden text-[10px] tracking-[0.06em] text-ellipsis whitespace-nowrap text-fg-mute">
+                  <span className="overflow-hidden text-micro tracking-[0.06em] text-ellipsis whitespace-nowrap text-fg-mute">
                     {id}
                   </span>
                 </div>

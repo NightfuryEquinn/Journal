@@ -1,4 +1,11 @@
 import { useEffect, useRef, useState, type FormEvent, type RefObject } from 'react';
+import {
+  ArrowsClockwiseIcon,
+  CaretLeftIcon,
+  CaretRightIcon,
+  CheckIcon,
+  CopyIcon,
+} from '@phosphor-icons/react';
 import { DecodeText, Bracket, Panel, Btn, Caret } from './hud';
 import { SoundManager } from './sound';
 import {
@@ -92,20 +99,33 @@ export function LoginScreen({
   onAuth,
   identity,
   syncError,
+  intent,
+  onAbout,
 }: {
   onAuth: (session: AuthSession, options?: { isNewUser?: boolean }) => void | Promise<void>;
   identity: DeviceIdentity | null;
   syncError?: string | null;
+  /** Set by the landing page's CTAs to skip the "choose" screen. */
+  intent?: 'create' | 'recover';
+  /** Return to the marketing landing page. Omitted once an identity exists. */
+  onAbout?: () => void;
 }) {
   const [boot, setBoot] = useState<BootPhase>('boot');
   const [bootIdx, setBootIdx] = useState(0);
-  const [mode, setMode] = useState<Mode>(() => (identity ? 'unlock' : 'choose'));
+  const [mode, setMode] = useState<Mode>(() => {
+    if (identity) return 'unlock';
+    if (intent === 'create') return 'create-phrase';
+    if (intent === 'recover') return 'recover-phrase';
+    return 'choose';
+  });
   const [pwd, setPwd] = useState('');
   const [pwd2, setPwd2] = useState('');
   const [shake, setShake] = useState(false);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
-  const [phrase, setPhrase] = useState<string[]>([]);
+  const [phrase, setPhrase] = useState<string[]>(() =>
+    !identity && intent === 'create' ? generateRecoveryPhrase() : [],
+  );
   const [recoverWords, setRecoverWords] = useState<string[]>(() => Array(12).fill(''));
   const [savedOk, setSavedOk] = useState(false);
   const [copied, setCopied] = useState<'ok' | 'fail' | null>(null);
@@ -388,6 +408,15 @@ export function LoginScreen({
   return (
     <div className="relative grid min-h-full place-items-center px-4 py-8 max-phone:py-6 laptop:px-[6vw] laptop:py-10">
       <div className="grid w-full max-w-245 grid-cols-1 items-stretch gap-8 max-tablet:gap-6 tablet:grid-cols-[minmax(0,320px)_1fr] tablet:gap-10 laptop:gap-15">
+        {onAbout && (
+          <div className="tablet:col-span-2">
+            <Btn variant="ghost" onClick={onAbout}>
+              <CaretLeftIcon className="size-3" weight="bold" />
+              ABOUT JOURNS
+            </Btn>
+          </div>
+        )}
+
         <Bracket className="max-w-md justify-self-center tablet:max-w-none tablet:justify-self-stretch">
           <div
             className="flex flex-col gap-3.5 border border-line-strong bg-[linear-gradient(180deg,var(--bg-1),var(--bg))] p-4"
@@ -395,8 +424,8 @@ export function LoginScreen({
               boxShadow: '0 0 0 1px rgba(0,0,0,0.4), 0 14px 30px rgba(0,0,0,0.5)',
             }}
           >
-            <div className="flex items-center justify-between text-[10px]">
-              <span className="font-display font-medium tracking-[0.12em] text-fg-dim uppercase">
+            <div className="flex items-center justify-between text-micro">
+              <span className="font-headline font-medium tracking-[0.12em] text-fg-dim uppercase">
                 OPERATOR ID
               </span>
               <span className="font-mono tracking-[0.02em] text-fg-dim">
@@ -407,7 +436,7 @@ export function LoginScreen({
               <svg viewBox="0 0 200 200" width="100%" height="100%">
                 <defs>
                   <pattern id="g" width="6" height="6" patternUnits="userSpaceOnUse">
-                    <path d="M0 6 L6 0" stroke="rgba(243,232,213,0.08)" strokeWidth="0.5" />
+                    <path d="M0 6 L6 0" stroke="rgba(230,239,255,0.08)" strokeWidth="0.5" />
                   </pattern>
                 </defs>
                 <rect width="200" height="200" fill="url(#g)" />
@@ -425,7 +454,7 @@ export function LoginScreen({
                   strokeWidth="1"
                   fill="none"
                 />
-                <g stroke="rgba(243,232,213,0.5)" strokeWidth="0.4" fill="none">
+                <g stroke="rgba(230,239,255,0.5)" strokeWidth="0.4" fill="none">
                   <line x1="12" y1="100" x2="34" y2="100" />
                   <line x1="166" y1="100" x2="188" y2="100" />
                   <line x1="100" y1="12" x2="100" y2="34" />
@@ -442,7 +471,7 @@ export function LoginScreen({
                 </text>
               </svg>
             </div>
-            <div className="grid grid-cols-1 gap-1.5 font-mono text-[10px]">
+            <div className="grid grid-cols-1 gap-1.5 font-mono text-micro">
               {(
                 [
                   ['CALLSIGN', callsign, false],
@@ -466,7 +495,7 @@ export function LoginScreen({
         >
           <Panel title={<DecodeText text="SECURE TERMINAL" />} meta="auth · e2ee · atlas">
             <div className="flex min-h-70 flex-col gap-4.5 max-phone:min-h-60">
-              <div className="font-mono text-xs leading-[1.8]">
+              <div className="font-mono text-ui leading-[1.8]">
                 {TYPED_BOOT_LINES.slice(0, bootIdx).map((l, i) => (
                   <div key={i} className={i === 0 ? 'text-fg' : 'text-fg-dim'}>
                     <DecodeText text={l} speed={12} />
@@ -480,19 +509,20 @@ export function LoginScreen({
               </div>
 
               {boot === 'ready' && syncError && (
-                <div className="font-mono text-[11px] tracking-[0.02em] text-accent">
+                <div className="font-mono text-meta tracking-[0.02em] text-accent">
                   // sync error · {syncError}
                 </div>
               )}
 
               {boot === 'ready' && mode === 'choose' && (
                 <div className="flex flex-col gap-3">
-                  <p className="font-mono text-[11px] tracking-[0.02em] text-fg-dim">
+                  <p className="font-mono text-meta tracking-[0.02em] text-fg-dim">
                     // no local session · create a new user on Atlas or recover with 12 words
                   </p>
                   <div className="flex flex-wrap gap-2.5">
                     <Btn variant="primary" onClick={startCreate}>
-                      ▸ CREATE NEW USER
+                      <CaretRightIcon className="size-3" weight="bold" />
+                      CREATE NEW USER
                     </Btn>
                     <Btn variant="ghost" onClick={startRecover}>
                       RECOVER / NEW DEVICE
@@ -503,16 +533,17 @@ export function LoginScreen({
 
               {boot === 'ready' && mode === 'unlock' && identity && (
                 <form onSubmit={submitUnlock}>
-                  <label className="mb-2 block text-xs">
+                  <label className="mb-2 block text-ui" htmlFor="login-pwd">
                     <span className="font-mono tracking-[0.02em] text-accent">operator@journs</span>
                     <span className="font-mono tracking-[0.02em] text-fg-dim"> :~$ </span>
                     <span className="font-mono tracking-[0.02em]">device lock &gt;</span>
                   </label>
-                  <div className="flex items-center border border-line-strong bg-black/40 px-3.5 py-3 font-mono text-base tracking-[0.3em]">
+                  <div className="flex items-center border border-line-strong bg-black/40 px-3.5 py-3 font-mono text-lead tracking-[0.3em]">
                     <input
+                      id="login-pwd"
                       ref={inputRef}
                       type="password"
-                      className="min-w-0 flex-1 bg-transparent font-mono text-base tracking-[0.3em] text-accent"
+                      className="min-w-0 flex-1 bg-transparent font-mono text-lead tracking-[0.3em] text-accent"
                       value={pwd}
                       onChange={(e) => setPwd(e.target.value)}
                       onKeyDown={() => SoundManager.type()}
@@ -522,7 +553,7 @@ export function LoginScreen({
                     />
                     <Caret />
                   </div>
-                  <div className="mt-3 min-h-4 font-mono text-[11px] tracking-[0.02em] text-fg-dim">
+                  <div className="mt-3 min-h-4 font-mono text-meta tracking-[0.02em] text-fg-dim">
                     {status ? (
                       <span className={status.includes('granted') ? 'text-accent' : undefined}>
                         {status}
@@ -533,7 +564,8 @@ export function LoginScreen({
                   </div>
                   <div className="mt-4.5 flex flex-wrap gap-2.5">
                     <Btn type="submit" variant="primary" disabled={busy || !pwd}>
-                      ▸ UNLOCK
+                      <CaretRightIcon className="size-3" weight="bold" />
+                      UNLOCK
                     </Btn>
                     <Btn
                       variant="ghost"
@@ -563,12 +595,12 @@ export function LoginScreen({
 
               {boot === 'ready' && mode === 'create-phrase' && (
                 <div className="flex flex-col gap-3.5">
-                  <p className="font-mono text-[11px] tracking-[0.02em] text-fg-dim">
+                  <p className="font-mono text-meta tracking-[0.02em] text-fg-dim">
                     // write down these 12 BIP39 words · they unwrap your DEK · never leave this
                     device
                   </p>
                   <div className="flex flex-wrap items-center justify-between gap-2.5">
-                    <span className="font-mono text-[10px] tracking-[0.14em] text-fg-mute">
+                    <span className="font-mono text-micro tracking-[0.14em] text-fg-mute">
                       RECOVERY PHRASE · 12 WORDS
                     </span>
                     <div className="flex shrink-0 items-center gap-1.5">
@@ -577,14 +609,23 @@ export function LoginScreen({
                         onClick={rerollPhrase}
                         title="Generate a different phrase"
                       >
-                        ⟳ REROLL
+                        <ArrowsClockwiseIcon className="size-3" weight="bold" />
+                        REROLL
                       </Btn>
                       <Btn variant="ghost" onClick={copyPhrase}>
-                        {copied === 'ok'
-                          ? '✓ COPIED'
-                          : copied === 'fail'
-                            ? 'COPY FAILED'
-                            : 'COPY ALL'}
+                        {copied === 'ok' ? (
+                          <>
+                            <CheckIcon className="size-3" weight="bold" />
+                            COPIED
+                          </>
+                        ) : copied === 'fail' ? (
+                          'COPY FAILED'
+                        ) : (
+                          <>
+                            <CopyIcon className="size-3" weight="bold" />
+                            COPY ALL
+                          </>
+                        )}
                       </Btn>
                     </div>
                   </div>
@@ -592,14 +633,14 @@ export function LoginScreen({
                     {phrase.map((w, i) => (
                       <div
                         key={`${w}-${i}`}
-                        className="flex items-center gap-2 border border-line bg-black/30 px-2.5 py-2 font-mono text-[12px]"
+                        className="flex items-center gap-2 border border-line bg-black/30 px-2.5 py-2 font-mono text-ui"
                       >
                         <span className="text-fg-mute">{String(i + 1).padStart(2, '0')}</span>
                         <span className="text-accent">{w}</span>
                       </div>
                     ))}
                   </div>
-                  <label className="flex min-h-11 cursor-pointer items-center gap-2.5 font-mono text-[11px] text-fg-dim">
+                  <label className="flex min-h-11 cursor-pointer items-center gap-2.5 font-mono text-meta text-fg-dim">
                     <input
                       type="checkbox"
                       checked={savedOk}
@@ -610,7 +651,8 @@ export function LoginScreen({
                   </label>
                   <div className="flex flex-wrap gap-2.5">
                     <Btn variant="primary" disabled={!savedOk} onClick={confirmPhraseSaved}>
-                      ▸ CONTINUE
+                      <CaretRightIcon className="size-3" weight="bold" />
+                      CONTINUE
                     </Btn>
                     <Btn
                       variant="ghost"
@@ -629,18 +671,18 @@ export function LoginScreen({
 
               {boot === 'ready' && mode === 'create-verify' && (
                 <form onSubmit={submitPhraseVerify} className="flex flex-col gap-3.5">
-                  <p className="font-mono text-[11px] tracking-[0.02em] text-fg-dim">
+                  <p className="font-mono text-meta tracking-[0.02em] text-fg-dim">
                     // confirm 3 words from your recovery phrase
                   </p>
                   <div className="flex flex-col gap-2.5">
                     {verifySlots.map((slot, i) => (
                       <label key={slot} className="flex flex-col gap-1.5">
-                        <span className="font-mono text-[10px] tracking-[0.14em] text-fg-mute">
+                        <span className="font-mono text-micro tracking-[0.14em] text-fg-mute">
                           WORD {String(slot + 1).padStart(2, '0')}
                         </span>
                         <input
                           type="text"
-                          className="border border-line-strong bg-black/40 px-3.5 py-3 font-mono text-[13px] tracking-[0.08em] text-accent max-tablet:min-h-11"
+                          className="border border-line-strong bg-black/40 px-3.5 py-3 font-mono text-body tracking-[0.08em] text-accent max-tablet:min-h-11"
                           value={verifyAnswers[i] ?? ''}
                           autoFocus={i === 0}
                           spellCheck={false}
@@ -663,7 +705,8 @@ export function LoginScreen({
                       variant="primary"
                       disabled={verifyAnswers.some((w) => !w.trim())}
                     >
-                      ▸ VERIFY WORDS
+                      <CaretRightIcon className="size-3" weight="bold" />
+                      VERIFY WORDS
                     </Btn>
                     <Btn
                       variant="ghost"
@@ -681,7 +724,7 @@ export function LoginScreen({
 
               {boot === 'ready' && mode === 'create-pass' && (
                 <form onSubmit={submitCreatePass} className="flex flex-col gap-3">
-                  <p className="font-mono text-[11px] tracking-[0.02em] text-fg-dim">
+                  <p className="font-mono text-meta tracking-[0.02em] text-fg-dim">
                     // set a device passphrase · wraps DEK · authenticates to Atlas
                   </p>
                   <PassFields
@@ -695,7 +738,8 @@ export function LoginScreen({
                   <StatusLine status={status} />
                   <div className="flex flex-wrap gap-2.5">
                     <Btn type="submit" variant="primary" disabled={busy || !pwd || !pwd2}>
-                      ▸ SEAL IDENTITY
+                      <CaretRightIcon className="size-3" weight="bold" />
+                      SEAL IDENTITY
                     </Btn>
                     <Btn
                       variant="ghost"
@@ -717,12 +761,12 @@ export function LoginScreen({
 
               {boot === 'ready' && mode === 'recover-phrase' && (
                 <div className="flex flex-col gap-3.5">
-                  <p className="font-mono text-[11px] tracking-[0.02em] text-fg-dim">
+                  <p className="font-mono text-meta tracking-[0.02em] text-fg-dim">
                     // new device · enter 12 words to unwrap DEK from Atlas
                   </p>
                   <input
                     type="text"
-                    className="border border-line bg-black/30 px-3 py-2.5 font-mono text-[12px] text-fg placeholder:text-fg-mute max-tablet:min-h-11"
+                    className="border border-line bg-black/30 px-3 py-2.5 font-mono text-ui text-fg placeholder:text-fg-mute max-tablet:min-h-11"
                     placeholder="PASTE FULL PHRASE (OPTIONAL)"
                     onChange={(e) => {
                       if (e.target.value.includes(' ')) {
@@ -738,12 +782,12 @@ export function LoginScreen({
                         key={i}
                         className="flex items-center gap-1.5 border border-line bg-black/30 px-2 py-1.5"
                       >
-                        <span className="shrink-0 font-mono text-[10px] text-fg-mute">
+                        <span className="shrink-0 font-mono text-micro text-fg-mute">
                           {String(i + 1).padStart(2, '0')}
                         </span>
                         <input
                           type="text"
-                          className="min-w-0 flex-1 bg-transparent font-mono text-[12px] text-accent max-tablet:min-h-11"
+                          className="min-w-0 flex-1 bg-transparent font-mono text-ui text-accent max-tablet:min-h-11"
                           value={w}
                           onChange={(e) => {
                             const next = [...recoverWords];
@@ -760,7 +804,8 @@ export function LoginScreen({
                   <StatusLine status={status} />
                   <div className="flex flex-wrap gap-2.5">
                     <Btn variant="primary" onClick={confirmRecoverPhrase}>
-                      ▸ CONTINUE
+                      <CaretRightIcon className="size-3" weight="bold" />
+                      CONTINUE
                     </Btn>
                     <Btn
                       variant="ghost"
@@ -777,7 +822,7 @@ export function LoginScreen({
 
               {boot === 'ready' && mode === 'recover-pass' && (
                 <form onSubmit={submitRecoverPass} className="flex flex-col gap-3">
-                  <p className="font-mono text-[11px] tracking-[0.02em] text-fg-dim">
+                  <p className="font-mono text-meta tracking-[0.02em] text-fg-dim">
                     // set a new device passphrase · rewraps DEK on Atlas
                   </p>
                   <PassFields
@@ -791,7 +836,8 @@ export function LoginScreen({
                   <StatusLine status={status} />
                   <div className="flex flex-wrap gap-2.5">
                     <Btn type="submit" variant="primary" disabled={busy || !pwd || !pwd2}>
-                      ▸ RESET DEVICE LOCK
+                      <CaretRightIcon className="size-3" weight="bold" />
+                      RESET DEVICE LOCK
                     </Btn>
                     <Btn
                       variant="ghost"
@@ -838,33 +884,37 @@ function PassFields({
 }) {
   return (
     <>
-      <div className="flex items-center border border-line-strong bg-black/40 px-3.5 py-3 font-mono text-base tracking-[0.3em]">
-        <input
-          ref={inputRef}
-          type="password"
-          className="min-w-0 flex-1 bg-transparent font-mono text-base tracking-[0.3em] text-accent"
-          value={pwd}
-          placeholder="PASS"
-          onChange={(e) => setPwd(e.target.value)}
-          onKeyDown={() => SoundManager.type()}
-          disabled={disabled}
-          autoComplete="new-password"
-          spellCheck={false}
-        />
-      </div>
-      <div className="flex items-center border border-line-strong bg-black/40 px-3.5 py-3 font-mono text-base tracking-[0.3em]">
-        <input
-          type="password"
-          className="min-w-0 flex-1 bg-transparent font-mono text-base tracking-[0.3em] text-accent"
-          value={pwd2}
-          placeholder="CONFIRM"
-          onChange={(e) => setPwd2(e.target.value)}
-          onKeyDown={() => SoundManager.type()}
-          disabled={disabled}
-          autoComplete="new-password"
-          spellCheck={false}
-        />
-      </div>
+      <label className="flex flex-col gap-1.5">
+        <span className="font-mono text-micro tracking-[0.14em] text-fg-mute">PASSPHRASE</span>
+        <div className="flex items-center border border-line-strong bg-black/40 px-3.5 py-3 font-mono text-lead tracking-[0.3em]">
+          <input
+            ref={inputRef}
+            type="password"
+            className="min-w-0 flex-1 bg-transparent font-mono text-lead tracking-[0.3em] text-accent"
+            value={pwd}
+            onChange={(e) => setPwd(e.target.value)}
+            onKeyDown={() => SoundManager.type()}
+            disabled={disabled}
+            autoComplete="new-password"
+            spellCheck={false}
+          />
+        </div>
+      </label>
+      <label className="flex flex-col gap-1.5">
+        <span className="font-mono text-micro tracking-[0.14em] text-fg-mute">CONFIRM</span>
+        <div className="flex items-center border border-line-strong bg-black/40 px-3.5 py-3 font-mono text-lead tracking-[0.3em]">
+          <input
+            type="password"
+            className="min-w-0 flex-1 bg-transparent font-mono text-lead tracking-[0.3em] text-accent"
+            value={pwd2}
+            onChange={(e) => setPwd2(e.target.value)}
+            onKeyDown={() => SoundManager.type()}
+            disabled={disabled}
+            autoComplete="new-password"
+            spellCheck={false}
+          />
+        </div>
+      </label>
     </>
   );
 }
@@ -882,7 +932,7 @@ function StatusLine({ status }: { status: string | null }) {
     status.includes('forging');
 
   return (
-    <div className="min-h-4 font-mono text-[11px] tracking-[0.02em] text-fg-dim">
+    <div className="min-h-4 font-mono text-meta tracking-[0.02em] text-fg-dim">
       <span className={ok ? 'text-accent' : undefined}>{status}</span>
     </div>
   );

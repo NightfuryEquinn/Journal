@@ -38,14 +38,15 @@ React 19 + TypeScript + Vite SPA, Vercel serverless API, MongoDB Atlas. Auth is 
 
 ### Frontend views
 
-| View         | Module             | Role                                                         |
-| ------------ | ------------------ | ------------------------------------------------------------ |
-| Login        | `login.tsx`        | Boot, unlock, create (phrase → verify → passphrase), recover |
-| Archive      | `list.tsx`         | Timeline / stack layouts, search, tags, replay tour          |
-| Reader       | `reader.tsx`       | Read a decrypted entry                                       |
-| Composer     | `composer.tsx`     | Create / edit entry (mood, energy, weather, tags)            |
-| Profile      | `profile.tsx`      | Operator, AURA, quests, import/export, transparency link     |
-| Transparency | `transparency.tsx` | Data-flow diagram + schema documentation                     |
+| View         | Module             | Role                                                               |
+| ------------ | ------------------ | ------------------------------------------------------------------ |
+| Landing      | `landing.tsx`      | Pre-auth marketing page; lazy-loaded, skipped on returning devices |
+| Login        | `login.tsx`        | Boot, unlock, create (phrase → verify → passphrase), recover       |
+| Archive      | `list.tsx`         | Timeline / stack layouts, search, tags, replay tour                |
+| Reader       | `reader.tsx`       | Read a decrypted entry                                             |
+| Composer     | `composer.tsx`     | Create / edit entry (mood, energy, weather, tags)                  |
+| Profile      | `profile.tsx`      | Operator, AURA, quests, import/export, transparency link           |
+| Transparency | `transparency.tsx` | Data-flow diagram + schema documentation                           |
 
 Supporting modules: `app.tsx` (session + routing), `crypto.ts` / `identity.ts`, `api.ts`, `hud.tsx` (SoundManager, TopBar, Panel/Btn), `tours.ts` (Shepherd), `push.ts` (Web Push subscribe/sync), `quests.ts` (re-exports `shared/quests.ts` for the UI).
 

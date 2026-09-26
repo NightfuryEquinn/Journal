@@ -30,8 +30,10 @@
     ]
   },
   "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
     "@scure/bip39": "^2.2.0",
     "@vercel/analytics": "^2.0.1",
+    "animejs": "^4.5.0",
     "howler": "^2.2.4",
     "jose": "^6.2.4",
     "mermaid": "^11.16.0",

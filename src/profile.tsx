@@ -1,6 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+  BellIcon,
+  BellSlashIcon,
+  CaretLeftIcon,
+  DownloadSimpleIcon,
+  FlameIcon,
+  SparkleIcon,
+  TreeStructureIcon,
+  TrophyIcon,
+  UploadSimpleIcon,
+} from '@phosphor-icons/react';
 import type { DeviceIdentity, JournalEntry, QuestProgress } from './types';
-import { Bracket, Panel, Btn } from './hud';
+import { CHIP, Bracket, Panel, Btn, PAGE } from './hud';
 import { SoundManager } from './sound';
 import { fmtDate, fmtStamp } from './format';
 import {
@@ -25,9 +36,7 @@ import {
   pushSupported,
 } from './push';
 import { z } from 'zod';
-
-const CHIP =
-  'border px-[7px] py-0.5 font-mono text-[9.5px] tracking-[0.1em] text-accent bg-accent-soft border-[color-mix(in_oklab,var(--accent)_35%,transparent)]';
+import { useEntrance } from './motion';
 
 const exportSchema = z.array(journalEntrySchema);
 
@@ -56,6 +65,8 @@ export function ProfileScreen({
 }: ProfileScreenProps) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [ioStatus, setIoStatus] = useState<string | null>(null);
+  const scopeRef = useRef<HTMLDivElement>(null);
+  useEntrance(scopeRef);
 
   /** Claim a daily/weekly quest for AURA. */
   const onClaimTimed = (quest: QuestDef) => {
@@ -115,147 +126,156 @@ export function ProfileScreen({
   const streak = useMemo(() => computeStreak(entries), [entries]);
 
   return (
-    <div className="mx-auto max-w-350 px-4 pt-4 pb-6 max-phone:px-3 laptop:px-7 laptop:pt-5 laptop:pb-7">
-      <div className="mb-5.5 flex flex-col gap-3 tablet:flex-row tablet:items-center tablet:justify-between">
+    <div ref={scopeRef} className={PAGE}>
+      <div
+        data-reveal
+        className="mb-5.5 flex flex-col gap-3 tablet:flex-row tablet:items-center tablet:justify-between"
+      >
         <div className="flex min-w-0 flex-wrap items-center gap-2.5">
           <Btn variant="ghost" onClick={onBack}>
-            ← ARCHIVE
+            <CaretLeftIcon className="size-3.5" weight="bold" />
+            ARCHIVE
           </Btn>
-          <span className="font-mono text-[11px] tracking-[0.14em] text-fg-mute">
+          <span className="font-mono text-meta tracking-[0.14em] text-fg-mute">
             / PROFILE / {identity.operatorId}
           </span>
         </div>
-        <div className="font-mono text-[10px] tracking-[0.16em] text-fg-mute">
+        <div className="font-mono text-micro tracking-[0.16em] text-fg-mute">
           AURA SETTLED · {progress.lastSettledAt ? fmtStamp(new Date(progress.lastSettledAt)) : '—'}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 items-start gap-5 tablet:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] tablet:gap-5.5 laptop:grid-cols-[minmax(280px,340px)_minmax(0,1fr)]">
-        <aside className="flex min-w-0 flex-col gap-5">
-          <Bracket>
-            <Panel title="OPERATOR" meta="E2EE SESSION">
-              <div className="grid gap-2.5 font-mono text-[11px]">
-                <Row label="CALLSIGN" value={identity.operatorId} accent />
-                <Row label="ACCOUNT" value={`${identity.accountId.slice(0, 12)}…`} />
-                <Row label="CREATED" value={fmtDate(created)} />
-                <Row label="RECOVERY" value="CONFIRMED" accent />
-                <Row label="ENTRIES" value={String(entries.length).padStart(4, '0')} />
-              </div>
-            </Panel>
-          </Bracket>
+      <div
+        data-reveal
+        className="mb-5.5 grid grid-cols-1 gap-3.5 tablet:grid-cols-2 tablet:grid-flow-dense laptop:grid-cols-4"
+      >
+        <Bracket className="tablet:col-span-2 laptop:col-span-2">
+          <Panel title="OPERATOR" meta="E2EE SESSION">
+            <div className="grid gap-2.5 font-mono text-meta">
+              <Row label="CALLSIGN" value={identity.operatorId} accent />
+              <Row label="ACCOUNT" value={`${identity.accountId.slice(0, 12)}…`} />
+              <Row label="CREATED" value={fmtDate(created)} />
+              <Row label="RECOVERY" value="CONFIRMED" accent />
+              <Row label="ENTRIES" value={String(entries.length).padStart(4, '0')} />
+            </div>
+          </Panel>
+        </Bracket>
 
-          <Bracket>
-            <Panel title="STREAK" meta="CONSECUTIVE DAYS">
-              <div className="mb-2 font-display text-4xl font-semibold tracking-[0.12em] text-accent">
-                {streak}
-              </div>
-              <p className="font-mono text-[10px] leading-[1.6] tracking-[0.04em] text-fg-mute">
-                // consecutive days with a journal entry · resets on a missed day
-              </p>
-            </Panel>
-          </Bracket>
+        <Bracket>
+          <Panel title="STREAK" meta="DAYS">
+            <div className="mb-2 font-headline text-4xl font-semibold tracking-[0.12em] text-accent">
+              {streak}
+            </div>
+            <p className="font-mono text-micro leading-[1.6] tracking-[0.04em] text-fg-mute">
+              // consecutive days with a journal entry
+            </p>
+          </Panel>
+        </Bracket>
 
-          <Bracket>
-            <Panel title="AURA" meta="TEMPORARY">
-              <div className="mb-2 font-display text-4xl font-semibold tracking-[0.12em] text-accent">
-                {progress.aura}
-              </div>
-              <p className="font-mono text-[10px] leading-[1.6] tracking-[0.04em] text-fg-mute">
-                // accrues from daily / weekly quests · deducts on missed periods · floor 0
-              </p>
-            </Panel>
-          </Bracket>
+        <Bracket>
+          <Panel title="AURA" meta="SCORE">
+            <div className="mb-2 font-headline text-4xl font-semibold tracking-[0.12em] text-accent">
+              {progress.aura}
+            </div>
+            <p className="font-mono text-micro leading-[1.6] tracking-[0.04em] text-fg-mute">
+              // accrues from quests · deducts on missed periods
+            </p>
+          </Panel>
+        </Bracket>
 
-          <Bracket>
-            <Panel title="SPECIAL TAGS" meta={`${progress.claimedTags.length} claimed`}>
-              {progress.claimedTags.length === 0 ? (
-                <p className="font-mono text-[11px] text-fg-mute">// none claimed yet</p>
-              ) : (
-                <div className="flex flex-wrap gap-1.5">
-                  {progress.claimedTags.map((t) => (
-                    <span key={t} className={CHIP}>
-                      #{t}
-                    </span>
-                  ))}
-                </div>
+        <Bracket className="tablet:col-span-2 laptop:col-span-2">
+          <Panel title="SPECIAL TAGS" meta={`${progress.claimedTags.length} claimed`}>
+            {progress.claimedTags.length === 0 ? (
+              <p className="font-mono text-meta text-fg-mute">// none claimed yet</p>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {progress.claimedTags.map((t) => (
+                  <span key={t} className={CHIP}>
+                    #{t}
+                  </span>
+                ))}
+              </div>
+            )}
+          </Panel>
+        </Bracket>
+
+        <Bracket>
+          <Panel title="DATA" meta="LOCAL · CLOUD">
+            <div className="flex flex-col gap-2.5">
+              <div className="flex flex-wrap gap-2">
+                <Btn variant="ghost" onClick={exportJson}>
+                  <DownloadSimpleIcon className="size-3.5" weight="bold" />
+                  EXPORT
+                </Btn>
+                <Btn variant="ghost" onClick={() => fileRef.current?.click()}>
+                  <UploadSimpleIcon className="size-3.5" weight="bold" />
+                  IMPORT
+                </Btn>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="application/json,.json"
+                  className="hidden"
+                  onChange={(e) => void onFile(e.target.files?.[0] ?? null)}
+                />
+              </div>
+              <Btn variant="ghost" onClick={onOpenTransparency} className="w-full">
+                <TreeStructureIcon className="size-3.5" weight="bold" />
+                TRANSPARENCY
+              </Btn>
+              {ioStatus && (
+                <p className="font-mono text-micro tracking-[0.04em] text-fg-mute">{ioStatus}</p>
               )}
-            </Panel>
-          </Bracket>
+            </div>
+          </Panel>
+        </Bracket>
 
-          <Bracket>
-            <Panel title="DATA" meta="LOCAL · CLOUD">
-              <div className="flex flex-col gap-2.5">
-                <div className="flex flex-wrap gap-2">
-                  <Btn variant="ghost" onClick={exportJson}>
-                    EXPORT JSON
-                  </Btn>
-                  <Btn variant="ghost" onClick={() => fileRef.current?.click()}>
-                    IMPORT JSON
-                  </Btn>
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    accept="application/json,.json"
-                    className="hidden"
-                    onChange={(e) => void onFile(e.target.files?.[0] ?? null)}
-                  />
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Btn variant="ghost" onClick={onOpenTransparency} data-tour="tour-transparency">
-                    TRANSPARENCY
-                  </Btn>
-                </div>
-                {ioStatus && (
-                  <p className="font-mono text-[10px] tracking-[0.04em] text-fg-mute">{ioStatus}</p>
-                )}
-              </div>
-            </Panel>
-          </Bracket>
+        <NotificationsPanel token={token} />
+      </div>
 
-          <NotificationsPanel token={token} />
-        </aside>
-
-        <div className="flex min-w-0 flex-col gap-5" data-tour="tour-quests">
-          <QuestPanel
-            title="DAILY QUESTS"
-            meta={progress.period.dayKey}
-            quests={DAILY_QUESTS}
-            entries={entries}
-            progress={progress}
-            doneIds={progress.period.dailyDone}
-            onClaim={onClaimTimed}
-          />
-          <QuestPanel
-            title="WEEKLY QUESTS"
-            meta={progress.period.weekKey}
-            quests={WEEKLY_QUESTS}
-            entries={entries}
-            progress={progress}
-            doneIds={progress.period.weeklyDone}
-            onClaim={onClaimTimed}
-          />
-          <QuestPanel
-            title="MILESTONES"
-            meta="SPECIAL TAGS"
-            quests={MILESTONE_QUESTS}
-            entries={entries}
-            progress={progress}
-            doneIds={progress.claimedTags}
-            onClaim={onClaimTag}
-            milestone
-          />
-        </div>
+      <div data-reveal className="grid grid-cols-1 items-start gap-5 laptop:grid-cols-3">
+        <QuestPanel
+          title="DAILY QUESTS"
+          icon={<SparkleIcon className="size-3.5 text-accent" weight="fill" />}
+          meta={progress.period.dayKey}
+          quests={DAILY_QUESTS}
+          entries={entries}
+          progress={progress}
+          doneIds={progress.period.dailyDone}
+          onClaim={onClaimTimed}
+        />
+        <QuestPanel
+          title="WEEKLY QUESTS"
+          icon={<TrophyIcon className="size-3.5 text-accent" weight="fill" />}
+          meta={progress.period.weekKey}
+          quests={WEEKLY_QUESTS}
+          entries={entries}
+          progress={progress}
+          doneIds={progress.period.weeklyDone}
+          onClaim={onClaimTimed}
+        />
+        <QuestPanel
+          title="MILESTONES"
+          icon={<FlameIcon className="size-3.5 text-accent" weight="fill" />}
+          meta="SPECIAL TAGS"
+          quests={MILESTONE_QUESTS}
+          entries={entries}
+          progress={progress}
+          doneIds={progress.claimedTags}
+          onClaim={onClaimTag}
+          milestone
+        />
       </div>
     </div>
   );
 }
 
+const NOTIFICATIONS_META = `${REMINDER_HOURS.length} × LOCAL`;
+
 /** Format a reminder slot hour as HH:00 for display. */
 function fmtSlotHour(hour: number) {
   return `${String(hour).padStart(2, '0')}:00`;
 }
-
-const NOTIFICATIONS_META = `${REMINDER_HOURS.length} × LOCAL`;
 
 /** Enable / disable local-time journal reminders on this device. */
 function NotificationsPanel({ token }: { token: string | null }) {
@@ -339,21 +359,21 @@ function NotificationsPanel({ token }: { token: string | null }) {
     <Bracket>
       <Panel title="NOTIFICATIONS" meta={NOTIFICATIONS_META}>
         <div className="flex flex-col gap-2.5">
-          <div className="flex flex-wrap gap-x-3 gap-y-1 font-mono text-[10px] tracking-[0.12em] text-fg-mute">
+          <div className="flex flex-wrap gap-x-3 gap-y-1 font-mono text-micro tracking-[0.12em] text-fg-mute">
             {REMINDER_HOURS.map((hour) => (
               <span key={hour}>{fmtSlotHour(hour)}</span>
             ))}
           </div>
           {!pushConfigured() ? (
-            <p className="font-mono text-[10px] leading-[1.6] tracking-[0.04em] text-fg-mute">
+            <p className="font-mono text-micro leading-[1.6] tracking-[0.04em] text-fg-mute">
               // reminders unavailable · VITE_VAPID_PUBLIC_KEY not set at build time
             </p>
           ) : !supported ? (
-            <p className="font-mono text-[10px] leading-[1.6] tracking-[0.04em] text-fg-mute">
+            <p className="font-mono text-micro leading-[1.6] tracking-[0.04em] text-fg-mute">
               // push not supported on this browser · on iOS, add Journs to the home screen first
             </p>
           ) : permission === 'denied' ? (
-            <p className="font-mono text-[10px] leading-[1.6] tracking-[0.04em] text-fg-mute">
+            <p className="font-mono text-micro leading-[1.6] tracking-[0.04em] text-fg-mute">
               // blocked · re-enable notifications in browser site settings
             </p>
           ) : (
@@ -364,17 +384,22 @@ function NotificationsPanel({ token }: { token: string | null }) {
                   disabled={busy || !token}
                   onClick={() => void (subscribed ? onDisable() : onEnable())}
                 >
+                  {subscribed ? (
+                    <BellSlashIcon className="size-3.5" weight="bold" />
+                  ) : (
+                    <BellIcon className="size-3.5" weight="bold" />
+                  )}
                   {busy ? 'WORKING…' : subscribed ? 'DISABLE REMINDERS' : 'ENABLE REMINDERS'}
                 </Btn>
               </div>
-              <p className="font-mono text-[10px] leading-[1.6] tracking-[0.04em] text-fg-mute">
+              <p className="font-mono text-micro leading-[1.6] tracking-[0.04em] text-fg-mute">
                 // {REMINDER_HOURS.length} nudges to write, on this device's local clock · no entry
                 content ever leaves encrypted
               </p>
             </>
           )}
           {status && (
-            <p className="font-mono text-[10px] tracking-[0.04em] text-fg-mute">{status}</p>
+            <p className="font-mono text-micro tracking-[0.04em] text-fg-mute">{status}</p>
           )}
         </div>
       </Panel>
@@ -395,6 +420,7 @@ function Row({ label, value, accent }: { label: string; value: string; accent?: 
 /** Shared quest list panel for daily / weekly / milestones. */
 function QuestPanel({
   title,
+  icon,
   meta,
   quests,
   entries,
@@ -404,6 +430,7 @@ function QuestPanel({
   milestone,
 }: {
   title: string;
+  icon: ReactNode;
   meta: string;
   quests: QuestDef[];
   entries: JournalEntry[];
@@ -414,7 +441,15 @@ function QuestPanel({
 }) {
   return (
     <Bracket>
-      <Panel title={title} meta={meta}>
+      <Panel
+        title={
+          <span className="inline-flex items-center gap-2">
+            {icon}
+            {title}
+          </span>
+        }
+        meta={meta}
+      >
         <ul className="flex flex-col gap-3">
           {quests.map((q) => {
             const satisfied = isQuestSatisfied(q, entries, progress.period);
@@ -428,24 +463,18 @@ function QuestPanel({
               <li key={q.id} className="border border-line bg-black/20 px-3 py-3 max-phone:px-2.5">
                 <div className="mb-2 flex flex-col gap-2 phone:flex-row phone:items-start phone:justify-between">
                   <div className="min-w-0">
-                    <div className="font-display text-[11px] font-semibold tracking-[0.18em] text-fg">
+                    <div className="font-headline text-meta font-semibold tracking-[0.18em] text-fg">
                       {q.title}
                       {q.tag && (
-                        <span className="ml-2 font-mono text-[10px] tracking-[0.08em] text-accent">
+                        <span className="ml-2 font-mono text-micro tracking-[0.08em] text-accent">
                           #{q.tag}
                         </span>
                       )}
                     </div>
-                    <div className="mt-1 font-mono text-[11px] text-fg-dim">{q.detail}</div>
+                    <div className="mt-1 font-mono text-meta text-fg-dim">{q.detail}</div>
                   </div>
-                  <div className="shrink-0 font-mono text-[10px] tracking-[0.12em] text-fg-mute">
-                    {milestone
-                      ? claimed
-                        ? 'CLAIMED'
-                        : 'TAG'
-                      : claimed
-                        ? `+${q.aura} AURA`
-                        : `+${q.aura} AURA`}
+                  <div className="shrink-0 font-mono text-micro tracking-[0.12em] text-fg-mute">
+                    {milestone ? (claimed ? 'CLAIMED' : 'TAG') : `+${q.aura} AURA`}
                   </div>
                 </div>
                 <div className="mb-2.5 h-1 w-full bg-line-strong">
@@ -455,7 +484,7 @@ function QuestPanel({
                   />
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-mono text-[10px] text-fg-mute">
+                  <span className="font-mono text-micro text-fg-mute">
                     {ratio.current}/{ratio.target}
                     {claimed ? ' · DONE' : satisfied ? ' · READY' : ' · IN PROGRESS'}
                   </span>

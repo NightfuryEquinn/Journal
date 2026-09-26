@@ -1,8 +1,10 @@
 // reader.tsx — read a single entry
+import { useRef } from 'react';
+import { CaretLeftIcon, PencilSimpleIcon, TrashIcon } from '@phosphor-icons/react';
 import type { JournalEntry } from './types';
-import { DecodeText, Panel, Btn } from './hud';
-import { fmtDate, fmtTime, fmtJDay, pad } from './format';
-import { MoodBars } from './list';
+import { CHIP, DecodeText, Panel, Btn, MoodBars, WeatherIcon, PAGE } from './hud';
+import { fmtDate, fmtTime, fmtJDay, pad, MONTHS_LONG } from './format';
+import { useEntrance } from './motion';
 
 interface ReaderScreenProps {
   entry: JournalEntry;
@@ -11,39 +13,49 @@ interface ReaderScreenProps {
   onDelete: (entry: JournalEntry) => void;
 }
 
-const CHIP =
-  'border px-[7px] py-0.5 font-mono text-[9.5px] tracking-[0.1em] text-accent bg-accent-soft border-[color-mix(in_oklab,var(--accent)_35%,transparent)]';
-
 /** Single-entry reader with metadata and op-log side panels. */
 export function ReaderScreen({ entry, onBack, onEdit, onDelete }: ReaderScreenProps) {
+  const scopeRef = useRef<HTMLDivElement>(null);
+  useEntrance(scopeRef);
   const d = new Date(entry.date);
   const wc = entry.body.trim().split(/\s+/).length;
   const rt = Math.max(1, Math.round(wc / 200));
 
   return (
-    <div className="mx-auto max-w-350 px-4 pt-4 pb-6 max-phone:px-3 laptop:px-7 laptop:pt-5 laptop:pb-7">
-      <div className="mb-5.5 grid grid-cols-1 items-center gap-3 tablet:grid-cols-[auto_1fr_auto] tablet:gap-4.5">
+    <div ref={scopeRef} className={PAGE}>
+      <div
+        data-reveal
+        className="mb-5.5 grid grid-cols-1 items-center gap-3 tablet:grid-cols-[auto_1fr_auto] tablet:gap-4.5"
+      >
         <Btn variant="ghost" onClick={onBack}>
-          ◂ ARCHIVE
+          <CaretLeftIcon className="size-3.5" weight="bold" />
+          ARCHIVE
         </Btn>
-        <div className="min-w-0 truncate text-center font-mono text-[10px] tracking-[0.18em] text-fg-mute max-tablet:order-first max-tablet:text-left">
+        <div className="min-w-0 truncate text-center font-mono text-micro tracking-[0.18em] text-fg-mute max-tablet:order-first max-tablet:text-left">
           ARCHIVE / {fmtDate(d).replace(/ /g, '·')} / {entry.id}
         </div>
         <div className="flex flex-wrap gap-2">
-          <Btn onClick={() => onEdit(entry)}>✎ EDIT</Btn>
+          <Btn onClick={() => onEdit(entry)}>
+            <PencilSimpleIcon className="size-3.5" weight="bold" />
+            EDIT
+          </Btn>
           <Btn variant="danger" onClick={() => onDelete(entry)}>
-            ✕ DELETE
+            <TrashIcon className="size-3.5" weight="bold" />
+            DELETE
           </Btn>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 items-start gap-5 tablet:grid-cols-[minmax(0,1fr)_minmax(0,320px)] tablet:gap-5.5">
+      <div
+        data-reveal
+        className="grid grid-cols-1 items-start gap-5 tablet:grid-cols-[minmax(0,1fr)_minmax(0,320px)] tablet:gap-5.5"
+      >
         <main className="min-w-0">
           <Panel
             title={<DecodeText text="LOG ENTRY" />}
             meta={`${entry.id} · WC ${wc} · ${rt} MIN`}
             headerRight={
-              <span className="font-mono text-[10px] tracking-[0.02em] text-fg-dim max-phone:hidden">
+              <span className="font-mono text-micro tracking-[0.02em] text-fg-dim max-phone:hidden">
                 STATUS · ARCHIVED
               </span>
             }
@@ -58,31 +70,15 @@ export function ReaderScreen({ entry, onBack, onEdit, onDelete }: ReaderScreenPr
                   {pad(d.getDate())}
                 </div>
                 <div>
-                  <div className="font-display text-sm tracking-[0.18em] uppercase">
-                    {
-                      [
-                        'JANUARY',
-                        'FEBRUARY',
-                        'MARCH',
-                        'APRIL',
-                        'MAY',
-                        'JUNE',
-                        'JULY',
-                        'AUGUST',
-                        'SEPTEMBER',
-                        'OCTOBER',
-                        'NOVEMBER',
-                        'DECEMBER',
-                      ][d.getMonth()]
-                    }{' '}
-                    {d.getFullYear()}
+                  <div className="font-headline text-ui tracking-[0.18em] uppercase text-fg">
+                    {MONTHS_LONG[d.getMonth()]} {d.getFullYear()}
                   </div>
-                  <div className="mt-1 font-mono text-[11px] tracking-[0.14em] text-fg-mute">
+                  <div className="mt-1 flex items-center gap-1.5 font-mono text-meta tracking-[0.14em] text-fg-mute">
                     {fmtTime(d)} · J-DAY {fmtJDay(d)}
                   </div>
                 </div>
               </div>
-              <h1 className="font-display text-[38px] leading-[1.1] font-medium tracking-[0.01em] text-balance max-phone:text-[28px]">
+              <h1 className="font-headline text-[38px] leading-[1.1] font-medium tracking-[0.01em] text-balance max-phone:text-[28px]">
                 <DecodeText text={entry.title} speed={14} />
               </h1>
               <div className="flex flex-wrap gap-1.5">
@@ -97,15 +93,15 @@ export function ReaderScreen({ entry, onBack, onEdit, onDelete }: ReaderScreenPr
             <div className="max-w-[68ch] text-[15px] leading-[1.75] text-fg text-pretty max-phone:text-[14px]">
               {entry.body.split('\n').map((para, i) => (
                 <p key={i} className={para.trim() === '' ? 'h-[0.6em]' : 'mb-[1em]'}>
-                  {para || '\u00A0'}
+                  {para || ' '}
                 </p>
               ))}
             </div>
 
-            <div className="mt-7 flex flex-wrap justify-between gap-2 border-t border-line pt-3.5 font-mono text-[10px] tracking-[0.16em] text-fg-mute">
+            <div className="mt-7 flex flex-wrap justify-between gap-2 border-t border-line pt-3.5 font-mono text-micro tracking-[0.16em] text-fg-mute">
               <span>END OF LOG · {entry.id}</span>
               <span>
-                SHA-256 · {entry.id.toUpperCase()}-
+                CHECKSUM · {entry.id.toUpperCase()}-
                 {Math.abs(hashCode(entry.body)).toString(16).padStart(8, '0')}
               </span>
             </div>
@@ -118,7 +114,7 @@ export function ReaderScreen({ entry, onBack, onEdit, onDelete }: ReaderScreenPr
               {(
                 [
                   ['CAPTURED', `${fmtDate(d)} · ${fmtTime(d)}`, 'mono'],
-                  ['WEATHER', entry.weather.split(' · ')[0], 'mono'],
+                  ['WEATHER', null, 'weather'],
                   ['MOOD', null, 'mood'],
                   ['ENERGY', null, 'energy'],
                   ['WORD COUNT', String(wc), 'mono acc'],
@@ -129,14 +125,17 @@ export function ReaderScreen({ entry, onBack, onEdit, onDelete }: ReaderScreenPr
                   key={lbl}
                   className="flex items-center justify-between gap-3 border-l-2 border-line-strong bg-black/20 px-2.5 py-2"
                 >
-                  <span className="font-mono text-[9.5px] tracking-[0.18em] text-fg-mute">
-                    {lbl}
-                  </span>
-                  <span className="min-w-0 text-right text-[11.5px]">
+                  <span className="font-mono text-micro tracking-[0.18em] text-fg-mute">{lbl}</span>
+                  <span className="min-w-0 text-right text-body">
                     {kind === 'mood' ? (
                       <MoodBars value={entry.mood} />
                     ) : kind === 'energy' ? (
                       <MoodBars value={entry.energy} />
+                    ) : kind === 'weather' ? (
+                      <span className="inline-flex items-center gap-1.5 font-mono tracking-[0.02em]">
+                        <WeatherIcon weather={entry.weather} className="size-3.5" />
+                        {entry.weather.split(' · ')[0]}
+                      </span>
                     ) : (
                       <span
                         className={
@@ -155,7 +154,7 @@ export function ReaderScreen({ entry, onBack, onEdit, onDelete }: ReaderScreenPr
           </Panel>
           <div className="h-3.5" />
           <Panel title="DB · OPERATION LOG">
-            <div className="flex flex-col gap-1 font-mono text-[10.5px]">
+            <div className="flex flex-col gap-1 font-mono text-meta">
               {(
                 [
                   [fmtTime(d), 'ENCRYPT', 'aes-gcm · local dek', true],
@@ -170,11 +169,11 @@ export function ReaderScreen({ entry, onBack, onEdit, onDelete }: ReaderScreenPr
                 >
                   <span>{time}</span>
                   <span
-                    className={`text-[9.5px] tracking-[0.14em] ${good ? 'text-good' : 'text-fg'}`}
+                    className={`text-micro tracking-[0.14em] ${good ? 'text-good' : 'text-fg'}`}
                   >
                     {tag}
                   </span>
-                  <span className="overflow-hidden text-[10px] tracking-[0.06em] text-ellipsis whitespace-nowrap text-fg-mute">
+                  <span className="overflow-hidden text-micro tracking-[0.06em] text-ellipsis whitespace-nowrap text-fg-mute">
                     {id}
                   </span>
                 </div>

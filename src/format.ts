@@ -1,3 +1,35 @@
+/** Three-letter month labels, January first. Shared by list and format. */
+export const MONTHS_SHORT = [
+  'JAN',
+  'FEB',
+  'MAR',
+  'APR',
+  'MAY',
+  'JUN',
+  'JUL',
+  'AUG',
+  'SEP',
+  'OCT',
+  'NOV',
+  'DEC',
+];
+
+/** Full month names, January first. Shared by the reader screen. */
+export const MONTHS_LONG = [
+  'JANUARY',
+  'FEBRUARY',
+  'MARCH',
+  'APRIL',
+  'MAY',
+  'JUNE',
+  'JULY',
+  'AUGUST',
+  'SEPTEMBER',
+  'OCTOBER',
+  'NOVEMBER',
+  'DECEMBER',
+];
+
 /** Zero-pad a number to two digits. */
 export const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -8,8 +40,7 @@ export function fmtTime(d: Date) {
 
 /** Format date as DD MON YYYY. */
 export function fmtDate(d: Date) {
-  const m = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-  return `${pad(d.getDate())} ${m[d.getMonth()]} ${d.getFullYear()}`;
+  return `${pad(d.getDate())} ${MONTHS_SHORT[d.getMonth()]} ${d.getFullYear()}`;
 }
 
 /** Format julian day of year. */
@@ -27,4 +58,14 @@ export function fmtSeq(n: number) {
 /** Format as DDMMYYYY.HHmmss (24h). */
 export function fmtStamp(d: Date) {
   return `${pad(d.getDate())}${pad(d.getMonth() + 1)}${d.getFullYear()}.${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+}
+
+/** UTC offset label, e.g. "UTC+8" or "UTC-5:30". Derives from the device clock. */
+export function fmtUtcOffset(d: Date) {
+  const mins = -d.getTimezoneOffset();
+  const sign = mins >= 0 ? '+' : '-';
+  const abs = Math.abs(mins);
+  const h = Math.floor(abs / 60);
+  const m = abs % 60;
+  return `UTC${sign}${h}${m ? `:${pad(m)}` : ''}`;
 }

@@ -1,17 +1,44 @@
 import {
+  Component,
   useEffect,
   useRef,
   useState,
   type ButtonHTMLAttributes,
   type CSSProperties,
   type ElementType,
+  type ErrorInfo,
   type MouseEvent,
   type ReactNode,
 } from 'react';
+import {
+  CaretDownIcon,
+  CheckIcon,
+  CloudFogIcon,
+  CloudIcon,
+  CloudLightningIcon,
+  CloudRainIcon,
+  SignOutIcon,
+  SnowflakeIcon,
+  SpeakerHighIcon,
+  SpeakerSlashIcon,
+  SunIcon,
+  UserCircleIcon,
+  WarningIcon,
+  WindIcon,
+} from '@phosphor-icons/react';
 import { SoundManager } from './sound';
-import { fmtStamp } from './format';
+import { fmtTime, fmtUtcOffset } from './format';
+import { prefersReducedMotion } from './motion';
 
-/** Glitch-cycle text to a final string. */
+/** Page wrapper shared by every authenticated screen. */
+export const PAGE =
+  'mx-auto max-w-350 px-4 pt-4 pb-6 max-phone:px-3 laptop:px-7 laptop:pt-5 laptop:pb-7';
+
+/** Small tag chip used for entry/quest tags across list, reader, composer, profile. */
+export const CHIP =
+  'border px-[7px] py-0.5 font-mono text-micro tracking-[0.1em] text-accent bg-accent-soft border-[color-mix(in_oklab,var(--accent)_35%,transparent)]';
+
+/** Glitch-cycle text to a final string. Renders the final text immediately under reduced motion. */
 export function DecodeText({
   text,
   delay = 0,
@@ -27,10 +54,16 @@ export function DecodeText({
   className?: string;
   tag?: ElementType;
 }) {
-  const [out, setOut] = useState('');
+  const [out, setOut] = useState(() => (prefersReducedMotion() ? text : ''));
   const cs = charset || '▒░▓01ABCDEF#%$@*+=-';
 
   useEffect(() => {
+    if (prefersReducedMotion()) {
+      setOut(text);
+
+      return;
+    }
+
     let raf = 0;
     let started = false;
     let t0 = 0;
@@ -110,7 +143,7 @@ export function Panel({
       />
       {title && (
         <div className="flex items-center justify-between border-b border-line bg-[linear-gradient(180deg,rgba(255,255,255,0.02),transparent)] px-3.5 py-2.5 max-phone:px-3 max-phone:py-2">
-          <div className="inline-flex items-center gap-2.5 font-display text-xs font-semibold tracking-[0.22em] text-fg uppercase">
+          <div className="inline-flex items-center gap-2.5 font-headline text-ui font-semibold tracking-[0.2em] text-fg uppercase">
             <span
               className="size-2 rotate-45 bg-accent shadow-[0_0_10px_var(--accent)]"
               aria-hidden="true"
@@ -120,7 +153,7 @@ export function Panel({
           {(meta || headerRight) && (
             <div className="flex items-center gap-3">
               {meta && (
-                <span className="font-mono text-[10px] tracking-[0.14em] text-fg-mute">{meta}</span>
+                <span className="font-mono text-micro tracking-[0.14em] text-fg-mute">{meta}</span>
               )}
               {headerRight}
             </div>
@@ -133,7 +166,7 @@ export function Panel({
 }
 
 const BTN_BASE =
-  'relative inline-flex items-center border border-line-strong bg-white/[0.02] px-3.5 py-2 font-display text-[11px] font-semibold tracking-[0.2em] text-fg uppercase transition-[background,color] duration-100 [clip-path:polygon(0_0,calc(100%-10px)_0,100%_10px,100%_100%,10px_100%,0_calc(100%-10px))] hover:bg-accent-soft hover:text-accent [&:active>span]:translate-y-px max-tablet:min-h-11';
+  'relative inline-flex items-center border border-line-strong bg-white/[0.02] px-3.5 py-2 font-headline text-meta font-semibold tracking-[0.2em] text-fg uppercase transition-[background,color,transform] duration-100 [clip-path:polygon(0_0,calc(100%-10px)_0,100%_10px,100%_100%,10px_100%,0_calc(100%-10px))] hover:bg-accent-soft hover:text-accent active:translate-y-px max-tablet:min-h-11';
 
 const BTN_VARIANTS: Record<string, string> = {
   primary: 'border-accent bg-accent text-bg hover:border-fg hover:bg-fg hover:text-bg',
@@ -181,9 +214,7 @@ export function Btn({
       style={{ opacity: disabled ? 0.4 : 1, ...style }}
       {...rest}
     >
-      <span className="inline-flex items-center gap-2.5 transition-transform duration-100">
-        {children}
-      </span>
+      <span className="inline-flex items-center gap-2">{children}</span>
     </button>
   );
 }
@@ -198,51 +229,6 @@ function useClock() {
   }, []);
 
   return now;
-}
-
-/** Music-note audio icon; draws a slash when muted. */
-function AudioIcon({ muted }: { muted: boolean }) {
-  return (
-    <span className="relative inline-flex size-4 items-center justify-center" aria-hidden="true">
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        className="size-4"
-      >
-        <path
-          fill="currentColor"
-          d="m10.09 11.963l9.274-3.332v5.54a3.8 3.8 0 0 0-1.91-.501c-1.958 0-3.545 1.426-3.545 3.185s1.587 3.185 3.545 3.185c1.959 0 3.546-1.426 3.546-3.185V7.492c0-1.12 0-2.059-.088-2.807a7 7 0 0 0-.043-.31c-.084-.51-.234-.988-.522-1.386a2.2 2.2 0 0 0-.676-.617l-.009-.005c-.771-.461-1.639-.428-2.532-.224c-.864.198-1.936.6-3.25 1.095l-2.284.859c-.615.231-1.137.427-1.547.63c-.435.216-.81.471-1.092.851c-.281.38-.398.79-.452 1.234c-.05.418-.05.926-.05 1.525v7.794a3.8 3.8 0 0 0-1.91-.501C4.587 15.63 3 17.056 3 18.815S4.587 22 6.545 22c1.959 0 3.546-1.426 3.546-3.185z"
-        />
-      </svg>
-      {muted && (
-        <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <span className="block h-px w-[140%] -rotate-45 bg-current shadow-[0_0_0_1px_var(--bg)]" />
-        </span>
-      )}
-    </span>
-  );
-}
-
-/** Logout / exit-to-app icon. */
-function SignOutIcon() {
-  return (
-    <span className="inline-flex size-4 items-center justify-center" aria-hidden="true">
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        className="size-4"
-      >
-        <path
-          fill="currentColor"
-          d="M5 21q-.825 0-1.412-.587T3 19V5q0-.825.588-1.412T5 3h6q.425 0 .713.288T12 4t-.288.713T11 5H5v14h6q.425 0 .713.288T12 20t-.288.713T11 21zm12.175-8H10q-.425 0-.712-.288T9 12t.288-.712T10 11h7.175L15.3 9.125q-.275-.275-.275-.675t.275-.7t.7-.313t.725.288L20.3 11.3q.3.3.3.7t-.3.7l-3.575 3.575q-.3.3-.712.288t-.713-.313q-.275-.3-.262-.712t.287-.688z"
-        />
-      </svg>
-    </span>
-  );
 }
 
 /** Top telemetry bar with brand, user, clock, and controls. */
@@ -265,16 +251,29 @@ export function TopBar({
   const now = useClock();
 
   return (
-    <div className="relative z-10 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-line bg-[linear-gradient(180deg,rgba(0,0,0,0.55),rgba(0,0,0,0.1))] px-3 py-2 font-mono text-[11px] max-tablet:grid-cols-[1fr_auto] max-tablet:gap-2 max-tablet:px-2.5 desktop:gap-4 desktop:px-5.5">
+    <div className="relative z-10 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-line bg-bg/70 px-3 py-2 font-mono text-meta backdrop-blur-md max-tablet:grid-cols-[1fr_auto] max-tablet:gap-2 max-tablet:px-2.5 desktop:gap-4 desktop:px-5.5">
       <div className="flex min-w-0 items-center gap-4 overflow-hidden text-fg-dim max-tablet:hidden desktop:gap-6">
         <span className="flex min-w-0 flex-col items-start gap-0.5 leading-none">
-          <span className="text-[9px] tracking-[0.18em] text-fg-mute">LINK</span>
+          <span className="text-micro tracking-[0.18em] text-fg-mute">LINK</span>
           <span className="truncate text-fg">HOST · VERCEL+ATLAS</span>
         </span>
-        {onOpenProfile ? (
+      </div>
+
+      <div className="flex shrink-0 flex-col items-center gap-1 px-1 leading-none max-tablet:col-start-1 max-tablet:justify-self-start">
+        <span className="font-headline text-body font-semibold tracking-[0.32em] text-fg">
+          JOURNS
+        </span>
+        <span className="text-micro tracking-[0.22em] text-fg-mute max-tablet:hidden">
+          // FIELD JOURNAL · v.1.0.1
+        </span>
+      </div>
+
+      <div className="flex min-w-0 items-center justify-end gap-3 overflow-hidden text-fg-dim desktop:gap-5">
+        {onOpenProfile && (
           <button
             type="button"
-            className="tap-target flex min-w-0 flex-col items-start gap-0.5 leading-none text-left hover:text-accent"
+            data-tour="tour-profile"
+            className="tap-target flex min-w-0 items-center gap-2 px-1 leading-none hover:text-accent"
             onClick={() => {
               SoundManager.click();
               onOpenProfile();
@@ -282,53 +281,29 @@ export function TopBar({
             onMouseEnter={() => SoundManager.hover()}
             title="Open profile"
             aria-label="Open profile"
-            data-tour="tour-profile-top"
           >
-            <span className="text-[9px] tracking-[0.18em] text-fg-mute">USER</span>
-            <span className="truncate text-fg">{user || '—'}</span>
+            <UserCircleIcon className="size-4.5 shrink-0" weight="bold" />
+            <span className="hidden min-w-0 flex-col items-start gap-0.5 tablet:flex">
+              <span className="text-micro tracking-[0.18em] text-fg-mute">USER</span>
+              <span className="max-w-30 truncate text-fg">{user || '—'}</span>
+            </span>
           </button>
-        ) : (
-          <span className="flex min-w-0 flex-col items-start gap-0.5 leading-none">
-            <span className="text-[9px] tracking-[0.18em] text-fg-mute">USER</span>
-            <span className="truncate text-fg">{user || '—'}</span>
-          </span>
         )}
-      </div>
-      <div className="flex shrink-0 flex-col items-center gap-1 px-1 leading-none max-tablet:col-start-1 max-tablet:justify-self-start">
-        <span className="font-display text-sm font-semibold tracking-[0.32em] text-fg">JOURNS</span>
-        <span className="text-[9px] tracking-[0.22em] text-fg-mute max-tablet:hidden">
-          // FIELD JOURNAL · v.1.0.1
-        </span>
-      </div>
-      <div className="flex min-w-0 items-center justify-end gap-5 overflow-hidden text-fg-dim desktop:gap-8">
+
         <div className="flex min-w-0 items-center gap-4 overflow-hidden max-tablet:hidden desktop:gap-6">
           <span className="flex flex-col items-end gap-0.5 leading-none">
-            <span className="text-[9px] tracking-[0.18em] text-fg-mute">J-DAY</span>
+            <span className="text-micro tracking-[0.18em] text-fg-mute">J-DAY</span>
             <span className="text-fg">
               {journaledDays === null ? '—' : String(journaledDays).padStart(3, '0')}
             </span>
           </span>
           <span className="flex min-w-0 flex-col items-end gap-0.5 leading-none">
-            <span className="text-[9px] tracking-[0.18em] text-fg-mute">GMT+8</span>
-            <span className="truncate text-fg">{fmtStamp(now)}</span>
+            <span className="text-micro tracking-[0.18em] text-fg-mute">{fmtUtcOffset(now)}</span>
+            <span className="truncate text-fg">{fmtTime(now)}</span>
           </span>
         </div>
-        <div className="flex shrink-0 items-center gap-1.5 border-l border-line pl-5 max-tablet:border-0 max-tablet:pl-0 desktop:pl-8">
-          {onOpenProfile && (
-            <button
-              type="button"
-              className={`tap-target shrink-0 ${BTN_BASE} ${BTN_VARIANTS.ghost} px-2 py-1.5 max-tablet:min-h-11 tablet:hidden`}
-              onClick={() => {
-                SoundManager.click();
-                onOpenProfile();
-              }}
-              onMouseEnter={() => SoundManager.hover()}
-              title="Open profile"
-              aria-label="Open profile"
-            >
-              ID
-            </button>
-          )}
+
+        <div className="flex shrink-0 items-center gap-1.5 border-l border-line pl-4 max-tablet:pl-0 desktop:pl-6">
           <button
             type="button"
             className={`tap-target shrink-0 ${BTN_BASE} ${BTN_VARIANTS.ghost} px-2 py-1.5 max-tablet:min-h-11 max-tablet:min-w-11`}
@@ -346,7 +321,11 @@ export function TopBar({
             aria-label={soundOn ? 'Mute audio' : 'Enable audio'}
             aria-pressed={soundOn}
           >
-            <AudioIcon muted={!soundOn} />
+            {soundOn ? (
+              <SpeakerHighIcon className="size-4" weight="bold" />
+            ) : (
+              <SpeakerSlashIcon className="size-4" weight="bold" />
+            )}
           </button>
           {onSignOut && (
             <button
@@ -360,7 +339,7 @@ export function TopBar({
               title="Sign out"
               aria-label="Sign out"
             >
-              <SignOutIcon />
+              <SignOutIcon className="size-4" weight="bold" />
             </button>
           )}
         </div>
@@ -369,16 +348,20 @@ export function TopBar({
   );
 }
 
-/** Parallax backdrop layers with scanlines and beam. */
-export function Backdrop({ depth }: { depth: number }) {
+/** Parallax backdrop layers with scanlines, grain and beam. */
+export function Backdrop() {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (prefersReducedMotion()) {
+      return;
+    }
+
     const onMove = (e: globalThis.MouseEvent) => {
       if (!ref.current) return;
       const x = e.clientX / window.innerWidth - 0.5;
       const y = e.clientY / window.innerHeight - 0.5;
-      const k = depth / 100;
+      const k = 0.7;
       const layers = ref.current.querySelectorAll<HTMLElement>('[data-layer]');
       layers.forEach((el, i) => {
         const m = (i + 1) * 6 * k;
@@ -387,7 +370,7 @@ export function Backdrop({ depth }: { depth: number }) {
     };
     window.addEventListener('mousemove', onMove);
     return () => window.removeEventListener('mousemove', onMove);
-  }, [depth]);
+  }, []);
 
   return (
     <div
@@ -406,6 +389,7 @@ export function Backdrop({ depth }: { depth: number }) {
         data-layer
         className="absolute inset-[-8%] bg-[radial-gradient(ellipse_80%_60%_at_50%_35%,transparent_30%,var(--bg)_95%)] opacity-[0.85] will-change-transform"
       />
+      <div className="bg-grain absolute inset-0" />
       <div className="bg-scan absolute inset-0" />
       <div className="bg-beam" />
     </div>
@@ -419,6 +403,49 @@ export function Caret({ className = '' }: { className?: string }) {
       className={`ml-0.5 inline-block h-[1em] w-[0.6em] animate-caret bg-accent align-[-0.15em] shadow-[0_0_8px_var(--accent)] ${className}`}
     />
   );
+}
+
+/** Five-segment mood/energy indicator bars. */
+export function MoodBars({ value, label }: { value: number; label?: string }) {
+  return (
+    <div className="inline-flex gap-0.5" title={`${label || 'MOOD'} ${value}/5`}>
+      {[1, 2, 3, 4, 5].map((i) => (
+        <span
+          key={i}
+          className={`h-3 w-1 ${i <= value ? 'bg-accent shadow-[0_0_6px_var(--accent)]' : 'bg-line-strong'}`}
+        />
+      ))}
+    </div>
+  );
+}
+
+/** Map a stored weather string ("CLEAR", "LIGHT RAIN", …) to a Phosphor icon. */
+export function WeatherIcon({
+  weather,
+  className = 'size-4',
+}: {
+  weather: string;
+  className?: string;
+}) {
+  const label = weather.split(' · ')[0]?.trim().toUpperCase() ?? '';
+
+  switch (label) {
+    case 'OVERCAST':
+      return <CloudIcon className={className} weight="bold" />;
+    case 'WINDY':
+      return <WindIcon className={className} weight="bold" />;
+    case 'LIGHT RAIN':
+    case 'HEAVY RAIN':
+      return <CloudRainIcon className={className} weight="bold" />;
+    case 'FOG':
+      return <CloudFogIcon className={className} weight="bold" />;
+    case 'SNOW':
+      return <SnowflakeIcon className={className} weight="bold" />;
+    case 'STORM':
+      return <CloudLightningIcon className={className} weight="bold" />;
+    default:
+      return <SunIcon className={className} weight="bold" />;
+  }
 }
 
 /** Themed HUD dropdown that matches field / panel styling. */
@@ -473,18 +500,17 @@ export function HudSelect({
         aria-label={ariaLabel}
         aria-expanded={open}
         aria-haspopup="listbox"
-        className="flex w-full items-center justify-between gap-2 border border-line-strong bg-black/40 px-2.5 py-2 font-mono text-[11px] tracking-[0.08em] text-fg transition-[border-color,background] duration-100 hover:border-accent hover:bg-accent-soft max-tablet:min-h-11"
+        className="flex w-full items-center justify-between gap-2 border border-line-strong bg-black/40 px-2.5 py-2 font-mono text-meta tracking-[0.08em] text-fg transition-[border-color,background] duration-100 hover:border-accent hover:bg-accent-soft max-tablet:min-h-11"
         onClick={() => {
           setOpen((v) => !v);
         }}
       >
         <span className="min-w-0 truncate">{value}</span>
-        <span
-          className={`shrink-0 text-[9px] tracking-[0.14em] text-fg-mute transition-transform duration-100 ${open ? 'rotate-180 text-accent' : ''}`}
+        <CaretDownIcon
+          className={`size-3 shrink-0 text-fg-mute transition-transform duration-100 ${open ? 'rotate-180 text-accent' : ''}`}
+          weight="bold"
           aria-hidden="true"
-        >
-          ▾
-        </span>
+        />
       </button>
 
       {open && (
@@ -499,7 +525,7 @@ export function HudSelect({
               <li key={opt} role="option" aria-selected={selected}>
                 <button
                   type="button"
-                  className={`flex w-full items-center justify-between gap-2 px-2.5 py-2 text-left font-mono text-[11px] tracking-[0.08em] transition-[background,color] duration-75 max-tablet:min-h-11 ${
+                  className={`flex w-full items-center justify-between gap-2 px-2.5 py-2 text-left font-mono text-meta tracking-[0.08em] transition-[background,color] duration-75 max-tablet:min-h-11 ${
                     selected
                       ? 'bg-accent-soft text-accent'
                       : 'text-fg hover:bg-accent-soft hover:text-accent'
@@ -510,11 +536,7 @@ export function HudSelect({
                   }}
                 >
                   <span>{opt}</span>
-                  {selected && (
-                    <span className="text-[9px] tracking-[0.14em]" aria-hidden="true">
-                      ●
-                    </span>
-                  )}
+                  {selected && <CheckIcon className="size-3" weight="bold" aria-hidden="true" />}
                 </button>
               </li>
             );
@@ -523,4 +545,43 @@ export function HudSelect({
       )}
     </div>
   );
+}
+
+/** Catches render errors so a crashing screen doesn't blank the whole app. */
+export class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state: { error: Error | null } = { error: null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  /** Log the boundary catch for diagnostics; render already shows the fallback. */
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error('Journs render fault:', error, info.componentStack);
+  }
+
+  render() {
+    if (!this.state.error) {
+      return this.props.children;
+    }
+
+    return (
+      <div className="grid min-h-full place-items-center p-6">
+        <Bracket className="w-full max-w-md">
+          <Panel title="RENDER FAULT" meta="RECOVERABLE">
+            <div className="flex flex-col gap-3.5">
+              <div className="flex items-center gap-2.5 text-bad">
+                <WarningIcon className="size-5 shrink-0" weight="bold" />
+                <span className="font-mono text-body">// this screen hit an unexpected error</span>
+              </div>
+              <p className="font-mono text-meta text-fg-mute">{this.state.error.message}</p>
+              <Btn variant="primary" onClick={() => window.location.reload()}>
+                RELOAD
+              </Btn>
+            </div>
+          </Panel>
+        </Bracket>
+      </div>
+    );
+  }
 }

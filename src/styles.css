@@ -3,16 +3,16 @@
 @import 'tailwindcss';
 
 :root {
-  --bg: #0a0c0e;
-  --bg-1: #0f1316;
-  --bg-2: #161b1f;
-  --line: rgba(243, 232, 213, 0.08);
-  --line-strong: rgba(243, 232, 213, 0.22);
-  --fg: #efe8d8;
-  --fg-dim: rgba(239, 232, 216, 0.55);
-  --fg-mute: rgba(239, 232, 216, 0.32);
-  --accent: #ff8a3d;
-  --accent-soft: rgba(255, 138, 61, 0.14);
+  --bg: #060c12;
+  --bg-1: #0a1420;
+  --bg-2: #0f1c2e;
+  --line: rgba(140, 200, 240, 0.1);
+  --line-strong: rgba(140, 200, 240, 0.28);
+  --fg: #e6efff;
+  --fg-dim: rgba(230, 239, 255, 0.6);
+  --fg-mute: rgba(230, 239, 255, 0.32);
+  --accent: #3dd1e0;
+  --accent-soft: rgba(61, 209, 224, 0.14);
   --warn: #ffb347;
   --bad: #ff5454;
   --good: #80e0a7;
@@ -22,100 +22,12 @@
   --depth-shadow-2: calc(var(--depth) * 1.2px);
   --depth-shadow-3: calc(var(--depth) * 2.4px);
 
-  --pad: 14px;
-  --pad-lg: 22px;
-  --row-gap: 10px;
-
-  --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  --sans: 'Barlow Condensed', 'Oswald', 'Helvetica Neue', system-ui, sans-serif;
-  --serif: 'Cormorant Garamond', 'Times New Roman', serif;
-  --display: var(--sans);
-  --copy: var(--mono);
-}
-
-[data-palette='tactical'] {
-  --bg: #0a0c0e;
-  --bg-1: #0f1316;
-  --bg-2: #161b1f;
-  --fg: #f3e8d5;
-  --fg-dim: rgba(243, 232, 213, 0.58);
-  --fg-mute: rgba(243, 232, 213, 0.32);
-  --line: rgba(243, 232, 213, 0.08);
-  --line-strong: rgba(243, 232, 213, 0.22);
-  --accent: #ff8a3d;
-  --accent-soft: rgba(255, 138, 61, 0.14);
-}
-
-[data-palette='oceanic'] {
-  --bg: #060c12;
-  --bg-1: #0a1420;
-  --bg-2: #0f1c2e;
-  --fg: #e6efff;
-  --fg-dim: rgba(230, 239, 255, 0.6);
-  --fg-mute: rgba(230, 239, 255, 0.32);
-  --line: rgba(140, 200, 240, 0.1);
-  --line-strong: rgba(140, 200, 240, 0.28);
-  --accent: #3dd1e0;
-  --accent-soft: rgba(61, 209, 224, 0.14);
-}
-
-[data-palette='phosphor'] {
-  --bg: #07090a;
-  --bg-1: #0c1110;
-  --bg-2: #121915;
-  --fg: #e7f5d8;
-  --fg-dim: rgba(231, 245, 216, 0.58);
-  --fg-mute: rgba(231, 245, 216, 0.32);
-  --line: rgba(150, 230, 130, 0.1);
-  --line-strong: rgba(150, 230, 130, 0.28);
-  --accent: #b5ff5a;
-  --accent-soft: rgba(181, 255, 90, 0.14);
-}
-
-[data-palette='bone'] {
-  --bg: #0d0e10;
-  --bg-1: #131418;
-  --bg-2: #1a1c20;
-  --fg: #f1ede4;
-  --fg-dim: rgba(241, 237, 228, 0.6);
-  --fg-mute: rgba(241, 237, 228, 0.32);
-  --line: rgba(241, 237, 228, 0.1);
-  --line-strong: rgba(241, 237, 228, 0.28);
-  --accent: #f1ede4;
-  --accent-soft: rgba(241, 237, 228, 0.1);
-}
-
-[data-type='mono-condensed'] {
-  --display: var(--sans);
-  --copy: var(--mono);
-}
-
-[data-type='all-mono'] {
-  --display: var(--mono);
-  --copy: var(--mono);
-}
-
-[data-type='literary'] {
-  --display: var(--sans);
-  --copy: var(--serif);
-}
-
-[data-density='compact'] {
-  --pad: 10px;
-  --pad-lg: 16px;
-  --row-gap: 7px;
-}
-
-[data-density='regular'] {
-  --pad: 14px;
-  --pad-lg: 22px;
-  --row-gap: 10px;
-}
-
-[data-density='spacious'] {
   --pad: 20px;
   --pad-lg: 32px;
   --row-gap: 14px;
+
+  --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --headline: 'Outfit', ui-sans-serif, system-ui, sans-serif;
 }
 
 @theme {
@@ -139,10 +51,20 @@
   --color-good: var(--good);
 
   --font-mono: var(--mono);
-  --font-sans: var(--sans);
-  --font-serif: var(--serif);
-  --font-display: var(--display);
-  --font-copy: var(--copy);
+  --font-headline: var(--headline);
+
+  /* Type scale — replaces the arbitrary text-[9px|9.5px|10.5px|12.5px] sizes
+     scattered through the old markup. 10px is the smallest anything renders. */
+  --text-micro: 10px;
+  --text-micro--line-height: 1.4;
+  --text-meta: 11px;
+  --text-meta--line-height: 1.5;
+  --text-ui: 12px;
+  --text-ui--line-height: 1.5;
+  --text-body: 14px;
+  --text-body--line-height: 1.6;
+  --text-lead: 16px;
+  --text-lead--line-height: 1.7;
 
   --spacing-pad: var(--pad);
   --spacing-pad-lg: var(--pad-lg);
@@ -152,8 +74,8 @@
   --animate-scan-jitter: scan-jitter 6s steps(60) infinite;
   --animate-beam: beam 9s linear infinite;
   --animate-shake: shake 0.4s;
-  --animate-tl-in: tl-in 0.5s both;
   --animate-fade: fade 0.2s;
+  --animate-drift: drift 24s ease-in-out infinite;
 }
 
 @keyframes caret {
@@ -198,21 +120,20 @@
   }
 }
 
-@keyframes tl-in {
-  from {
-    opacity: 0;
-    transform: translateX(-8px);
-  }
-
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
 @keyframes fade {
   from {
     opacity: 0;
+  }
+}
+
+@keyframes drift {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+
+  50% {
+    transform: translate(3%, -4%);
   }
 }
 
@@ -241,7 +162,7 @@
   body {
     background: var(--bg);
     color: var(--fg);
-    font-family: var(--copy, var(--mono));
+    font-family: var(--mono);
     font-size: 13px;
     line-height: 1.5;
     letter-spacing: 0.01em;
@@ -274,6 +195,29 @@
     background: var(--accent);
     color: var(--bg);
   }
+}
+
+/* App scroller — the one scrollable surface (html/body/#root are locked
+   above) gets a slim, token-coloured scrollbar instead of a hidden one. */
+#app-scroller {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+  scroll-behavior: smooth;
+}
+
+#app-scroller::-webkit-scrollbar {
+  display: block;
+  width: 8px;
+  height: 8px;
+}
+
+#app-scroller::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 0;
+}
+
+#app-scroller::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
 }
 
 /* Bracket frame — corner markers via ::before/::after */
@@ -328,25 +272,18 @@
   border-top: 0;
 }
 
-/* Scanlines + beam (toggle via data-scan) */
-[data-scan='0'] .bg-scan {
-  display: none;
-}
-
+/* Scanlines + beam ambient chrome. Subtler than the original pass — opacity
+   halved — and switched off entirely under reduced motion, below. */
 .bg-scan {
   background-image: repeating-linear-gradient(
     0deg,
-    rgba(255, 255, 255, 0.025) 0,
-    rgba(255, 255, 255, 0.025) 1px,
+    rgba(255, 255, 255, 0.014) 0,
+    rgba(255, 255, 255, 0.014) 1px,
     transparent 1px,
     transparent 3px
   );
   mix-blend-mode: overlay;
   animation: scan-jitter 6s steps(60) infinite;
-}
-
-[data-scan='0'] .bg-beam {
-  display: none;
 }
 
 .bg-beam {
@@ -355,10 +292,60 @@
   right: 0;
   height: 140px;
   background: linear-gradient(180deg, transparent 0%, var(--accent-soft) 50%, transparent 100%);
-  opacity: 0.18;
+  opacity: 0.1;
   z-index: 1;
   pointer-events: none;
   animation: beam 9s linear infinite;
+}
+
+/* Grain — a tiny inline feTurbulence texture, tiled and barely-there, so
+   flat panels don't read as plain CSS gradients. */
+.bg-grain {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+}
+
+/* Accent-tinted radial mesh glow — used behind hero/CTA sections on the
+   landing page. Two soft blobs drifting slowly. */
+.mesh-glow {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.mesh-glow::before,
+.mesh-glow::after {
+  content: '';
+  position: absolute;
+  width: 60vw;
+  height: 60vw;
+  max-width: 900px;
+  max-height: 900px;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.22;
+  animation: drift 24s ease-in-out infinite;
+}
+
+.mesh-glow::before {
+  top: -20%;
+  left: -10%;
+  background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
+}
+
+.mesh-glow::after {
+  bottom: -25%;
+  right: -10%;
+  background: radial-gradient(circle, var(--good) 0%, transparent 70%);
+  animation-delay: -12s;
 }
 
 /* Connector rope line */
@@ -408,9 +395,7 @@
   box-shadow: 0 0 10px var(--accent);
 }
 
-/* Responsive chrome — match phone / tablet / laptop breakpoints.
-   Density tokens step down here so every `p-pad*` / `gap-row` utility
-   tightens at once; declared after the [data-density] blocks to win. */
+/* Responsive chrome — match phone / tablet / laptop breakpoints. */
 @media (max-width: 860px) {
   :root {
     --pad: 14px;
@@ -447,6 +432,34 @@
     --pad: 11px;
     --pad-lg: 15px;
     --row-gap: 8px;
+  }
+}
+
+/* Reduced motion — kill the ambient chrome and any CSS-driven loop.
+   Anime.js entrances and scroll-scrub effects check matchMedia in JS
+   instead, since they run per-mount rather than as a standing rule. */
+@media (prefers-reduced-motion: reduce) {
+  .bg-scan,
+  .bg-beam,
+  .mesh-glow::before,
+  .mesh-glow::after {
+    animation: none !important;
+    display: none;
+  }
+
+  [data-layer] {
+    transform: none !important;
+  }
+
+  #app-scroller {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.001ms !important;
+    animation-duration: 0.001ms !important;
   }
 }
 

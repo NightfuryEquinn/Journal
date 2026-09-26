@@ -1,6 +1,8 @@
-import { useEffect, useRef, type ReactNode } from 'react';
-import { Bracket, Panel, Btn, DecodeText } from './hud';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { CaretLeftIcon, WarningIcon } from '@phosphor-icons/react';
+import { Bracket, Panel, Btn, DecodeText, PAGE } from './hud';
 import { DAILY_QUESTS, WEEKLY_QUESTS, MILESTONE_QUESTS, type QuestDef } from './quests';
+import { useEntrance } from './motion';
 
 const DIAGRAM = `flowchart LR
   subgraph device [Device]
@@ -44,7 +46,7 @@ type SchemaField = {
 /** Section heading for transparency copy. */
 function Heading({ children }: { children: ReactNode }) {
   return (
-    <h2 className="mb-2 font-display text-[12px] font-semibold tracking-[0.22em] text-fg uppercase">
+    <h2 className="mb-2 font-headline text-ui font-semibold tracking-[0.22em] text-fg uppercase">
       {children}
     </h2>
   );
@@ -52,9 +54,7 @@ function Heading({ children }: { children: ReactNode }) {
 
 /** Body paragraph for transparency copy. */
 function Body({ children }: { children: ReactNode }) {
-  return (
-    <p className="mb-3 font-mono text-[12px] leading-[1.7] text-fg-dim last:mb-0">{children}</p>
-  );
+  return <p className="mb-3 font-mono text-body leading-[1.7] text-fg-dim last:mb-0">{children}</p>;
 }
 
 /** Muted inline code / field name. */
@@ -76,7 +76,7 @@ function QuestCatalogItem({ quest }: { quest: QuestDef }) {
 /** List of daily, weekly, or milestone defs from the shared catalog. */
 function QuestCatalogList({ quests }: { quests: QuestDef[] }) {
   return (
-    <ul className="mb-3 font-mono text-[12px] leading-[1.7] text-fg-dim">
+    <ul className="mb-3 font-mono text-body leading-[1.7] text-fg-dim">
       {quests.map((q) => (
         <QuestCatalogItem key={q.id} quest={q} />
       ))}
@@ -101,9 +101,9 @@ function SchemaTable({
       <Panel title={title} meta={meta}>
         {intro && <Body>{intro}</Body>}
         <div className="overflow-x-auto border border-line bg-black/25">
-          <table className="w-full min-w-70 border-collapse font-mono text-[11px]">
+          <table className="w-full min-w-70 border-collapse font-mono text-meta">
             <thead>
-              <tr className="border-b border-line text-left text-[9.5px] tracking-[0.16em] text-fg-mute uppercase">
+              <tr className="border-b border-line text-left text-micro tracking-[0.16em] text-fg-mute uppercase">
                 <th className="px-2.5 py-2 font-medium">Field</th>
                 <th className="px-2.5 py-2 font-medium">Type</th>
                 <th className="px-2.5 py-2 font-medium">Notes</th>
@@ -220,28 +220,58 @@ const QUEST_PROGRESS_FIELDS: SchemaField[] = [
   { name: 'updatedAt', type: 'Date', note: 'Server write time.' },
 ];
 
+type DiagramState = 'loading' | 'ready' | 'error';
+
 /** How Journs moves data: E2EE journal path vs plaintext quest path. */
-export function TransparencyScreen({ onBack }: { onBack: () => void }) {
+export function TransparencyScreen({
+  onBack,
+  backLabel = 'PROFILE',
+}: {
+  onBack: () => void;
+  /** Label for the back button — "PROFILE" or "HOME" depending on entry point. */
+  backLabel?: string;
+}) {
   const hostRef = useRef<HTMLDivElement>(null);
+  const scopeRef = useRef<HTMLDivElement>(null);
+  const [diagramState, setDiagramState] = useState<DiagramState>('loading');
+  useEntrance(scopeRef);
 
   useEffect(() => {
     let cancelled = false;
 
     /** Render the Mermaid data-flow diagram once. */
     const render = async () => {
-      const mermaid = (await import('mermaid')).default;
-      mermaid.initialize({
-        startOnLoad: false,
-        theme: 'dark',
-        securityLevel: 'strict',
-        fontFamily: 'JetBrains Mono, monospace',
-      });
+      try {
+        const mermaid = (await import('mermaid')).default;
+        mermaid.initialize({
+          startOnLoad: false,
+          theme: 'base',
+          securityLevel: 'strict',
+          fontFamily: 'JetBrains Mono, monospace',
+          themeVariables: {
+            background: '#060c12',
+            primaryColor: '#0a1420',
+            primaryTextColor: '#e6efff',
+            primaryBorderColor: '#3dd1e0',
+            lineColor: '#3dd1e0',
+            secondaryColor: '#0f1c2e',
+            tertiaryColor: '#0a1420',
+            fontFamily: 'JetBrains Mono, monospace',
+            fontSize: '12px',
+          },
+        });
 
-      const id = `journs-flow-${Date.now()}`;
-      const { svg } = await mermaid.render(id, DIAGRAM);
+        const id = `journs-flow-${Date.now()}`;
+        const { svg } = await mermaid.render(id, DIAGRAM);
 
-      if (!cancelled && hostRef.current) {
-        hostRef.current.innerHTML = svg;
+        if (!cancelled && hostRef.current) {
+          hostRef.current.innerHTML = svg;
+          setDiagramState('ready');
+        }
+      } catch {
+        if (!cancelled) {
+          setDiagramState('error');
+        }
       }
     };
 
@@ -253,29 +283,43 @@ export function TransparencyScreen({ onBack }: { onBack: () => void }) {
   }, []);
 
   return (
-    <div className="mx-auto max-w-350 px-4 pt-4 pb-6 max-phone:px-3 laptop:px-7 laptop:pt-5 laptop:pb-7">
-      <div className="mb-5.5 flex flex-wrap items-center gap-2.5">
-        <Btn variant="ghost" onClick={onBack} data-tour="tour-back-profile">
-          ← PROFILE
+    <div ref={scopeRef} className={PAGE}>
+      <div data-reveal className="mb-5.5 flex flex-wrap items-center gap-2.5">
+        <Btn variant="ghost" onClick={onBack}>
+          <CaretLeftIcon className="size-3.5" weight="bold" />
+          {backLabel}
         </Btn>
-        <span className="font-mono text-[11px] tracking-[0.14em] text-fg-mute">
+        <span className="font-mono text-meta tracking-[0.14em] text-fg-mute">
           / TRANSPARENCY / DATA PATH
         </span>
       </div>
 
-      <div className="flex flex-col gap-5">
+      <div data-reveal className="flex flex-col gap-5">
         <Bracket>
           <Panel title="DATA TRANSFER" meta="E2EE · ZERO KNOWLEDGE JOURNAL">
-            <p className="mb-4 font-mono text-[12px] leading-[1.7] text-fg-dim">
+            <p className="mb-4 font-mono text-body leading-[1.7] text-fg-dim">
               <DecodeText
                 text="// Journal bodies are encrypted on-device before they reach Vercel or MongoDB. Quest/AURA state is plaintext so cron-job.org can settle daily and weekly windows. Export stays on your machine."
                 speed={10}
               />
             </p>
+            {diagramState === 'loading' && (
+              <div className="border border-line bg-black/30 p-6 text-center font-mono text-meta text-fg-dim">
+                // rendering data path …
+              </div>
+            )}
+            {diagramState === 'error' && (
+              <div className="flex flex-col items-center gap-2.5 border border-line bg-black/30 p-6 text-center">
+                <WarningIcon className="size-6 text-bad" weight="bold" />
+                <p className="font-mono text-meta text-fg-dim">// diagram failed · reload</p>
+                <Btn variant="ghost" onClick={() => window.location.reload()}>
+                  RELOAD
+                </Btn>
+              </div>
+            )}
             <div
               ref={hostRef}
-              data-tour="tour-diagram"
-              className="overflow-x-auto border border-line bg-black/30 p-3 font-mono text-[11px] [&_svg]:mx-auto [&_svg]:max-w-full max-tablet:[&_svg]:max-w-none"
+              className={`overflow-x-auto border border-line bg-black/30 p-3 font-mono text-meta [&_svg]:mx-auto [&_svg]:max-w-full max-tablet:[&_svg]:max-w-none ${diagramState === 'ready' ? '' : 'hidden'}`}
             />
           </Panel>
         </Bracket>

@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { TrashIcon, XIcon } from '@phosphor-icons/react';
 import type { AppView, DeviceIdentity, JournalEntry, ListLayout, QuestProgress } from './types';
-import { DecodeText, Bracket, Panel, Btn, TopBar, Backdrop } from './hud';
+import { DecodeText, Bracket, Panel, Btn, TopBar, Backdrop, ErrorBoundary } from './hud';
 import { SoundManager } from './sound';
 import {
   clearLegacyLocalData,
@@ -26,13 +27,7 @@ import { ProfileScreen } from './profile';
 import { TransparencyScreen } from './transparency';
 import { maybeStartTour, resetTour, TOUR_KEY } from './tours';
 
-const THEME = {
-  palette: 'oceanic',
-  type: 'all-mono',
-  density: 'spacious',
-  depth: 70,
-  scanlines: true,
-} as const;
+const LandingScreen = lazy(() => import('./landing').then((m) => ({ default: m.LandingScreen })));
 
 const SOUND_KEY = 'journs.sound';
 
@@ -40,27 +35,24 @@ const SOUND_KEY = 'journs.sound';
 export default function App() {
   const [identity, setIdentity] = useState<DeviceIdentity | null>(() => loadIdentity());
   const [session, setSession] = useState<AuthSession | null>(null);
-  const [view, setView] = useState<AppView>({ name: 'login' });
+  const [view, setView] = useState<AppView>(() =>
+    loadIdentity() ? { name: 'login' } : { name: 'landing' },
+  );
   const [listLayout, setListLayout] = useState<ListLayout>('stack');
   const [soundOn, setSoundOn] = useState(() => localStorage.getItem(SOUND_KEY) === '1');
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [progress, setProgress] = useState<QuestProgress>(() => emptyProgress());
   const [confirmDel, setConfirmDel] = useState<JournalEntry | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [loadingArchive, setLoadingArchive] = useState(false);
   const pendingTour = useRef(false);
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
     clearLegacyLocalData();
-  }, []);
-
-  useEffect(() => {
-    const root = document.documentElement;
-    root.setAttribute('data-palette', THEME.palette);
-    root.setAttribute('data-type', THEME.type);
-    root.setAttribute('data-density', THEME.density);
-    root.setAttribute('data-scan', THEME.scanlines ? '1' : '0');
-    root.style.setProperty('--depth', String(THEME.depth));
   }, []);
 
   useEffect(() => {
@@ -71,6 +63,26 @@ export default function App() {
   useEffect(() => {
     SoundManager.pageLoad();
   }, [view.name]);
+
+  // A view change (archive → reader, profile → transparency, …) should land
+  // at the top, not carry over whatever scroll position the last screen left.
+  useEffect(() => {
+    scrollerRef.current?.scrollTo({ top: 0 });
+  }, [view.name]);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+
+    if (!dialog) {
+      return;
+    }
+
+    if (confirmDel && !dialog.open) {
+      dialog.showModal();
+    } else if (!confirmDel && dialog.open) {
+      dialog.close();
+    }
+  }, [confirmDel]);
 
   useEffect(() => {
     if (confirmDel) {
@@ -187,8 +199,8 @@ export default function App() {
     setView({ name: 'profile' });
   };
 
-  /** Open transparency diagram. */
-  const openTransparency = () => setView({ name: 'transparency' });
+  /** Open the transparency diagram, remembering where Back should return to. */
+  const openTransparency = (from: 'landing' | 'profile') => setView({ name: 'transparency', from });
 
   /** Open an entry in the reader. */
   const openEntry = (e: JournalEntry) => setView({ name: 'read', entry: e });
@@ -199,7 +211,7 @@ export default function App() {
   /** Open the composer to edit an existing entry. */
   const editEntry = (e: JournalEntry) => setView({ name: 'compose', existing: e });
 
-  /** Encrypt + upsert entry, then open reader. */
+  /** Encrypt + upsert entry, then open reader. Rejects on failure so the composer can show it. */
   const saveEntry = async (e: JournalEntry) => {
     if (!session) {
       return;
@@ -224,9 +236,12 @@ export default function App() {
   };
 
   /** Prompt for delete confirmation. */
-  const requestDelete = (e: JournalEntry) => setConfirmDel(e);
+  const requestDelete = (e: JournalEntry) => {
+    setDeleteError(null);
+    setConfirmDel(e);
+  };
 
-  /** Confirm and purge entry remotely + locally. */
+  /** Confirm and purge entry remotely + locally. Stays open with an error on failure. */
   const confirmDelete = async () => {
     const e = confirmDel;
 
@@ -234,11 +249,21 @@ export default function App() {
       return;
     }
 
-    await apiDeleteEntry(session.token, e.id);
-    setEntries((prev) => prev.filter((x) => x.id !== e.id));
-    setConfirmDel(null);
-    SoundManager.deny();
-    setView({ name: 'list' });
+    setDeleteBusy(true);
+    setDeleteError(null);
+
+    try {
+      await apiDeleteEntry(session.token, e.id);
+      setEntries((prev) => prev.filter((x) => x.id !== e.id));
+      setConfirmDel(null);
+      SoundManager.deny();
+      setView({ name: 'list' });
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'purge failed');
+      SoundManager.deny();
+    } finally {
+      setDeleteBusy(false);
+    }
   };
 
   /** Merge imported plaintext entries and re-encrypt to server. */
@@ -272,24 +297,60 @@ export default function App() {
 
   const userLabel = session && identity ? identity.operatorId : '—';
   const authed = Boolean(session);
+  const showTopBar = view.name !== 'landing';
 
   return (
-    <div className="fixed inset-0 grid grid-rows-[minmax(56px,auto)_1fr] bg-bg pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)]">
-      <Backdrop depth={THEME.depth} />
+    <div className="fixed inset-0 flex flex-col bg-bg pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)]">
+      <Backdrop />
 
-      <TopBar
-        user={userLabel}
-        onSignOut={authed ? signOut : null}
-        soundOn={soundOn}
-        onToggleSound={() => setSoundOn((s) => !s)}
-        onOpenProfile={authed ? openProfile : null}
-        journaledDays={authed ? countJournaledDays(entries) : null}
-      />
+      {showTopBar && (
+        <TopBar
+          user={userLabel}
+          onSignOut={authed ? signOut : null}
+          soundOn={soundOn}
+          onToggleSound={() => setSoundOn((s) => !s)}
+          onOpenProfile={authed ? openProfile : null}
+          journaledDays={authed ? countJournaledDays(entries) : null}
+        />
+      )}
 
-      <div className="relative z-5 grid overflow-hidden">
-        <div className="col-start-1 row-start-1 overflow-auto">
+      {authed && syncError && view.name !== 'login' && (
+        <div className="relative z-10 flex items-center justify-between gap-3 border-b border-bad/40 bg-[color-mix(in_oklab,var(--bad)_10%,var(--bg))] px-4 py-2 font-mono text-meta text-bad">
+          <span>// sync error · {syncError}</span>
+          <button
+            type="button"
+            className="tap-target shrink-0 p-1"
+            onClick={() => setSyncError(null)}
+            aria-label="Dismiss"
+          >
+            <XIcon className="size-3.5" weight="bold" />
+          </button>
+        </div>
+      )}
+
+      <div
+        id="app-scroller"
+        ref={scrollerRef}
+        className="relative z-5 min-h-0 flex-1 overflow-auto"
+      >
+        <ErrorBoundary>
+          {view.name === 'landing' && (
+            <Suspense fallback={<div className="h-full bg-bg" />}>
+              <LandingScreen
+                hasIdentity={Boolean(identity)}
+                onEnter={(intent) => setView({ name: 'login', intent })}
+                onOpenTransparency={() => openTransparency('landing')}
+              />
+            </Suspense>
+          )}
           {view.name === 'login' && (
-            <LoginScreen onAuth={onAuth} identity={identity} syncError={syncError} />
+            <LoginScreen
+              onAuth={onAuth}
+              identity={identity}
+              syncError={syncError}
+              intent={view.intent}
+              onAbout={identity ? undefined : () => setView({ name: 'landing' })}
+            />
           )}
           {view.name === 'list' && (
             <ListScreen
@@ -299,7 +360,6 @@ export default function App() {
               layout={listLayout}
               onLayoutChange={setListLayout}
               onDelete={requestDelete}
-              onOpenProfile={openProfile}
               loading={loadingArchive}
             />
           )}
@@ -330,53 +390,58 @@ export default function App() {
               onBack={() => setView({ name: 'list' })}
               onProgressChange={onProgressChange}
               onImport={importEntries}
-              onOpenTransparency={openTransparency}
+              onOpenTransparency={() => openTransparency('profile')}
             />
           )}
           {view.name === 'transparency' && (
-            <TransparencyScreen onBack={() => setView({ name: 'profile' })} />
+            <TransparencyScreen
+              onBack={() =>
+                setView(view.from === 'landing' ? { name: 'landing' } : { name: 'profile' })
+              }
+              backLabel={view.from === 'landing' ? 'HOME' : 'PROFILE'}
+            />
           )}
-        </div>
+        </ErrorBoundary>
       </div>
 
-      {confirmDel && (
-        <div
-          className="fixed inset-0 z-1000 grid animate-fade place-items-center bg-black/70 backdrop-blur-xs"
-          onClick={() => setConfirmDel(null)}
-        >
-          <div
-            className="max-h-[90dvh] w-[min(440px,90vw)] overflow-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Bracket>
-              <Panel title="CONFIRM PURGE" meta="DESTRUCTIVE OPERATION">
-                <div className="mb-3.5 text-[13px] leading-[1.6]">
-                  <DecodeText
-                    text="// this will erase the ciphertext blob from Atlas."
-                    speed={14}
-                  />
-                  <div className="mt-2 text-fg-mute">
-                    <span className="font-mono tracking-[0.02em]">_id:</span>{' '}
-                    <span className="font-mono tracking-[0.02em] text-accent">{confirmDel.id}</span>
-                  </div>
-                  <div className="mt-1 text-fg-dim">
-                    <span className="font-mono tracking-[0.02em] text-fg-dim">title:</span>{' '}
-                    <span>{confirmDel.title}</span>
-                  </div>
+      <dialog
+        ref={dialogRef}
+        className="m-auto max-h-[90dvh] w-[min(440px,90vw)] overflow-auto border-0 bg-transparent p-0 backdrop:bg-black/70 backdrop:backdrop-blur-xs"
+        onClose={() => setConfirmDel(null)}
+        onCancel={() => setConfirmDel(null)}
+      >
+        {confirmDel && (
+          <Bracket>
+            <Panel title="CONFIRM PURGE" meta="DESTRUCTIVE OPERATION">
+              <div className="mb-3.5 text-body leading-[1.6]">
+                <DecodeText text="// this will erase the ciphertext blob from Atlas." speed={14} />
+                <div className="mt-2 text-fg-mute">
+                  <span className="font-mono tracking-[0.02em]">_id:</span>{' '}
+                  <span className="font-mono tracking-[0.02em] text-accent">{confirmDel.id}</span>
                 </div>
-                <div className="flex justify-end gap-2.5">
-                  <Btn variant="ghost" onClick={() => setConfirmDel(null)}>
-                    CANCEL
-                  </Btn>
-                  <Btn variant="danger" onClick={() => void confirmDelete()}>
-                    ✕ PURGE ENTRY
-                  </Btn>
+                <div className="mt-1 text-fg-dim">
+                  <span className="font-mono tracking-[0.02em] text-fg-dim">title:</span>{' '}
+                  <span>{confirmDel.title}</span>
                 </div>
-              </Panel>
-            </Bracket>
-          </div>
-        </div>
-      )}
+                {deleteError && (
+                  <div className="mt-3 font-mono text-meta text-bad">
+                    // purge failed · {deleteError}
+                  </div>
+                )}
+              </div>
+              <div className="flex justify-end gap-2.5">
+                <Btn variant="ghost" disabled={deleteBusy} onClick={() => setConfirmDel(null)}>
+                  CANCEL
+                </Btn>
+                <Btn variant="danger" disabled={deleteBusy} onClick={() => void confirmDelete()}>
+                  <TrashIcon className="size-3.5" weight="bold" />
+                  {deleteBusy ? 'PURGING…' : 'PURGE ENTRY'}
+                </Btn>
+              </div>
+            </Panel>
+          </Bracket>
+        )}
+      </dialog>
     </div>
   );
 }
