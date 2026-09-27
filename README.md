@@ -49,7 +49,7 @@ React 19 + TypeScript + Vite SPA, Vercel serverless API, MongoDB Atlas. Auth is 
 | Transparency | `transparency.tsx` | Data-flow diagram + schema documentation                                                                                   |
 | Legal        | `legal.tsx`        | Privacy Policy and Terms & Conditions (static copy, reached from Landing or Profile → Data)                                |
 
-Supporting modules: `app.tsx` (session + routing), `crypto.ts` / `identity.ts`, `api.ts`, `hud.tsx` (SoundManager, TopBar, Panel/Btn), `tours.ts` (Shepherd), `push.ts` (Web Push subscribe/sync), `quests.ts` (re-exports `shared/quests.ts` for the UI).
+Supporting modules: `app.tsx` (session + routing), `crypto.ts` / `identity.ts`, `faceid.ts` (WebAuthn PRF platform passkey), `api.ts`, `hud.tsx` (SoundManager, TopBar, Panel/Btn), `tours.ts` (Shepherd), `push.ts` (Web Push subscribe/sync), `quests.ts` (re-exports `shared/quests.ts` for the UI).
 
 ## Legal
 
@@ -102,11 +102,12 @@ Deployed builds call same-origin `/api/*` on Vercel.
 1. **Create** — 12-word recovery phrase (shown once) + passphrase (≥8 chars)
 2. **Derive** — `accountId` from mnemonic seed; random **DEK**; wrap DEK under passphrase KEK (PBKDF2) and recovery KEK (HKDF); `dekVerifier` = SHA-256(HKDF(DEK)) proves DEK possession without exposing it
 3. **Register** — upload `accountId`, `salt`, both wraps, `authVerifier`, `dekVerifier` (never the DEK, mnemonic, or passphrase)
-4. **Journal** — AES-GCM encrypt `JournalEntry` JSON on-device; Mongo stores `ciphertext` + `nonce` only
+4. **Journal** — AES-GCM encrypt `JournalEntry` JSON on-device, padded to the next power-of-two byte bucket (min 1KB) first so ciphertext length doesn't leak exact entry size; Mongo stores `ciphertext` + `nonce` only
 5. **Unlock** — passphrase → verifier → JWT + unwrap DEK into session memory. If the account predates `dekVerifier`, the client backfills it via `POST /api/auth/verifier` (JWT-authed, no-op once set)
 6. **Recover** — mnemonic unwraps DEK via `GET /api/auth/bundle`, then `POST /api/auth/recover` proves possession with `dekVerifier` before rotating passphrase wraps — without this check, anyone who learned an `accountId` could overwrite a stranger's wraps and lock them out for good
+7. **Face ID (optional, per device)** — enrolling asks WebAuthn for a platform passkey with the PRF extension, then wraps the session's passphrase KEK under a key derived from the PRF output (`src/faceid.ts`); unlocking derives the same KEK from a fresh biometric read and logs in exactly like a passphrase would — the server can't tell the two apart, and losing the passkey just falls back to the passphrase
 
-Quest / AURA progress is **plaintext on the server** so day/week rollover can run without the DEK.
+Device identity in `localStorage` (`journs.identity.v1`) holds only `accountId`, `salt`, and `createdAt` — never a DEK wrap, so reading it alone grants nothing. Quest / AURA progress is **plaintext on the server** so day/week rollover can run without the DEK.
 
 In-app detail: **Profile → TRANSPARENCY** (Mermaid diagram + every schema).
 
@@ -119,7 +120,8 @@ In-app detail: **Profile → TRANSPARENCY** (Mermaid diagram + every schema).
 | `UserDoc`                         | `api/_lib/db.ts`      | Mongo `users` (wraps + `authVerifier` + `dekVerifier`)                |
 | `QuestProgress`                   | `shared/schemas.ts`   | Wire + Mongo `quest_progress`                                         |
 | Register / login / recover bodies | `api/_lib/schemas.ts` | Auth HTTP                                                             |
-| Device identity                   | `src/identity.ts`     | `localStorage` `journs.identity.v1` (no DEK, passphrase, or verifier) |
+| Device identity                   | `src/identity.ts`     | `localStorage` `journs.identity.v1` (accountId, salt, createdAt only) |
+| Face ID enrollment                | `src/faceid.ts`       | `localStorage` `journs.faceid.v1` (wrapped passKek, never the DEK)    |
 
 **`JournalEntry` fields:** `id`, `date`, `title`, `mood` (1–5), `energy` (1–5), `weather`, `tags[]`, `body`.
 

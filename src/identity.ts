@@ -22,6 +22,7 @@ import {
   apiSetDekVerifier,
   type AuthResponse,
 } from './api';
+import { clearFaceId, faceIdPassKek } from './faceid';
 
 const IDENTITY_KEY = 'journs.identity.v1';
 const LEGACY_ENTRIES_KEY = 'journs.entries.v1';
@@ -30,10 +31,12 @@ const LEGACY_PROGRESS_KEY = 'journs.progress.v1';
 
 export { generateRecoveryPhrase } from './crypto';
 
-/** Active session: JWT + in-memory DEK (never persisted). */
+/** Active session: JWT + in-memory DEK + passphrase KEK (never persisted). */
 export interface AuthSession {
   token: string;
   dek: Uint8Array;
+  /** Wraps the DEK; kept in memory so Profile can enroll Face ID without re-asking the passphrase. */
+  passKek: Uint8Array;
   identity: DeviceIdentity;
 }
 
@@ -46,10 +49,20 @@ export function loadIdentity(): DeviceIdentity | null {
       return null;
     }
 
-    const parsed = JSON.parse(raw) as DeviceIdentity;
+    const parsed = JSON.parse(raw) as DeviceIdentity & { wrappedDekPass?: string };
 
     if (!parsed.accountId || !parsed.salt) {
       return null;
+    }
+
+    // Older builds cached wrappedDekPass here — a wrapped-DEK oracle sitting
+    // in localStorage enables offline passphrase brute-force. Strip it from
+    // any device that still has it.
+    if ('wrappedDekPass' in parsed) {
+      const { wrappedDekPass: _drop, ...clean } = parsed;
+      saveIdentity(clean);
+
+      return clean;
     }
 
     return parsed;
@@ -88,7 +101,6 @@ function identityFromAuth(auth: AuthResponse, createdAt?: string): DeviceIdentit
     accountId: auth.accountId,
     operatorId: operatorCallsign(auth.accountId),
     salt: auth.salt,
-    wrappedDekPass: auth.wrappedDekPass,
     createdAt: createdAt ?? auth.createdAt ?? new Date().toISOString(),
   };
 }
@@ -113,7 +125,7 @@ export async function registerAccount(words: string[], passphrase: string): Prom
   const identity = identityFromAuth(auth);
   saveIdentity(identity);
 
-  return { token: auth.token, dek: secrets.dek, identity };
+  return { token: auth.token, dek: secrets.dek, passKek: secrets.passKek, identity };
 }
 
 /**
@@ -122,34 +134,31 @@ export async function registerAccount(words: string[], passphrase: string): Prom
  */
 class SaltMismatchError extends Error {}
 
-/** Derive under one salt and exchange the verifier for a session. */
-async function unlockWithSalt(
+/**
+ * Whether an error from sessionFromPassKek means "this key is wrong" — a 401
+ * from apiLogin, or a DOMException from unwrapKey's AES-GCM tag check — as
+ * opposed to a network/server error that should propagate as-is.
+ */
+function isWrongKeyError(err: unknown): boolean {
+  if (err instanceof ApiError) {
+    return err.status === 401;
+  }
+
+  return err instanceof DOMException;
+}
+
+/**
+ * Log in with an already-derived passKek (from a passphrase, or unwrapped via
+ * Face ID), unwrap the DEK, and persist the resulting identity. Throws
+ * ApiError(401) on a wrong/stale passKek — callers decide what that means.
+ */
+async function sessionFromPassKek(
   identity: DeviceIdentity,
-  passphrase: string,
-  salt: string,
+  passKek: Uint8Array,
 ): Promise<AuthSession> {
-  const passKek = await derivePassKek(passphrase, salt);
   const authVerifier = await deriveAuthVerifier(passKek);
-
-  let auth: AuthResponse;
-
-  try {
-    auth = await apiLogin({ accountId: identity.accountId, authVerifier });
-  } catch (err) {
-    if (err instanceof ApiError && err.status === 401) {
-      throw new SaltMismatchError();
-    }
-
-    throw err;
-  }
-
-  let dek: Uint8Array;
-
-  try {
-    dek = await unwrapKey(passKek, auth.wrappedDekPass);
-  } catch {
-    throw new SaltMismatchError();
-  }
+  const auth = await apiLogin({ accountId: identity.accountId, authVerifier });
+  const dek = await unwrapKey(passKek, auth.wrappedDekPass);
 
   if (auth.needsDekVerifier) {
     // Legacy account predating the recovery-takeover fix — backfill now that
@@ -165,7 +174,49 @@ async function unlockWithSalt(
   const next = identityFromAuth(auth, identity.createdAt);
   saveIdentity(next);
 
-  return { token: auth.token, dek, identity: next };
+  return { token: auth.token, dek, passKek, identity: next };
+}
+
+/** Derive under one salt and exchange the verifier for a session. */
+async function unlockWithSalt(
+  identity: DeviceIdentity,
+  passphrase: string,
+  salt: string,
+): Promise<AuthSession> {
+  const passKek = await derivePassKek(passphrase, salt);
+
+  try {
+    return await sessionFromPassKek(identity, passKek);
+  } catch (err) {
+    if (isWrongKeyError(err)) {
+      throw new SaltMismatchError();
+    }
+
+    throw err;
+  }
+}
+
+/**
+ * Unlock via platform passkey (Face ID / Touch ID / Windows Hello). The
+ * server is never told this happened — it just sees a normal passphrase-KEK
+ * login, because Face ID only unwraps the same passKek the passphrase would.
+ */
+export async function unlockWithFaceId(identity: DeviceIdentity): Promise<AuthSession> {
+  const passKek = await faceIdPassKek(identity.accountId);
+
+  try {
+    return await sessionFromPassKek(identity, passKek);
+  } catch (err) {
+    // A stale wrap (passphrase rotated elsewhere since enrollment, so this
+    // passKek no longer matches the server's salt/wraps) can't be retried —
+    // drop the local enrollment and send the user back to the passphrase.
+    if (isWrongKeyError(err)) {
+      clearFaceId();
+      throw new Error('Face ID is out of date — unlock with your passphrase once.', { cause: err });
+    }
+
+    throw err;
+  }
 }
 
 /**
@@ -237,7 +288,7 @@ export async function recoverAccount(words: string[], newPassphrase: string): Pr
   const identity = identityFromAuth(auth, bundle.createdAt);
   saveIdentity(identity);
 
-  return { token: auth.token, dek: secrets.dek, identity };
+  return { token: auth.token, dek: secrets.dek, passKek: secrets.passKek, identity };
 }
 
 /** Clear legacy plaintext localStorage keys (no longer used; source of truth is Atlas). */

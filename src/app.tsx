@@ -394,6 +394,7 @@ export default function App() {
             <ProfileScreen
               identity={identity}
               token={session?.token ?? null}
+              passKek={session?.passKek ?? null}
               entries={entries}
               progress={progress}
               onBack={() => setView({ name: 'list' })}

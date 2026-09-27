@@ -5,6 +5,7 @@ import {
   CaretRightIcon,
   CheckIcon,
   CopyIcon,
+  ScanSmileyIcon,
 } from '@phosphor-icons/react';
 import { DecodeText, Bracket, Panel, Btn, Caret } from './hud';
 import { SoundManager } from './sound';
@@ -14,9 +15,14 @@ import {
   recoverAccount,
   registerAccount,
   unlockAccount,
+  unlockWithFaceId,
   type AuthSession,
 } from './identity';
+import { faceIdEnrolled } from './faceid';
 import type { DeviceIdentity } from './types';
+
+/** Runs at most once per page load — never re-prompt Face ID after a cancel. */
+let faceIdAutoTried = false;
 
 const TYPED_BOOT_LINES = [
   '$ journs.init --e2ee',
@@ -207,6 +213,76 @@ export function LoginScreen({
       setTimeout(() => inputRef.current?.focus(), 50);
     }
   };
+
+  /** Unlock via platform passkey (Face ID / Touch ID / Windows Hello). */
+  const submitFaceId = async () => {
+    if (!identity || busy) {
+      return;
+    }
+
+    setBusy(true);
+    setStatus('// requesting biometric …');
+
+    try {
+      const session = await unlockWithFaceId(identity);
+      SoundManager.confirm();
+      setStatus('// access granted · syncing encrypted archive');
+      await onAuth(session);
+    } catch (err) {
+      setBusy(false);
+
+      // A cancelled or timed-out prompt isn't a wrong-credential deny — no
+      // shake, just fall quiet and leave the passphrase field usable.
+      if (
+        err instanceof DOMException &&
+        (err.name === 'NotAllowedError' || err.name === 'AbortError')
+      ) {
+        setStatus(null);
+
+        return;
+      }
+
+      deny(err instanceof Error ? `// ${err.message}` : '// face id failed');
+    }
+  };
+
+  /** Fire Face ID automatically once the page has fully loaded — at most once per load. */
+  useEffect(() => {
+    if (
+      faceIdAutoTried ||
+      boot !== 'ready' ||
+      mode !== 'unlock' ||
+      busy ||
+      !identity ||
+      !faceIdEnrolled(identity.accountId)
+    ) {
+      return;
+    }
+
+    const trigger = () => {
+      if (faceIdAutoTried) {
+        return;
+      }
+
+      faceIdAutoTried = true;
+      void submitFaceId();
+    };
+
+    if (document.readyState === 'complete') {
+      trigger();
+
+      return;
+    }
+
+    window.addEventListener('load', trigger, { once: true });
+
+    return () => window.removeEventListener('load', trigger);
+    // submitFaceId is intentionally omitted: it's re-created every render (like
+    // every other handler in this component), and the module-level
+    // faceIdAutoTried flag — not this dependency array — is what guarantees a
+    // single attempt per page load.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [boot, mode, identity, busy]);
 
   useEffect(() => {
     if (!copied) {
@@ -593,6 +669,12 @@ export function LoginScreen({
                       <CaretRightIcon className="size-3" weight="bold" />
                       UNLOCK
                     </Btn>
+                    {faceIdEnrolled(identity.accountId) && (
+                      <Btn variant="ghost" disabled={busy} onClick={() => void submitFaceId()}>
+                        <ScanSmileyIcon className="size-3.5" weight="bold" />
+                        FACE ID
+                      </Btn>
+                    )}
                     <Btn
                       variant="ghost"
                       disabled={busy}

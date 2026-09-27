@@ -1,13 +1,23 @@
 /**
  * Self-check for the auth logic that must not silently regress: the
  * DEK-possession verifier that closes the unauthenticated recover-takeover
- * hole, and the CORS origin allowlist.
+ * hole, the CORS origin allowlist, entry ciphertext padding, and the Face ID
+ * PRF-wrap round-trip.
  * Run: `bun run check:auth`
  */
 import assert from 'node:assert/strict';
 import { applyCors, checkRecoverAuth } from '../api/_lib/http.js';
-import { deriveDekVerifier, randomDek } from '../src/crypto.js';
+import {
+  decryptEntry,
+  deriveBioKek,
+  deriveDekVerifier,
+  encryptEntry,
+  randomDek,
+  unwrapKey,
+  wrapKey,
+} from '../src/crypto.js';
 import type { VercelRequest, VercelResponse } from '../api/_lib/vercel.js';
+import type { JournalEntry } from '../shared/types.js';
 
 // --- deriveDekVerifier ---------------------------------------------------
 
@@ -75,5 +85,47 @@ const blockedRes = stubRes();
 applyCors(stubReq('https://evil.example'), blockedRes);
 assert.equal(blockedRes.headers['Access-Control-Allow-Origin'], undefined);
 delete process.env.ALLOWED_ORIGINS;
+
+// --- entry ciphertext padding -------------------------------------------
+
+const shortEntry: JournalEntry = {
+  id: 'e-test',
+  date: new Date().toISOString(),
+  title: 'x',
+  mood: 3,
+  energy: 3,
+  weather: 'CLEAR',
+  tags: [],
+  body: 'short',
+};
+const dek = randomDek();
+const shortCipher = await encryptEntry(dek, shortEntry);
+
+// ciphertext hex = 2 chars/byte; AES-GCM appends a 16-byte tag.
+assert.equal(shortCipher.ciphertext.length, (1024 + 16) * 2, 'short entry pads to the 1KB bucket');
+assert.deepEqual(await decryptEntry(dek, shortCipher.ciphertext, shortCipher.nonce), shortEntry);
+
+const longEntry: JournalEntry = { ...shortEntry, body: 'x'.repeat(1500) };
+const longCipher = await encryptEntry(dek, longEntry);
+
+assert.equal(
+  longCipher.ciphertext.length,
+  (2048 + 16) * 2,
+  '1500-byte body pads to the 2KB bucket',
+);
+assert.deepEqual(await decryptEntry(dek, longCipher.ciphertext, longCipher.nonce), longEntry);
+
+// --- Face ID PRF wrap round-trip ----------------------------------------
+
+const passKek = randomDek();
+const prfA = randomDek();
+const prfB = randomDek();
+const wrappedPassKek = await wrapKey(await deriveBioKek(prfA), passKek);
+
+assert.deepEqual(await unwrapKey(await deriveBioKek(prfA), wrappedPassKek), passKek);
+await assert.rejects(
+  unwrapKey(await deriveBioKek(prfB), wrappedPassKek),
+  'wrong PRF must not unwrap',
+);
 
 console.log('auth-check ok');

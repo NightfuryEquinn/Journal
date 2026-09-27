@@ -6,14 +6,14 @@ const PBKDF2_ITERS = 600_000;
 const TEXT = new TextEncoder();
 
 /** Convert bytes to lowercase hex. */
-function bytesToHex(bytes: Uint8Array): string {
+export function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes)
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
 }
 
 /** Parse hex string to bytes. */
-function hexToBytes(hex: string): Uint8Array {
+export function hexToBytes(hex: string): Uint8Array {
   const clean = hex.toLowerCase();
 
   if (clean.length % 2 !== 0) {
@@ -166,6 +166,11 @@ export async function deriveRecoveryKek(seed: Uint8Array): Promise<Uint8Array> {
   return hkdf(seed, 'journs-recovery-kek');
 }
 
+/** KEK derived from a WebAuthn PRF output — wraps passKek for Face ID / Touch ID unlock. */
+export async function deriveBioKek(prf: Uint8Array): Promise<Uint8Array> {
+  return hkdf(prf, 'journs-bio-kek');
+}
+
 /** Server auth verifier from pass KEK. */
 export async function deriveAuthVerifier(passKek: Uint8Array): Promise<string> {
   const authKey = await hkdf(passKek, 'journs-auth');
@@ -189,7 +194,7 @@ export async function deriveDekVerifier(dek: Uint8Array): Promise<string> {
  * AES-GCM wrap: returns hex(nonce || ciphertext||tag).
  * Stored as wrappedDek* fields (nonce prepended, 12 bytes).
  */
-async function wrapKey(kek: Uint8Array, dek: Uint8Array): Promise<string> {
+export async function wrapKey(kek: Uint8Array, dek: Uint8Array): Promise<string> {
   const key = await importAesKey(kek);
   const nonce = new Uint8Array(12);
   crypto.getRandomValues(nonce);
@@ -219,6 +224,34 @@ export async function unwrapKey(kek: Uint8Array, wrappedHex: string): Promise<Ui
   return new Uint8Array(plain);
 }
 
+const MIN_PAD_BYTES = 1024;
+
+/**
+ * Pad to the next power-of-two bucket (min 1KB) with trailing spaces —
+ * JSON.parse ignores trailing whitespace, so decryptEntry needs no change.
+ * Otherwise AES-GCM ciphertext length == plaintext length, and the server
+ * (which never sees the key) still learns each entry's exact byte size.
+ * ponytail: bucket size still leaks log2(size); switch to Padmé if a finer
+ * bound ever matters.
+ */
+function padPlaintext(bytes: Uint8Array): Uint8Array {
+  let bucket = MIN_PAD_BYTES;
+
+  while (bucket < bytes.length) {
+    bucket *= 2;
+  }
+
+  if (bucket === bytes.length) {
+    return bytes;
+  }
+
+  const padded = new Uint8Array(bucket);
+  padded.set(bytes);
+  padded.fill(0x20, bytes.length);
+
+  return padded;
+}
+
 /** Encrypt a journal entry JSON blob; returns ciphertext + nonce hex. */
 export async function encryptEntry(
   dek: Uint8Array,
@@ -227,7 +260,7 @@ export async function encryptEntry(
   const key = await importAesKey(dek);
   const nonce = new Uint8Array(12);
   crypto.getRandomValues(nonce);
-  const plain = TEXT.encode(JSON.stringify(entry));
+  const plain = padPlaintext(TEXT.encode(JSON.stringify(entry)));
   const cipher = new Uint8Array(
     await crypto.subtle.encrypt({ name: 'AES-GCM', iv: nonce }, key, plain),
   );

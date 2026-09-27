@@ -6,6 +6,7 @@ import {
   DownloadSimpleIcon,
   FlameIcon,
   GavelIcon,
+  ScanSmileyIcon,
   ShieldCheckIcon,
   SparkleIcon,
   TreeStructureIcon,
@@ -37,6 +38,7 @@ import {
   pushPermission,
   pushSupported,
 } from './push';
+import { clearFaceId, enrollFaceId, faceIdAvailable, faceIdEnrolled } from './faceid';
 import { z } from 'zod';
 import { useEntrance } from './motion';
 
@@ -46,6 +48,8 @@ interface ProfileScreenProps {
   identity: DeviceIdentity;
   /** Session token, or null when the session has lapsed. */
   token: string | null;
+  /** In-memory passphrase KEK, or null when the session has lapsed. Needed to enroll Face ID. */
+  passKek: Uint8Array | null;
   entries: JournalEntry[];
   progress: QuestProgress;
   onBack: () => void;
@@ -59,6 +63,7 @@ interface ProfileScreenProps {
 export function ProfileScreen({
   identity,
   token,
+  passKek,
   entries,
   progress,
   onBack,
@@ -241,6 +246,7 @@ export function ProfileScreen({
         </Bracket>
 
         <NotificationsPanel token={token} />
+        <FaceIdPanel identity={identity} passKek={passKek} />
       </div>
 
       <div data-reveal className="flex flex-col gap-5">
@@ -405,6 +411,82 @@ function NotificationsPanel({ token }: { token: string | null }) {
               <p className="font-mono text-micro leading-[1.6] tracking-[0.04em] text-fg-mute">
                 // {REMINDER_HOURS.length} nudges to write, on this device's local clock · no entry
                 content ever leaves encrypted
+              </p>
+            </>
+          )}
+          {status && (
+            <p className="font-mono text-micro tracking-[0.04em] text-fg-mute">{status}</p>
+          )}
+        </div>
+      </Panel>
+    </Bracket>
+  );
+}
+
+/** Enroll / remove this device's platform passkey (Face ID / Touch ID / Windows Hello). */
+function FaceIdPanel({
+  identity,
+  passKek,
+}: {
+  identity: DeviceIdentity;
+  passKek: Uint8Array | null;
+}) {
+  const available = faceIdAvailable();
+  const [enrolled, setEnrolled] = useState(() => faceIdEnrolled(identity.accountId));
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
+
+  const onEnable = async () => {
+    if (!passKek) {
+      setStatus('// session expired · sign in again');
+
+      return;
+    }
+
+    setBusy(true);
+
+    try {
+      await enrollFaceId(identity, passKek);
+      setEnrolled(true);
+      setStatus('// face id enabled on this device');
+      SoundManager.confirm();
+    } catch (err) {
+      setStatus(`// failed · ${err instanceof Error ? err.message : 'could not enroll'}`);
+      SoundManager.deny();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onDisable = () => {
+    clearFaceId();
+    setEnrolled(false);
+    setStatus('// face id disabled on this device');
+    SoundManager.confirm();
+  };
+
+  return (
+    <Bracket>
+      <Panel title="FACE ID" meta="THIS DEVICE">
+        <div className="flex flex-col gap-2.5">
+          {!available ? (
+            <p className="font-mono text-micro leading-[1.6] tracking-[0.04em] text-fg-mute">
+              // platform passkeys not supported in this browser
+            </p>
+          ) : (
+            <>
+              <Btn
+                variant="ghost"
+                disabled={busy || (!enrolled && !passKek)}
+                onClick={() => void (enrolled ? onDisable() : onEnable())}
+                className="w-full"
+              >
+                <ScanSmileyIcon className="size-3.5" weight="bold" />
+                {busy ? 'WORKING…' : enrolled ? 'DISABLE FACE ID' : 'ENABLE FACE ID'}
+              </Btn>
+              <p className="font-mono text-micro leading-[1.6] tracking-[0.04em] text-fg-mute">
+                // wraps this device&rsquo;s passphrase key under your platform biometric · revoking
+                the passkey itself happens in your OS/browser settings
               </p>
             </>
           )}

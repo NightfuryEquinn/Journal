@@ -154,7 +154,11 @@ const JOURNAL_ENTRY_FIELDS: SchemaField[] = [
 
 const ENCRYPTED_ENTRY_FIELDS: SchemaField[] = [
   { name: 'entryId', type: 'string', note: 'Same as plaintext JournalEntry.id.' },
-  { name: 'ciphertext', type: 'hex', note: 'AES-GCM of JSON(JournalEntry). Opaque to the server.' },
+  {
+    name: 'ciphertext',
+    type: 'hex',
+    note: 'AES-GCM of JSON(JournalEntry), padded to the next power-of-two bucket (min 1KB) first so the server cannot read exact entry length off ciphertext size.',
+  },
   { name: 'nonce', type: 'hex', note: '12-byte IV for AES-GCM.' },
   { name: 'schemaVersion', type: 'int', note: 'Payload version; currently 1.' },
   { name: 'updatedAt', type: 'Date', note: 'Server write time (Mongo entries only).' },
@@ -382,9 +386,21 @@ export function TransparencyScreen({
             <Body>
               Profile export writes decrypted JSON on your machine. Import merges by entry{' '}
               <Code>id</Code>, re-encrypts, and syncs. Device identity is cached in{' '}
-              <Code>localStorage</Code> key <Code>journs.identity.v1</Code> — no DEK, passphrase, or
-              verifier, so reading it alone grants nothing. Audio preference uses{' '}
-              <Code>journs.sound</Code>; the Shepherd tour flag is <Code>journs.tour.v1</Code>.
+              <Code>localStorage</Code> key <Code>journs.identity.v1</Code> — accountId, salt, and
+              createdAt only, so reading it alone grants nothing (no DEK, passphrase, wrap, or
+              verifier). Audio preference uses <Code>journs.sound</Code>; the Shepherd tour flag is{' '}
+              <Code>journs.tour.v1</Code>.
+            </Body>
+
+            <Heading>Face ID / Touch ID / Windows Hello</Heading>
+            <Body>
+              Optional, per-device. Enrolling asks WebAuthn for a platform passkey with the{' '}
+              <Code>prf</Code> extension, then uses that PRF output to wrap your passphrase KEK
+              (never the DEK directly) — the wrap is cached in <Code>localStorage</Code> key{' '}
+              <Code>journs.faceid.v1</Code> alongside the credential id. Unlocking derives the same
+              KEK from a fresh biometric read and logs in exactly like a passphrase would; the
+              server cannot tell the two apart. Nothing here bypasses the passphrase — losing the
+              device or clearing this key just falls back to it.
             </Body>
           </Panel>
         </Bracket>

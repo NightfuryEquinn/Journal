@@ -55,10 +55,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (req.method === 'DELETE') {
-    const raw = req.query.endpoint;
-    const parsed = pushUnsubscribeBodySchema.safeParse({
-      endpoint: Array.isArray(raw) ? raw[0] : raw,
-    });
+    // Body, not query string — an endpoint URL in the query string would land
+    // in Vercel's request logs.
+    const parsed = pushUnsubscribeBodySchema.safeParse(req.body);
 
     if (!parsed.success) {
       sendError(req, res, 400, 'Invalid endpoint');

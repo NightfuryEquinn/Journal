@@ -95,63 +95,72 @@ function toVercelResponse(res: ServerResponse): VercelResponse {
   return adapter;
 }
 
+/** Build the Connect middleware that serves `/api/*` by invoking the same handlers Vercel deploys. */
+function apiMiddleware(logger: { info: (msg: string) => void }) {
+  let ready: Promise<void> | null = null;
+
+  return async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
+    const host = req.headers.host || 'localhost';
+    const url = new URL(req.url ?? '/', `http://${host}`);
+    const { pathname } = url;
+
+    // Only real HTTP API routes — never Vite modules under /api/_lib, etc.
+    if (!/^\/api\/(auth|entries|quests|cron|push)(\/|$)/.test(pathname)) {
+      next();
+
+      return;
+    }
+
+    const entryMatch = pathname.match(/^\/api\/entries\/([^/]+)$/);
+    const handler = entryMatch ? entryByIdHandler : ROUTES[pathname];
+
+    if (!handler) {
+      res.statusCode = 404;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({ error: 'Not found' }));
+
+      return;
+    }
+
+    try {
+      if (!ready) {
+        ready = getDb().then(() => {
+          logger.info('[journs-api] Mongo connected · /api in-process');
+        });
+      }
+
+      await ready;
+
+      const params: Record<string, string> = entryMatch
+        ? { id: decodeURIComponent(entryMatch[1]!) }
+        : {};
+      await handler(await toVercelRequest(req, url, params), toVercelResponse(res));
+    } catch (err) {
+      console.error(err);
+      res.statusCode = 500;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(
+        JSON.stringify({
+          error: err instanceof Error ? err.message : 'Server error',
+        }),
+      );
+    }
+  };
+}
+
 /**
- * Vite plugin: serve `/api/*` in-process during `vite` by invoking the same
- * handlers Vercel deploys, so local dev and production cannot drift.
+ * Vite plugin: serve `/api/*` in-process during `vite` and `vite preview` by
+ * invoking the same handlers Vercel deploys, so local dev, a preview build,
+ * and production cannot drift.
  */
 export function journsApiPlugin(): Plugin {
   return {
     name: 'journs-api',
     configureServer(server) {
-      let ready: Promise<void> | null = null;
-
-      server.middlewares.use(async (req, res, next) => {
-        const host = req.headers.host || 'localhost';
-        const url = new URL(req.url ?? '/', `http://${host}`);
-        const { pathname } = url;
-
-        // Only real HTTP API routes — never Vite modules under /api/_lib, etc.
-        if (!/^\/api\/(auth|entries|quests|cron|push)(\/|$)/.test(pathname)) {
-          next();
-
-          return;
-        }
-
-        const entryMatch = pathname.match(/^\/api\/entries\/([^/]+)$/);
-        const handler = entryMatch ? entryByIdHandler : ROUTES[pathname];
-
-        if (!handler) {
-          res.statusCode = 404;
-          res.setHeader('Content-Type', 'application/json');
-          res.end(JSON.stringify({ error: 'Not found' }));
-
-          return;
-        }
-
-        try {
-          if (!ready) {
-            ready = getDb().then(() => {
-              server.config.logger.info('[journs-api] Mongo connected · /api in-process');
-            });
-          }
-
-          await ready;
-
-          const params: Record<string, string> = entryMatch
-            ? { id: decodeURIComponent(entryMatch[1]!) }
-            : {};
-          await handler(await toVercelRequest(req, url, params), toVercelResponse(res));
-        } catch (err) {
-          console.error(err);
-          res.statusCode = 500;
-          res.setHeader('Content-Type', 'application/json');
-          res.end(
-            JSON.stringify({
-              error: err instanceof Error ? err.message : 'Server error',
-            }),
-          );
-        }
-      });
+      server.middlewares.use(apiMiddleware(server.config.logger));
+    },
+    configurePreviewServer(server) {
+      server.middlewares.use(apiMiddleware(server.config.logger));
     },
   };
 }

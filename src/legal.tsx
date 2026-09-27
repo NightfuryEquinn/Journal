@@ -7,8 +7,8 @@ import { useEntrance } from './motion';
 import type { LegalDoc } from './types';
 
 /** Bump alongside package.json; shown in the footer of both documents. */
-const LEGAL_VERSION = '1.1.2';
-const EFFECTIVE_DATE = '26 September 2026';
+const LEGAL_VERSION = '1.2.0';
+const EFFECTIVE_DATE = '27 September 2026';
 
 interface LegalScreenProps {
   doc: LegalDoc;
@@ -106,7 +106,9 @@ function PrivacyContent() {
       <Body>
         Your browser&rsquo;s <Code>localStorage</Code> holds a small device-identity cache (no DEK,
         passphrase, or verifier), a sound on/off preference, and whether you&rsquo;ve completed the
-        product tour. None of it is sent to us.
+        product tour. If you enable Face ID / Touch ID / Windows Hello, it also holds your
+        passphrase key wrapped under a key derived from that platform biometric — never the DEK
+        directly, and never sent to us.
       </Body>
 
       <Heading>How long we keep it</Heading>

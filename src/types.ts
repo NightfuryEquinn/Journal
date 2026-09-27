@@ -16,11 +16,10 @@ export type AppView =
   | { name: 'transparency'; from: 'landing' | 'profile' }
   | { name: 'legal'; doc: LegalDoc; from: 'landing' | 'profile' };
 
-/** Persisted device identity (localStorage; no DEK, passphrase, or authVerifier). */
+/** Persisted device identity (localStorage; no DEK, passphrase, wraps, or authVerifier). */
 export interface DeviceIdentity {
   accountId: string;
   operatorId: string;
   salt: string;
-  wrappedDekPass: string;
   createdAt: string;
 }

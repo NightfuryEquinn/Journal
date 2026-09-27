@@ -174,8 +174,9 @@ export function apiSubscribePush(
 
 /** Drop a Web Push subscription. */
 export function apiUnsubscribePush(token: string, endpoint: string): Promise<{ ok: boolean }> {
-  return apiFetch(`/api/push/subscription?endpoint=${encodeURIComponent(endpoint)}`, {
+  return apiFetch('/api/push/subscription', {
     method: 'DELETE',
     token,
+    body: JSON.stringify({ endpoint }),
   });
 }
