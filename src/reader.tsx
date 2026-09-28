@@ -1,10 +1,16 @@
 // reader.tsx — read a single entry
-import { useRef } from 'react';
-import { CaretLeftIcon, PencilSimpleIcon, TrashIcon } from '@phosphor-icons/react';
+import { useRef, useState } from 'react';
+import {
+  CaretLeftIcon,
+  DownloadSimpleIcon,
+  PencilSimpleIcon,
+  TrashIcon,
+} from '@phosphor-icons/react';
 import type { JournalEntry } from './types';
 import { CHIP, DecodeText, Panel, Btn, MoodBars, WeatherIcon, PAGE } from './hud';
 import { fmtDate, fmtTime, fmtJDay, pad, MONTHS_LONG } from './format';
 import { useEntrance } from './motion';
+import { JournalExportDialog } from './journal-export-dialog';
 
 interface ReaderScreenProps {
   entry: JournalEntry;
@@ -16,6 +22,7 @@ interface ReaderScreenProps {
 /** Single-entry reader with metadata and op-log side panels. */
 export function ReaderScreen({ entry, onBack, onEdit, onDelete }: ReaderScreenProps) {
   const scopeRef = useRef<HTMLDivElement>(null);
+  const [exportOpen, setExportOpen] = useState(false);
   useEntrance(scopeRef);
   const d = new Date(entry.date);
   const wc = entry.body.trim().split(/\s+/).length;
@@ -35,6 +42,10 @@ export function ReaderScreen({ entry, onBack, onEdit, onDelete }: ReaderScreenPr
           ARCHIVE / {fmtDate(d).replace(/ /g, '·')} / {entry.id}
         </div>
         <div className="flex flex-wrap gap-2">
+          <Btn variant="primary" onClick={() => setExportOpen(true)}>
+            <DownloadSimpleIcon className="size-3.5" weight="bold" />
+            SAVE
+          </Btn>
           <Btn onClick={() => onEdit(entry)}>
             <PencilSimpleIcon className="size-3.5" weight="bold" />
             EDIT
@@ -182,6 +193,7 @@ export function ReaderScreen({ entry, onBack, onEdit, onDelete }: ReaderScreenPr
           </Panel>
         </aside>
       </div>
+      {exportOpen && <JournalExportDialog entry={entry} onClose={() => setExportOpen(false)} />}
     </div>
   );
 }

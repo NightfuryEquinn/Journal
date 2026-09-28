@@ -231,7 +231,7 @@ function useClock() {
   return now;
 }
 
-/** Top telemetry bar with brand, user, clock, and controls. */
+/** Centered brand with separate navigation and secondary journal status. */
 export function TopBar({
   user,
   onSignOut,
@@ -255,76 +255,60 @@ export function TopBar({
   const CenterTag = onOpenLanding ? 'button' : 'div';
 
   return (
-    <div className="relative z-10 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-line bg-bg/70 px-3 py-2 font-mono text-meta backdrop-blur-md max-tablet:grid-cols-[1fr_auto] max-tablet:gap-2 max-tablet:px-2.5 desktop:gap-4 desktop:px-5.5">
-      <div className="flex min-w-0 items-center gap-4 overflow-hidden text-fg-dim max-tablet:hidden desktop:gap-6">
-        <span className="flex min-w-0 flex-col items-start gap-0.5 leading-none">
-          <span className="text-micro tracking-[0.18em] text-fg-mute">LINK</span>
-          <span className="truncate text-fg">HOST · VERCEL+ATLAS</span>
-        </span>
-      </div>
+    <header className="relative z-10 shrink-0 border-b border-line-strong bg-bg/95 font-mono backdrop-blur-md">
+      <div className="mx-auto grid w-full max-w-350 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-3 py-3 phone:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] phone:gap-x-5 phone:px-5 laptop:px-7">
+        <CenterTag
+          type={onOpenLanding ? 'button' : undefined}
+          className={`col-span-2 col-start-1 row-start-1 flex min-h-11 items-center justify-self-center px-2 phone:col-span-1 phone:col-start-2 ${onOpenLanding ? 'transition-colors duration-100 hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent' : ''}`}
+          onClick={
+            onOpenLanding
+              ? () => {
+                  SoundManager.click();
+                  onOpenLanding();
+                }
+              : undefined
+          }
+          onMouseEnter={onOpenLanding ? () => SoundManager.hover() : undefined}
+          title={onOpenLanding ? 'About Journs' : undefined}
+          aria-label={onOpenLanding ? 'About Journs' : undefined}
+        >
+          <span className="font-headline text-[20px] leading-none font-semibold tracking-[0.22em]">
+            JOURNS
+          </span>
+        </CenterTag>
 
-      <CenterTag
-        type={onOpenLanding ? 'button' : undefined}
-        className={`flex shrink-0 flex-col items-center gap-1 px-1 leading-none max-tablet:col-start-1 max-tablet:justify-self-start ${onOpenLanding ? 'tap-target transition-colors duration-100 hover:text-accent' : ''}`}
-        onClick={
-          onOpenLanding
-            ? () => {
+        <div className="col-start-1 row-start-2 min-w-0 phone:row-start-1">
+          {onOpenProfile && (
+            <button
+              type="button"
+              data-tour="tour-profile"
+              className="flex min-h-11 max-w-full items-center gap-2.5 px-2 text-left transition-colors hover:bg-accent-soft hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              onClick={() => {
                 SoundManager.click();
-                onOpenLanding();
-              }
-            : undefined
-        }
-        onMouseEnter={onOpenLanding ? () => SoundManager.hover() : undefined}
-        title={onOpenLanding ? 'About Journs' : undefined}
-        aria-label={onOpenLanding ? 'About Journs' : undefined}
-      >
-        <span className="font-headline text-body font-semibold tracking-[0.32em] text-fg">
-          JOURNS
-        </span>
-        <span className="text-micro tracking-[0.22em] text-fg-mute max-tablet:hidden">
-          // FIELD JOURNAL · v.1.2.0
-        </span>
-      </CenterTag>
-
-      <div className="flex min-w-0 items-center justify-end gap-3 overflow-hidden text-fg-dim desktop:gap-5">
-        {onOpenProfile && (
-          <button
-            type="button"
-            data-tour="tour-profile"
-            className="tap-target flex min-w-0 items-center gap-2 px-1 leading-none hover:text-accent"
-            onClick={() => {
-              SoundManager.click();
-              onOpenProfile();
-            }}
-            onMouseEnter={() => SoundManager.hover()}
-            title="Open profile"
-            aria-label="Open profile"
-          >
-            <UserCircleIcon className="size-4.5 shrink-0" weight="bold" />
-            <span className="hidden min-w-0 flex-col items-start gap-0.5 tablet:flex">
-              <span className="text-micro tracking-[0.18em] text-fg-mute">USER</span>
-              <span className="max-w-30 truncate text-fg">{user || '—'}</span>
-            </span>
-          </button>
-        )}
-
-        <div className="flex min-w-0 items-center gap-4 overflow-hidden max-tablet:hidden desktop:gap-6">
-          <span className="flex flex-col items-end gap-0.5 leading-none">
-            <span className="text-micro tracking-[0.18em] text-fg-mute">J-DAY</span>
-            <span className="text-fg">
-              {journaledDays === null ? '—' : String(journaledDays).padStart(3, '0')}
-            </span>
-          </span>
-          <span className="flex min-w-0 flex-col items-end gap-0.5 leading-none">
-            <span className="text-micro tracking-[0.18em] text-fg-mute">{fmtUtcOffset(now)}</span>
-            <span className="truncate text-fg">{fmtTime(now)}</span>
-          </span>
+                onOpenProfile();
+              }}
+              onMouseEnter={() => SoundManager.hover()}
+              title={user ? `Open profile · ${user}` : 'Open profile'}
+              aria-label="Open profile"
+            >
+              <UserCircleIcon className="size-5 shrink-0 text-accent" weight="bold" />
+              <span className="flex min-w-0 flex-col gap-0.5">
+                <span className="text-micro tracking-[0.12em] text-fg-dim">PROFILE</span>
+                <span className="block max-w-48 truncate text-ui leading-normal">
+                  {user || 'Your journal'}
+                </span>
+              </span>
+            </button>
+          )}
         </div>
 
-        <div className="flex shrink-0 items-center gap-1.5 border-l border-line pl-4 max-tablet:pl-0 desktop:pl-6">
+        <nav
+          aria-label="Account controls"
+          className="col-start-2 row-start-2 flex items-center justify-self-end gap-2 phone:col-start-3 phone:row-start-1"
+        >
           <button
             type="button"
-            className={`tap-target shrink-0 ${BTN_BASE} ${BTN_VARIANTS.ghost} px-2 py-1.5 max-tablet:min-h-11 max-tablet:min-w-11`}
+            className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-2 border border-line-strong px-3 text-ui text-fg-dim transition-colors hover:border-accent hover:bg-accent-soft hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             onClick={() => {
               const next = !soundOn;
               SoundManager.setEnabled(next);
@@ -340,15 +324,18 @@ export function TopBar({
             aria-pressed={soundOn}
           >
             {soundOn ? (
-              <SpeakerHighIcon className="size-4" weight="bold" />
+              <SpeakerHighIcon className="size-4 shrink-0" weight="bold" />
             ) : (
-              <SpeakerSlashIcon className="size-4" weight="bold" />
+              <SpeakerSlashIcon className="size-4 shrink-0" weight="bold" />
             )}
+            <span className="hidden whitespace-nowrap tablet:inline">
+              Sound {soundOn ? 'on' : 'off'}
+            </span>
           </button>
           {onSignOut && (
             <button
               type="button"
-              className={`tap-target shrink-0 ${BTN_BASE} ${BTN_VARIANTS.ghost} px-2 py-1.5 max-tablet:min-h-11 max-tablet:min-w-11`}
+              className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-2 border border-line-strong px-3 text-ui text-fg-dim transition-colors hover:border-accent hover:bg-accent-soft hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               onClick={() => {
                 SoundManager.click();
                 onSignOut();
@@ -357,12 +344,35 @@ export function TopBar({
               title="Sign out"
               aria-label="Sign out"
             >
-              <SignOutIcon className="size-4" weight="bold" />
+              <SignOutIcon className="size-4 shrink-0" weight="bold" />
+              <span className="hidden whitespace-nowrap tablet:inline">Sign out</span>
             </button>
           )}
+        </nav>
+      </div>
+      <div className="border-t border-line bg-bg-1/60">
+        <div className="mx-auto flex max-w-350 flex-wrap items-center justify-between gap-x-6 gap-y-1 px-5 py-2 text-meta leading-normal text-fg-dim laptop:px-9">
+          <span className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
+            {journaledDays === null ? (
+              <span className="tracking-[0.1em]">PERSONAL JOURNAL</span>
+            ) : (
+              <>
+                <span className="font-semibold text-accent tabular-nums">
+                  {String(journaledDays).padStart(3, '0')}
+                </span>
+                <span className="tracking-[0.1em]">JOURNAL DAYS</span>
+              </>
+            )}
+          </span>
+          <span className="hidden flex-wrap items-baseline gap-x-3 gap-y-1 tabular-nums phone:flex">
+            <span>{fmtUtcOffset(now)}</span>
+            <time className="text-fg" dateTime={now.toISOString()}>
+              {fmtTime(now)}
+            </time>
+          </span>
         </div>
       </div>
-    </div>
+    </header>
   );
 }
 

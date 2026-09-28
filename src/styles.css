@@ -26,8 +26,8 @@
   --pad-lg: 32px;
   --row-gap: 14px;
 
-  --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  --headline: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+  --mono: 'JetBrains Mono Variable', ui-monospace, 'SF Mono', Menlo, monospace;
+  --headline: 'Outfit Variable', ui-sans-serif, system-ui, sans-serif;
 }
 
 @theme {
