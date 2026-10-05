@@ -11,6 +11,7 @@ import { CHIP, DecodeText, Panel, Btn, MoodBars, WeatherIcon, PAGE } from './hud
 import { fmtDate, fmtTime, fmtJDay, pad, MONTHS_LONG } from './format';
 import { useEntrance } from './motion';
 import { JournalExportDialog } from './journal-export-dialog';
+import { charCount, wordCount } from './quests';
 
 interface ReaderScreenProps {
   entry: JournalEntry;
@@ -25,7 +26,8 @@ export function ReaderScreen({ entry, onBack, onEdit, onDelete }: ReaderScreenPr
   const [exportOpen, setExportOpen] = useState(false);
   useEntrance(scopeRef);
   const d = new Date(entry.date);
-  const wc = entry.body.trim().split(/\s+/).length;
+  const wc = wordCount(entry.body);
+  const cc = charCount(entry.body);
   const rt = Math.max(1, Math.round(wc / 200));
 
   return (
@@ -64,7 +66,7 @@ export function ReaderScreen({ entry, onBack, onEdit, onDelete }: ReaderScreenPr
         <main className="min-w-0">
           <Panel
             title={<DecodeText text="LOG ENTRY" />}
-            meta={`${entry.id} · WC ${wc} · ${rt} MIN`}
+            meta={`${entry.id} · WC ${wc} · CC ${cc} · ${rt} MIN`}
             headerRight={
               <span className="font-mono text-micro tracking-[0.02em] text-fg-dim max-phone:hidden">
                 STATUS · ARCHIVED
@@ -129,6 +131,7 @@ export function ReaderScreen({ entry, onBack, onEdit, onDelete }: ReaderScreenPr
                   ['MOOD', null, 'mood'],
                   ['ENERGY', null, 'energy'],
                   ['WORD COUNT', String(wc), 'mono acc'],
+                  ['CHAR COUNT', String(cc), 'mono acc'],
                   ['READ TIME', `~ ${rt} MIN`, 'mono'],
                 ] as const
               ).map(([lbl, val, kind]) => (

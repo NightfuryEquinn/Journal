@@ -242,9 +242,72 @@ export function emptyProgress(now = new Date()): QuestProgress {
   };
 }
 
-/** Whitespace-separated word count of a journal body. */
+/** True when a code point is a CJK ideograph, counted as its own word. */
+function isCjkIdeograph(ch: string) {
+  const code = ch.codePointAt(0) ?? 0;
+
+  return (
+    (code >= 0x3400 && code <= 0x4dbf) ||
+    (code >= 0x4e00 && code <= 0x9fff) ||
+    (code >= 0xf900 && code <= 0xfaff) ||
+    (code >= 0x20000 && code <= 0x2a6df)
+  );
+}
+
+/** True when a code point belongs to a Latin or numeric word, including contractions. */
+function isWordChar(ch: string) {
+  return /[\p{L}\p{N}'’-]/u.test(ch);
+}
+
+/**
+ * Word count of a journal body.
+ * Whitespace-separated Latin and numeric runs count as one word each.
+ * Each CJK ideograph counts as one word. Punctuation is not a word.
+ */
 export function wordCount(body: string): number {
-  return body.trim().split(/\s+/).filter(Boolean).length;
+  let count = 0;
+
+  for (const token of body.trim().split(/\s+/)) {
+    if (!token) {
+      continue;
+    }
+
+    let inWord = false;
+
+    for (const ch of token) {
+      if (isCjkIdeograph(ch)) {
+        count += 1;
+        inWord = false;
+        continue;
+      }
+
+      if (isWordChar(ch)) {
+        if (!inWord) {
+          count += 1;
+          inWord = true;
+        }
+
+        continue;
+      }
+
+      inWord = false;
+    }
+  }
+
+  return count;
+}
+
+/** Character count of a journal body, ignoring whitespace. */
+export function charCount(body: string): number {
+  let count = 0;
+
+  for (const ch of body) {
+    if (!/\s/u.test(ch)) {
+      count += 1;
+    }
+  }
+
+  return count;
 }
 
 /** Unique lowercase trimmed tags across entries (empties dropped). */

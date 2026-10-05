@@ -1,5 +1,6 @@
 import type { JournalEntry } from './types';
 import { fmtDate, fmtTime, fmtJDay, pad } from './format';
+import { charCount, wordCount } from '../shared/quests';
 import {
   paginateBlocks,
   wrapTextAsync,
@@ -78,14 +79,19 @@ export async function generateJournalImages(
     }
   };
   const d = new Date(entry.date);
-  const words = entry.body.trim() ? entry.body.trim().split(/\s+/u).length : 0;
+  const words = wordCount(entry.body);
+  const chars = charCount(entry.body);
   try {
     await add(`${fmtDate(d)} · ${fmtTime(d)} · J-DAY ${fmtJDay(d)}`, 'meta', 16);
     await add(entry.title, 'title', 20);
     if (entry.tags.length) await add(entry.tags.map((tag) => `#${tag}`).join('  '), 'tag', 16);
     await add(`WEATHER · ${entry.weather}`, 'meta', 0);
     blocks.push({ kind: 'meters', lines: [''], lineHeight: styles.meters.height, gap: 12 });
-    await add(`${words} WORDS · ~${Math.max(1, Math.round(words / 200))} MIN READ`, 'meta', 28);
+    await add(
+      `${words} WORDS · ${chars} CHARS · ~${Math.max(1, Math.round(words / 200))} MIN READ`,
+      'meta',
+      28,
+    );
     // Yield during large entries so closing the dialog can cancel generation.
     const paragraphs = entry.body.replace(/\r\n?/g, '\n').split('\n');
     for (let i = 0; i < paragraphs.length; i++) {

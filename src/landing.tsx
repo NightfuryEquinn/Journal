@@ -557,12 +557,11 @@ function QuoteCarousel() {
   return (
     <section className="px-4 py-32 laptop:px-[6vw] laptop:py-48">
       <div className="mx-auto flex max-w-3xl flex-col items-center gap-8 text-center">
-        <div className="flex items-center justify-center">
+        <div className="flex items-center justify-center gap-3">
           {CAROUSEL_ICONS.map((Icon, i) => (
             <span
               key={i}
-              className="flex size-14 items-center justify-center border border-line-strong bg-bg-1 text-accent [clip-path:polygon(0_0,calc(100%-10px)_0,100%_10px,100%_100%,10px_100%,0_calc(100%-10px))]"
-              style={{ marginLeft: i === 0 ? 0 : -16, zIndex: CAROUSEL_ICONS.length - i }}
+              className="flex size-14 shrink-0 items-center justify-center border border-line-strong bg-bg-1 p-4 text-accent [clip-path:polygon(0_0,calc(100%-10px)_0,100%_10px,100%_100%,10px_100%,0_calc(100%-10px))]"
             >
               <Icon className="size-6" weight="duotone" />
             </span>

@@ -1,5 +1,5 @@
 // list.tsx — entry list with timeline / stack layouts
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   CompassIcon,
   MagnifyingGlassIcon,
@@ -57,6 +57,40 @@ function ArchiveSkeleton() {
         </div>
       ))}
     </div>
+  );
+}
+
+/** One archive summary cell. The value wraps instead of truncating. */
+function ArchiveStat({
+  label,
+  children,
+  accent,
+}: {
+  label: string;
+  children: ReactNode;
+  accent?: boolean;
+}) {
+  return (
+    <div className="flex min-w-0 flex-col gap-1 border border-line bg-black/25 px-2.5 py-2">
+      <span className="font-mono text-micro tracking-[0.18em] text-fg-mute">{label}</span>
+      <span className={`font-mono text-ui leading-tight ${accent ? 'text-accent' : ''}`}>
+        {children}
+      </span>
+    </div>
+  );
+}
+
+/** First or last entry date, split so the year never clips. */
+function ArchiveDateValue({ iso }: { iso: string }) {
+  const d = new Date(iso);
+
+  return (
+    <>
+      <span className="block">
+        {pad(d.getDate())} {MONTHS_SHORT[d.getMonth()]}
+      </span>
+      <span className="block">{d.getFullYear()}</span>
+    </>
   );
 }
 
@@ -216,37 +250,23 @@ export function ListScreen({
       >
         <aside className="min-w-0">
           <Panel title="ARCHIVE" meta={loading ? 'syncing…' : `${entries.length} entries`}>
-            <div className="grid grid-flow-dense grid-cols-2 gap-row phone:grid-cols-4 tablet:grid-cols-2">
-              {(
-                [
-                  ['TOTAL', entries.length.toString().padStart(4, '0'), false],
-                  [
-                    'FIRST',
-                    entries.length ? fmtDate(new Date(entries[entries.length - 1]!.date)) : '—',
-                    false,
-                  ],
-                  ['LAST', entries.length ? fmtDate(new Date(entries[0]!.date)) : '—', false],
-                  [
-                    'AVG MOOD',
-                    entries.length
-                      ? `${(entries.reduce((s, e) => s + e.mood, 0) / entries.length).toFixed(1)}/5`
-                      : '—',
-                    true,
-                  ],
-                ] as const
-              ).map(([lbl, val, accent]) => (
-                <div
-                  key={lbl}
-                  className="flex flex-col gap-1 border border-line bg-black/25 px-2.5 py-2"
-                >
-                  <span className="font-mono text-micro tracking-[0.18em] text-fg-mute">{lbl}</span>
-                  <span
-                    className={`truncate font-mono text-ui tracking-[0.02em] phone:text-lg ${accent ? 'text-accent' : ''}`}
-                  >
-                    {val}
-                  </span>
-                </div>
-              ))}
+            <div className="grid grid-cols-2 gap-row">
+              <ArchiveStat label="TOTAL">{entries.length.toString().padStart(4, '0')}</ArchiveStat>
+              <ArchiveStat label="FIRST">
+                {entries.length ? (
+                  <ArchiveDateValue iso={entries[entries.length - 1]!.date} />
+                ) : (
+                  '—'
+                )}
+              </ArchiveStat>
+              <ArchiveStat label="LAST">
+                {entries.length ? <ArchiveDateValue iso={entries[0]!.date} /> : '—'}
+              </ArchiveStat>
+              <ArchiveStat label="AVG MOOD" accent>
+                {entries.length
+                  ? `${(entries.reduce((s, e) => s + e.mood, 0) / entries.length).toFixed(1)}/5`
+                  : '—'}
+              </ArchiveStat>
             </div>
           </Panel>
           <div className="h-3.5" />

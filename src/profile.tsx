@@ -156,97 +156,110 @@ export function ProfileScreen({
 
       <div
         data-reveal
-        className="mb-5.5 grid grid-cols-1 gap-3.5 tablet:grid-cols-2 tablet:grid-flow-dense laptop:grid-cols-4"
+        className="mb-5.5 grid grid-cols-2 items-start gap-3.5 tablet:grid-cols-2 laptop:grid-cols-3"
       >
-        <Bracket className="tablet:col-span-2 laptop:col-span-2">
-          <Panel title="OPERATOR" meta="E2EE SESSION">
-            <div className="grid gap-2.5 font-mono text-meta">
-              <Row label="CALLSIGN" value={identity.operatorId} accent />
-              <Row label="ACCOUNT" value={`${identity.accountId.slice(0, 12)}…`} />
-              <Row label="CREATED" value={fmtDate(created)} />
-              <Row label="RECOVERY" value="CONFIRMED" accent />
-              <Row label="ENTRIES" value={String(entries.length).padStart(4, '0')} />
-            </div>
-          </Panel>
-        </Bracket>
-
-        <Bracket>
-          <Panel title="STREAK" meta="DAYS">
-            <div className="mb-2 font-headline text-4xl font-semibold tracking-[0.12em] text-accent">
-              {streak}
-            </div>
-            <p className="font-mono text-micro leading-[1.6] tracking-[0.04em] text-fg-mute">
-              // consecutive days with a journal entry
-            </p>
-          </Panel>
-        </Bracket>
-
-        <Bracket>
-          <Panel title="AURA" meta="SCORE">
-            <div className="mb-2 font-headline text-4xl font-semibold tracking-[0.12em] text-accent">
-              {progress.aura}
-            </div>
-            <p className="font-mono text-micro leading-[1.6] tracking-[0.04em] text-fg-mute">
-              // accrues from quests · deducts on missed periods
-            </p>
-          </Panel>
-        </Bracket>
-
-        <Bracket className="tablet:col-span-2 laptop:col-span-2">
-          <Panel title="SPECIAL TAGS" meta={`${progress.claimedTags.length} claimed`}>
-            {progress.claimedTags.length === 0 ? (
-              <p className="font-mono text-meta text-fg-mute">// none claimed yet</p>
-            ) : (
-              <div className="flex flex-wrap gap-1.5">
-                {progress.claimedTags.map((t) => (
-                  <span key={t} className={CHIP}>
-                    #{t}
-                  </span>
-                ))}
+        <div className="contents tablet:flex tablet:flex-col tablet:gap-3.5">
+          <Bracket className="order-1 col-span-2 w-full">
+            <Panel title="OPERATOR" meta="E2EE SESSION">
+              <div className="grid gap-2.5 font-mono text-meta">
+                <Row label="CALLSIGN" value={identity.operatorId} accent />
+                <Row label="ACCOUNT" value={`${identity.accountId.slice(0, 12)}…`} />
+                <Row label="CREATED" value={fmtDate(created)} />
+                <Row label="RECOVERY" value="CONFIRMED" accent />
+                <Row label="ENTRIES" value={String(entries.length).padStart(4, '0')} />
               </div>
-            )}
-          </Panel>
-        </Bracket>
-
-        <Bracket>
-          <Panel title="DATA" meta="LOCAL · CLOUD">
-            <div className="flex flex-col gap-2.5">
-              <Btn variant="ghost" onClick={exportJson} className="w-full">
-                <DownloadSimpleIcon className="size-3.5" weight="bold" />
-                EXPORT
-              </Btn>
-              <Btn variant="ghost" onClick={() => fileRef.current?.click()} className="w-full">
-                <UploadSimpleIcon className="size-3.5" weight="bold" />
-                IMPORT
-              </Btn>
-              <input
-                ref={fileRef}
-                type="file"
-                accept="application/json,.json"
-                className="hidden"
-                onChange={(e) => void onFile(e.target.files?.[0] ?? null)}
-              />
-              <Btn variant="ghost" onClick={onOpenTransparency} className="w-full">
-                <TreeStructureIcon className="size-3.5" weight="bold" />
-                TRANSPARENCY
-              </Btn>
-              <Btn variant="ghost" onClick={() => onOpenLegal('privacy')} className="w-full">
-                <ShieldCheckIcon className="size-3.5" weight="bold" />
-                PRIVACY POLICY
-              </Btn>
-              <Btn variant="ghost" onClick={() => onOpenLegal('terms')} className="w-full">
-                <GavelIcon className="size-3.5" weight="bold" />
-                TERMS
-              </Btn>
-              {ioStatus && (
-                <p className="font-mono text-micro tracking-[0.04em] text-fg-mute">{ioStatus}</p>
+            </Panel>
+          </Bracket>
+          <Bracket className="order-4 col-span-2 w-full">
+            <Panel title="SPECIAL TAGS" meta={`${progress.claimedTags.length} claimed`}>
+              {progress.claimedTags.length === 0 ? (
+                <p className="font-mono text-meta text-fg-mute">// none claimed yet</p>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {progress.claimedTags.map((t) => (
+                    <span key={t} className={CHIP}>
+                      #{t}
+                    </span>
+                  ))}
+                </div>
               )}
-            </div>
-          </Panel>
-        </Bracket>
+            </Panel>
+          </Bracket>
+          <FaceIdPanel
+            className="order-5 col-span-2 w-full"
+            identity={identity}
+            passKek={passKek}
+          />
+        </div>
 
-        <NotificationsPanel token={token} />
-        <FaceIdPanel identity={identity} passKek={passKek} />
+        <div className="contents tablet:flex tablet:flex-col tablet:gap-3.5 laptop:contents">
+          <div className="contents laptop:flex laptop:flex-col laptop:gap-3.5">
+            <Bracket className="order-2 w-full tablet:order-1">
+              <Panel title="STREAK" meta="DAYS">
+                <div className="mb-2 font-headline text-4xl font-semibold tracking-[0.12em] text-accent">
+                  {streak}
+                </div>
+                <p className="font-mono text-micro leading-[1.6] tracking-[0.04em] text-fg-mute">
+                  // consecutive days with a journal entry
+                </p>
+              </Panel>
+            </Bracket>
+            <Bracket className="order-6 col-span-2 w-full tablet:order-3">
+              <Panel title="DATA" meta="LOCAL · CLOUD">
+                <div className="flex flex-col gap-2.5">
+                  <Btn variant="ghost" onClick={exportJson} className="w-full">
+                    <DownloadSimpleIcon className="size-3.5" weight="bold" />
+                    EXPORT
+                  </Btn>
+                  <Btn variant="ghost" onClick={() => fileRef.current?.click()} className="w-full">
+                    <UploadSimpleIcon className="size-3.5" weight="bold" />
+                    IMPORT
+                  </Btn>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="application/json,.json"
+                    className="hidden"
+                    onChange={(e) => void onFile(e.target.files?.[0] ?? null)}
+                  />
+                  <Btn variant="ghost" onClick={onOpenTransparency} className="w-full">
+                    <TreeStructureIcon className="size-3.5" weight="bold" />
+                    TRANSPARENCY
+                  </Btn>
+                  <Btn variant="ghost" onClick={() => onOpenLegal('privacy')} className="w-full">
+                    <ShieldCheckIcon className="size-3.5" weight="bold" />
+                    PRIVACY POLICY
+                  </Btn>
+                  <Btn variant="ghost" onClick={() => onOpenLegal('terms')} className="w-full">
+                    <GavelIcon className="size-3.5" weight="bold" />
+                    TERMS
+                  </Btn>
+                  {ioStatus && (
+                    <p className="font-mono text-micro tracking-[0.04em] text-fg-mute">
+                      {ioStatus}
+                    </p>
+                  )}
+                </div>
+              </Panel>
+            </Bracket>
+          </div>
+          <div className="contents laptop:flex laptop:flex-col laptop:gap-3.5">
+            <Bracket className="order-3 w-full tablet:order-2">
+              <Panel title="AURA" meta="SCORE">
+                <div className="mb-2 font-headline text-4xl font-semibold tracking-[0.12em] text-accent">
+                  {progress.aura}
+                </div>
+                <p className="font-mono text-micro leading-[1.6] tracking-[0.04em] text-fg-mute">
+                  // accrues from quests · deducts on missed periods
+                </p>
+              </Panel>
+            </Bracket>
+            <NotificationsPanel
+              className="order-7 col-span-2 w-full tablet:order-4"
+              token={token}
+            />
+          </div>
+        </div>
       </div>
 
       <div data-reveal className="flex flex-col gap-5">
@@ -294,7 +307,13 @@ function fmtSlotHour(hour: number) {
 }
 
 /** Enable / disable local-time journal reminders on this device. */
-function NotificationsPanel({ token }: { token: string | null }) {
+function NotificationsPanel({
+  token,
+  className = '',
+}: {
+  token: string | null;
+  className?: string;
+}) {
   const supported = pushSupported() && pushConfigured();
   const [permission, setPermission] = useState<NotificationPermission>(() => pushPermission());
   const [subscribed, setSubscribed] = useState(false);
@@ -372,7 +391,7 @@ function NotificationsPanel({ token }: { token: string | null }) {
   };
 
   return (
-    <Bracket>
+    <Bracket className={className}>
       <Panel title="NOTIFICATIONS" meta={NOTIFICATIONS_META}>
         <div className="flex flex-col gap-2.5">
           <div className="flex flex-wrap gap-x-3 gap-y-1 font-mono text-micro tracking-[0.12em] text-fg-mute">
@@ -427,9 +446,11 @@ function NotificationsPanel({ token }: { token: string | null }) {
 function FaceIdPanel({
   identity,
   passKek,
+  className = '',
 }: {
   identity: DeviceIdentity;
   passKek: Uint8Array | null;
+  className?: string;
 }) {
   const available = faceIdAvailable();
   const [enrolled, setEnrolled] = useState(() => faceIdEnrolled(identity.accountId));
@@ -466,7 +487,7 @@ function FaceIdPanel({
   };
 
   return (
-    <Bracket>
+    <Bracket className={className}>
       <Panel title="FACE ID" meta="THIS DEVICE">
         <div className="flex flex-col gap-2.5">
           {!available ? (

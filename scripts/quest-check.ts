@@ -15,6 +15,7 @@ import {
   maxStreak,
   questProgressRatio,
   settleAura,
+  charCount,
   uniqueTags,
   uniqueWeathers,
   wordCount,
@@ -51,6 +52,17 @@ const period = emptyProgress(new Date('2026-08-14T12:00:00Z')).period;
 
 assert.equal(wordCount('  one two  three '), 3);
 assert.equal(wordCount(''), 0);
+assert.equal(wordCount('   '), 0);
+assert.equal(wordCount("don't"), 1);
+assert.equal(wordCount('hello, world'), 2);
+assert.equal(wordCount('你好'), 2);
+assert.equal(wordCount('你好 world'), 3);
+assert.equal(wordCount('你好world'), 3);
+assert.equal(charCount('  one two  '), 6);
+assert.equal(charCount('你好 a'), 3);
+assert.equal(charCount(' \n\t '), 0);
+
+const WORDS_ZH_100 = '字'.repeat(100);
 assert.equal(
   uniqueTags([entry({ date: '2026-08-14T00:00:00Z', tags: [' A ', 'a', 'B', ''] })]).length,
   2,
@@ -80,6 +92,23 @@ assert.equal(
   isQuestSatisfied(
     q('daily-long'),
     [entry({ date: '2026-08-14T10:00:00Z', body: 'short' })],
+    period,
+  ),
+  false,
+);
+assert.equal(wordCount(WORDS_ZH_100), 100);
+assert.equal(
+  isQuestSatisfied(
+    q('daily-long'),
+    [entry({ date: '2026-08-14T10:00:00Z', body: WORDS_ZH_100 })],
+    period,
+  ),
+  true,
+);
+assert.equal(
+  isQuestSatisfied(
+    q('daily-long'),
+    [entry({ date: '2026-08-14T10:00:00Z', body: '字'.repeat(99) })],
     period,
   ),
   false,
