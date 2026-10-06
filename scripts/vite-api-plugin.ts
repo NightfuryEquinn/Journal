@@ -6,6 +6,7 @@ import registerHandler from '../api/auth/register.js';
 import loginHandler from '../api/auth/login.js';
 import recoverHandler from '../api/auth/recover.js';
 import bundleHandler from '../api/auth/bundle.js';
+import verifierHandler from '../api/auth/verifier.js';
 import entriesHandler from '../api/entries/index.js';
 import entryByIdHandler from '../api/entries/[id].js';
 import questsHandler from '../api/quests.js';
@@ -19,6 +20,7 @@ const ROUTES: Record<string, Handler> = {
   '/api/auth/login': loginHandler,
   '/api/auth/recover': recoverHandler,
   '/api/auth/bundle': bundleHandler,
+  '/api/auth/verifier': verifierHandler,
   '/api/entries': entriesHandler,
   '/api/quests': questsHandler,
   '/api/cron': cronHandler,

@@ -7,7 +7,7 @@ import { useEntrance } from './motion';
 import type { LegalDoc } from './types';
 
 /** Bump alongside package.json; shown in the footer of both documents. */
-const LEGAL_VERSION = '1.2.0';
+const LEGAL_VERSION = '1.2.1';
 const EFFECTIVE_DATE = '27 September 2026';
 
 interface LegalScreenProps {

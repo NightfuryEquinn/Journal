@@ -13,7 +13,7 @@ import { SoundManager } from './sound';
 import { fmtDate, fmtTime, pad } from './format';
 import { useEntrance } from './motion';
 import { randomEntryId } from './crypto';
-import { charCount, wordCount } from './quests';
+import { charCount, wordCount } from '../shared/quests';
 
 const MOOD_OPTS = ['LOW', 'DIM', 'STEADY', 'GOOD', 'HIGH'];
 const ENERGY_OPTS = ['DRAINED', 'LOW', 'STEADY', 'CHARGED', 'PEAKED'];

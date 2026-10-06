@@ -11,7 +11,7 @@ import { CHIP, DecodeText, Panel, Btn, MoodBars, WeatherIcon, PAGE } from './hud
 import { fmtDate, fmtTime, fmtJDay, pad, MONTHS_LONG } from './format';
 import { useEntrance } from './motion';
 import { JournalExportDialog } from './journal-export-dialog';
-import { charCount, wordCount } from './quests';
+import { charCount, wordCount } from '../shared/quests';
 
 interface ReaderScreenProps {
   entry: JournalEntry;

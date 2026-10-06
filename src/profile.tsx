@@ -27,7 +27,7 @@ import {
   isQuestSatisfied,
   questProgressRatio,
   type QuestDef,
-} from './quests';
+} from '../shared/quests';
 import { journalEntrySchema } from '../shared/schemas';
 import { REMINDER_HOURS } from '../shared/push';
 import {

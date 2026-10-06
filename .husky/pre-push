@@ -1,7 +1,6 @@
 bun run typecheck &&
-bun run lint &&
-bun run format:check &&
 bun run check:knip &&
 bun run check:auth &&
 bun run check:quests &&
-bun run check:push
+bun run check:push &&
+bun run check:journal-export

@@ -7,7 +7,7 @@ import {
   CopyIcon,
   ScanSmileyIcon,
 } from '@phosphor-icons/react';
-import { DecodeText, Bracket, Panel, Btn, Caret } from './hud';
+import { DecodeText, Panel, Btn, Caret } from './hud';
 import { SoundManager } from './sound';
 import {
   generateRecoveryPhrase,
@@ -505,13 +505,11 @@ export function LoginScreen({
     }
   };
 
-  const callsign = identity?.operatorId ?? 'UNBOUND';
-
   return (
     <div className="relative grid min-h-full place-items-center px-4 py-8 max-phone:py-6 laptop:px-[6vw] laptop:py-10">
-      <div className="grid w-full max-w-245 grid-cols-1 items-stretch gap-8 max-tablet:gap-6 tablet:grid-cols-[minmax(0,320px)_1fr] tablet:gap-10 laptop:gap-15">
+      <div className="grid w-full max-w-2xl grid-cols-1 gap-8 max-tablet:gap-6">
         {onAbout && (
-          <div className="tablet:col-span-2">
+          <div>
             <Btn variant="ghost" onClick={onAbout}>
               <CaretLeftIcon className="size-3" weight="bold" />
               ABOUT JOURNS
@@ -519,82 +517,7 @@ export function LoginScreen({
           </div>
         )}
 
-        <Bracket className="max-w-md justify-self-center tablet:max-w-none tablet:justify-self-stretch">
-          <div
-            className="flex flex-col gap-3.5 border border-line-strong bg-[linear-gradient(180deg,var(--bg-1),var(--bg))] p-4"
-            style={{
-              boxShadow: '0 0 0 1px rgba(0,0,0,0.4), 0 14px 30px rgba(0,0,0,0.5)',
-            }}
-          >
-            <div className="flex items-center justify-between text-micro">
-              <span className="font-headline font-medium tracking-[0.12em] text-fg-dim uppercase">
-                OPERATOR ID
-              </span>
-              <span className="font-mono tracking-[0.02em] text-fg-dim">
-                {identity ? '// BOUND' : '// NO LOCAL ID'}
-              </span>
-            </div>
-            <div className="relative aspect-square border border-line-strong bg-bg">
-              <svg viewBox="0 0 200 200" width="100%" height="100%">
-                <defs>
-                  <pattern id="g" width="6" height="6" patternUnits="userSpaceOnUse">
-                    <path d="M0 6 L6 0" stroke="rgba(230,239,255,0.08)" strokeWidth="0.5" />
-                  </pattern>
-                </defs>
-                <rect width="200" height="200" fill="url(#g)" />
-                <circle
-                  cx="100"
-                  cy="78"
-                  r="28"
-                  stroke="var(--accent)"
-                  strokeWidth="1"
-                  fill="none"
-                />
-                <path
-                  d="M40 180 Q100 120 160 180"
-                  stroke="var(--accent)"
-                  strokeWidth="1"
-                  fill="none"
-                />
-                <g stroke="rgba(230,239,255,0.5)" strokeWidth="0.4" fill="none">
-                  <line x1="12" y1="100" x2="34" y2="100" />
-                  <line x1="166" y1="100" x2="188" y2="100" />
-                  <line x1="100" y1="12" x2="100" y2="34" />
-                  <line x1="100" y1="166" x2="100" y2="188" />
-                </g>
-                <text x="14" y="22" fill="var(--fg-mute)" fontFamily="JetBrains Mono" fontSize="8">
-                  E2EE
-                </text>
-                <text x="14" y="194" fill="var(--fg-mute)" fontFamily="JetBrains Mono" fontSize="8">
-                  ATLAS
-                </text>
-                <text x="148" y="194" fill="var(--accent)" fontFamily="JetBrains Mono" fontSize="8">
-                  ·VERCEL
-                </text>
-              </svg>
-            </div>
-            <div className="grid grid-cols-1 gap-1.5 font-mono text-micro">
-              {(
-                [
-                  ['CALLSIGN', callsign, false],
-                  ['HOST', 'VERCEL · ATLAS', false],
-                  ['CIPHER', 'AES-GCM · DEK', false],
-                  ['RECOVERY', identity ? 'CONFIRMED' : 'UNSET', true],
-                  ['STORE', 'ciphertext only', false],
-                ] as const
-              ).map(([lbl, val, accent]) => (
-                <div key={lbl} className="flex justify-between gap-3">
-                  <span className="tracking-[0.16em] text-fg-mute">{lbl}</span>
-                  <span className={`truncate ${accent ? 'text-accent' : 'text-fg'}`}>{val}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Bracket>
-
-        <div
-          className={`relative min-w-0 tablet:transform-[perspective(1400px)_rotateY(-2deg)] ${shake ? 'animate-shake' : ''}`}
-        >
+        <div className={`relative min-w-0 ${shake ? 'animate-shake' : ''}`}>
           <Panel title={<DecodeText text="SECURE TERMINAL" />} meta="auth · e2ee · atlas">
             <div className="flex min-h-70 flex-col gap-4.5 max-phone:min-h-60">
               <div className="font-mono text-ui leading-[1.8]">
@@ -968,11 +891,6 @@ export function LoginScreen({
               )}
             </div>
           </Panel>
-          <div className="login-connectors connector" style={{ left: -100, top: 80, width: 100 }} />
-          <div
-            className="login-connectors connector"
-            style={{ left: -60, bottom: 60, width: 60 }}
-          />
         </div>
       </div>
     </div>

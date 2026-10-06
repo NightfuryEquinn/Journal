@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { CaretLeftIcon, WarningIcon } from '@phosphor-icons/react';
 import { Bracket, Panel, Btn, DecodeText, PAGE } from './hud';
-import { DAILY_QUESTS, WEEKLY_QUESTS, MILESTONE_QUESTS, type QuestDef } from './quests';
+import { DAILY_QUESTS, WEEKLY_QUESTS, MILESTONE_QUESTS, type QuestDef } from '../shared/quests';
 import { useEntrance } from './motion';
 
 const DIAGRAM = `flowchart LR

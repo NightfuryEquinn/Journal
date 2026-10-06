@@ -9,7 +9,7 @@ import {
   requestPersistentStorage,
   type AuthSession,
 } from './identity';
-import { countJournaledDays, emptyProgress, settleAura } from './quests';
+import { countJournaledDays, emptyProgress, settleAura } from '../shared/quests';
 import { decryptEntry, encryptEntry } from './crypto';
 import {
   apiDeleteEntry,

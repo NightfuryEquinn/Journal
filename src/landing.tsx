@@ -697,7 +697,7 @@ function LandingFooter({
           )}
         </div>
         <span className="font-mono text-micro tracking-[0.08em] text-fg-mute">
-          // v.1.1.1 · ciphertext only · © {new Date().getFullYear()} Yip Zi Xian
+          // v.1.2.1 · ciphertext only · © {new Date().getFullYear()} Yip Zi Xian
         </span>
       </div>
     </footer>

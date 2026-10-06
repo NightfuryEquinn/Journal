@@ -30,26 +30,32 @@ React 19 + TypeScript + Vite SPA, Vercel serverless API, MongoDB Atlas. Auth is 
 │   ├── cron.ts            # period settlement + reminder fan-out
 │   └── _lib/              # db, schemas, http, Atlas URI helpers
 ├── shared/                # types, Zod schemas, quest defs / settle / claim, reminder slots
-├── src/                   # SPA screens, crypto, identity, HUD, tours, push
-├── scripts/               # Vite /api middleware, Mongo maintenance, Bun polyfill, push check
+├── src/                   # SPA screens, crypto, identity, HUD, tours, push, journal image export
+├── scripts/               # Vite /api middleware, Mongo maintenance, Bun polyfill, self-checks (auth, quests, push, journal export)
 ├── public/                # favicon, logo, backdrop SVGs, service worker, manifest
-└── .env.example
+├── .github/workflows/     # CI (lint, format check, typecheck, knip)
+├── .husky/                # git hooks (pre-commit, pre-push)
+├── .env.example
+├── FILES.md               # what every file in the repo does
+└── DEPLOYMENT.md          # full rehost guide: Vercel + MongoDB Atlas + cron-job.org
 ```
+
+See [FILES.md](FILES.md) for a per-file guide and [DEPLOYMENT.md](DEPLOYMENT.md) to host your own copy.
 
 ### Frontend views
 
 | View         | Module             | Role                                                                                                                       |
 | ------------ | ------------------ | -------------------------------------------------------------------------------------------------------------------------- |
 | Landing      | `landing.tsx`      | Pre-auth marketing page; lazy-loaded, skipped on returning devices. Footer links to Transparency, Privacy Policy and Terms |
-| Login        | `login.tsx`        | Boot, unlock, create (phrase → verify → passphrase), recover                                                               |
+| Login        | `login.tsx`        | Secure Terminal: boot, unlock (passphrase or Face ID), create (phrase → verify → passphrase), recover                      |
 | Archive      | `list.tsx`         | Timeline / stack layouts, search, tags, replay tour                                                                        |
-| Reader       | `reader.tsx`       | Read a decrypted entry                                                                                                     |
+| Reader       | `reader.tsx`       | Read a decrypted entry; export it as PNG pages                                                                             |
 | Composer     | `composer.tsx`     | Create / edit entry (mood, energy, weather, tags)                                                                          |
 | Profile      | `profile.tsx`      | Operator, AURA, quests, import/export; Data panel links to Transparency, Privacy Policy and Terms                          |
 | Transparency | `transparency.tsx` | Data-flow diagram + schema documentation                                                                                   |
 | Legal        | `legal.tsx`        | Privacy Policy and Terms & Conditions (static copy, reached from Landing or Profile → Data)                                |
 
-Supporting modules: `app.tsx` (session + routing), `crypto.ts` / `identity.ts`, `faceid.ts` (WebAuthn PRF platform passkey), `api.ts`, `hud.tsx` (SoundManager, TopBar, Panel/Btn), `tours.ts` (Shepherd), `push.ts` (Web Push subscribe/sync), `quests.ts` (re-exports `shared/quests.ts` for the UI).
+Supporting modules: `app.tsx` (session + routing), `crypto.ts` / `identity.ts`, `faceid.ts` (WebAuthn PRF platform passkey), `api.ts`, `hud.tsx` (TopBar, Panel/Btn, Backdrop, ErrorBoundary), `sound.ts` (SoundManager), `motion.ts` (anime.js entrance / scroll hooks), `format.ts` (date + time stamps), `types.ts` (UI types, `DeviceIdentity`), `tours.ts` (Shepherd), `push.ts` (Web Push subscribe/sync), and the entry-to-image export trio: `journal-export-dialog.tsx` (preview + download), `journal-export.ts` (canvas renderer), `journal-pagination.ts` (text wrap + page layout). Quest logic is imported straight from `shared/quests.ts`.
 
 ## Legal
 
@@ -80,7 +86,9 @@ bun run build
 # deploy to Vercel with the same env vars in the project dashboard
 ```
 
-Deployed builds call same-origin `/api/*` on Vercel.
+Deployed builds call same-origin `/api/*` on Vercel. `vercel.json` also sets a strict CSP, `Referrer-Policy: no-referrer` and `X-Content-Type-Options: nosniff`; `vite preview` mirrors them from the same file.
+
+Step-by-step hosting (MongoDB Atlas, Vercel, cron-job.org, every env var): **[DEPLOYMENT.md](DEPLOYMENT.md)**.
 
 ## Environment
 
@@ -107,21 +115,21 @@ Deployed builds call same-origin `/api/*` on Vercel.
 6. **Recover** — mnemonic unwraps DEK via `GET /api/auth/bundle`, then `POST /api/auth/recover` proves possession with `dekVerifier` before rotating passphrase wraps — without this check, anyone who learned an `accountId` could overwrite a stranger's wraps and lock them out for good
 7. **Face ID (optional, per device)** — enrolling asks WebAuthn for a platform passkey with the PRF extension, then wraps the session's passphrase KEK under a key derived from the PRF output (`src/faceid.ts`); unlocking derives the same KEK from a fresh biometric read and logs in exactly like a passphrase would — the server can't tell the two apart, and losing the passkey just falls back to the passphrase
 
-Device identity in `localStorage` (`journs.identity.v1`) holds only `accountId`, `salt`, and `createdAt` — never a DEK wrap, so reading it alone grants nothing. Quest / AURA progress is **plaintext on the server** so day/week rollover can run without the DEK.
+Device identity in `localStorage` (`journs.identity.v1`) holds only `accountId`, `salt`, `createdAt`, and `operatorId` (a display callsign derived from `accountId`) — never a DEK wrap, so reading it alone grants nothing. Quest / AURA progress is **plaintext on the server** so day/week rollover can run without the DEK.
 
 In-app detail: **Profile → TRANSPARENCY** (Mermaid diagram + every schema).
 
 ## Data schemas (summary)
 
-| Schema                            | Location              | Visibility                                                            |
-| --------------------------------- | --------------------- | --------------------------------------------------------------------- |
-| `JournalEntry`                    | `shared/schemas.ts`   | Client memory + local export only                                     |
-| Encrypted entry                   | `api/_lib/schemas.ts` | Wire + Mongo `entries`                                                |
-| `UserDoc`                         | `api/_lib/db.ts`      | Mongo `users` (wraps + `authVerifier` + `dekVerifier`)                |
-| `QuestProgress`                   | `shared/schemas.ts`   | Wire + Mongo `quest_progress`                                         |
-| Register / login / recover bodies | `api/_lib/schemas.ts` | Auth HTTP                                                             |
-| Device identity                   | `src/identity.ts`     | `localStorage` `journs.identity.v1` (accountId, salt, createdAt only) |
-| Face ID enrollment                | `src/faceid.ts`       | `localStorage` `journs.faceid.v1` (wrapped passKek, never the DEK)    |
+| Schema                            | Location              | Visibility                                                                   |
+| --------------------------------- | --------------------- | ---------------------------------------------------------------------------- |
+| `JournalEntry`                    | `shared/schemas.ts`   | Client memory + local export only                                            |
+| Encrypted entry                   | `api/_lib/schemas.ts` | Wire + Mongo `entries`                                                       |
+| `UserDoc`                         | `api/_lib/db.ts`      | Mongo `users` (wraps + `authVerifier` + `dekVerifier`)                       |
+| `QuestProgress`                   | `shared/schemas.ts`   | Wire + Mongo `quest_progress`                                                |
+| Register / login / recover bodies | `api/_lib/schemas.ts` | Auth HTTP                                                                    |
+| Device identity                   | `src/identity.ts`     | `localStorage` `journs.identity.v1` (accountId, salt, createdAt, operatorId) |
+| Face ID enrollment                | `src/faceid.ts`       | `localStorage` `journs.faceid.v1` (wrapped passKek, never the DEK)           |
 
 **`JournalEntry` fields:** `id`, `date`, `title`, `mood` (1–5), `energy` (1–5), `weather`, `tags[]`, `body`.
 
@@ -150,6 +158,10 @@ From **Profile → DATA**:
 - **Export JSON** — decrypted plaintext backup (`journs-export-YYYYMMDD.json`)
 - **Import JSON** — merge by entry `id` (imported wins), re-encrypt, sync
 
+From **Reader** (any entry):
+
+- **Export images** — renders the decrypted entry client-side onto 1080×1350 PNG pages (paginated, grapheme-aware wrapping) and downloads them. Nothing leaves the device.
+
 ## Product tour
 
 - Shepherd.js tour on first unlock (archive → compose → profile → done)
@@ -158,7 +170,7 @@ From **Profile → DATA**:
 
 ## Audio
 
-Howler-backed SFX in `SoundManager` (`src/hud.tsx`), gated by the topbar toggle (`localStorage` `journs.sound`):
+Howler-backed SFX in `SoundManager` (`src/sound.ts`), gated by the topbar toggle (`localStorage` `journs.sound`):
 
 | File             | Trigger                                      |
 | ---------------- | -------------------------------------------- |
@@ -249,7 +261,7 @@ Destructive. Both require `--confirm`.
 # Wipe every collection in MONGODB_DB
 bun run db:drop-all -- --confirm
 
-# Delete users inactive >90 days (and their entries + quest_progress)
+# Delete users inactive >90 days (and their entries + quest_progress + push_subscriptions)
 bun run db:purge-stale -- --confirm
 ```
 
@@ -257,31 +269,34 @@ Scripts preload a Bun v8 polyfill so the MongoDB `bson` package can load. Inacti
 
 ## Scripts
 
-| Command                  | Purpose                                                           |
-| ------------------------ | ----------------------------------------------------------------- |
-| `bun run dev`            | Vite SPA + in-process `/api`                                      |
-| `bun run build`          | Typecheck + production build                                      |
-| `bun run preview`        | Preview production build                                          |
-| `bun run check:push`     | Reminder scheduling + service worker logic                        |
-| `bun run check:quests`   | Quest satisfaction, max streak, sinceDay settle                   |
-| `bun run check:auth`     | `dekVerifier` derivation + recover-auth branching, CORS allowlist |
-| `bun run db:drop-all`    | Drop all collections                                              |
-| `bun run db:purge-stale` | Purge inactive users                                              |
-| `bun run lint`           | ESLint over the whole repo                                        |
-| `bun run lint:fix`       | ESLint with autofix                                               |
-| `bun run format`         | Prettier, write mode                                              |
-| `bun run format:check`   | Prettier, check mode (no writes)                                  |
-| `bun run typecheck`      | `tsc -b` only, no bundling                                        |
-| `bun run check:knip`     | Unused files, exports, and dependencies                           |
+| Command                        | Purpose                                                           |
+| ------------------------------ | ----------------------------------------------------------------- |
+| `bun run dev`                  | Vite SPA + in-process `/api`                                      |
+| `bun run build`                | Typecheck + production build                                      |
+| `bun run preview`              | Preview production build                                          |
+| `bun run check:push`           | Reminder scheduling + service worker logic                        |
+| `bun run check:quests`         | Quest satisfaction, max streak, sinceDay settle                   |
+| `bun run check:auth`           | `dekVerifier` derivation + recover-auth branching, CORS allowlist |
+| `bun run check:journal-export` | Text wrapping + page pagination for the image export              |
+| `bun run db:drop-all`          | Drop all collections                                              |
+| `bun run db:purge-stale`       | Purge inactive users                                              |
+| `bun run lint`                 | ESLint over the whole repo                                        |
+| `bun run lint:fix`             | ESLint with autofix                                               |
+| `bun run format`               | Prettier, write mode                                              |
+| `bun run format:check`         | Prettier, check mode (no writes)                                  |
+| `bun run typecheck`            | `tsc -b` only, no bundling                                        |
+| `bun run check:knip`           | Unused files, exports, and dependencies                           |
 
 ## Tooling
 
 `bun install` runs `prepare` (Husky v9), which wires up two git hooks — no manual step needed on a fresh clone (if it doesn't fire, `bunx husky` once covers it):
 
 - **pre-commit** — `lint-staged` runs ESLint (`--fix`) and Prettier on staged `*.{ts,tsx}` files, and Prettier alone on staged `*.{css,json,md}`. Scoped to what you're committing; never blocks on pre-existing issues elsewhere.
-- **pre-push** — the real gate, since this repo has no CI: `typecheck` → `lint` → `format:check` → `check:knip` → `check:auth` → `check:quests` → `check:push`, in order. Any failure blocks the push.
+- **pre-push** — the cross-file checks: `typecheck` → `check:knip` → `check:auth` → `check:quests` → `check:push` → `check:journal-export`, in order. Any failure blocks the push. Lint and format aren't repeated here — pre-commit already enforces them per file.
 
-Config lives in `eslint.config.js` (flat config), `.prettierrc.json` / `.prettierignore`, and `knip.config.ts`.
+**CI** (`.github/workflows/ci.yml`, on push to `develop` and on pull requests) runs `lint`, `format:check`, `typecheck` and `check:knip` with `bun install --frozen-lockfile`. It catches anything committed with `--no-verify`; the `check:*` self-checks run only in the pre-push hook.
+
+Config lives in `eslint.config.js` (flat config), `.prettierrc.json`, and `knip.config.ts`.
 
 ## License
 

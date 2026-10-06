@@ -1,6 +1,0 @@
-dist
-.vercel
-bun.lock
-node_modules
-public/logo.png
-public/favicon.ico
